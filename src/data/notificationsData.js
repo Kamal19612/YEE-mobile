@@ -1,0 +1,68 @@
+/** Données de démo — Phase 4 (notifications page) */
+
+export const demoNotifications = [
+  {
+    id: 21,
+    text: 'Sophie Durand liked your update',
+    time: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+    unread: true,
+    component: 'activity',
+    href: '/',
+  },
+  {
+    id: 22,
+    text: 'You were mentioned in Design Crew',
+    time: new Date(Date.now() - 1000 * 60 * 40).toISOString(),
+    unread: true,
+    component: 'groups',
+    href: '/groups/7',
+  },
+  {
+    id: 23,
+    text: 'Julien Petit sent you a friend request',
+    time: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
+    unread: true,
+    component: 'friends',
+    href: '/members/3',
+  },
+  {
+    id: 24,
+    text: 'New reply in “Welcome to the community”',
+    time: new Date(Date.now() - 1000 * 60 * 60 * 26).toISOString(),
+    unread: false,
+    component: 'activity',
+    href: '/',
+  },
+  {
+    id: 25,
+    text: 'Camille Roux invited you to Design Crew',
+    time: new Date(Date.now() - 1000 * 60 * 60 * 30).toISOString(),
+    unread: false,
+    component: 'groups',
+    href: '/groups/7',
+  },
+  {
+    id: 26,
+    text: 'Lucas Moreau accepted your friend request',
+    time: new Date(Date.now() - 1000 * 60 * 60 * 50).toISOString(),
+    unread: false,
+    component: 'friends',
+    href: '/members/6',
+  },
+  {
+    id: 27,
+    text: 'New message from Sophie Durand',
+    time: new Date(Date.now() - 1000 * 60 * 60 * 52).toISOString(),
+    unread: true,
+    component: 'messages',
+    href: '/messages/11',
+  },
+  {
+    id: 28,
+    text: 'Paris Meetup has a new update',
+    time: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(),
+    unread: false,
+    component: 'groups',
+    href: '/groups/8',
+  },
+]
