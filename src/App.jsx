@@ -31,7 +31,7 @@ export default function App() {
     <ThemeProvider>
       <LayoutProvider>
         <CartProvider>
-          <BrowserRouter>
+          <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '') || '/'}>
             <AppShell>
               <Routes>
                 <Route path="/" element={<ActivityPage />} />
