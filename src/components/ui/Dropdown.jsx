@@ -10,7 +10,7 @@ export function Dropdown({
   align = 'right',
   className,
   panelClassName,
-  width = 'w-[360px]',
+  width = 'bb:w-[360px]',
 }) {
   const { openDropdown, toggleDropdown, closeDropdowns } = useLayout()
   const open = openDropdown === id
@@ -18,11 +18,11 @@ export function Dropdown({
 
   useEffect(() => {
     if (!open) return undefined
-    const onClick = (e) => {
+    const onPointer = (e) => {
       if (ref.current && !ref.current.contains(e.target)) closeDropdowns()
     }
-    document.addEventListener('mousedown', onClick)
-    return () => document.removeEventListener('mousedown', onClick)
+    document.addEventListener('pointerdown', onPointer)
+    return () => document.removeEventListener('pointerdown', onPointer)
   }, [open, closeDropdowns])
 
   return (
@@ -32,7 +32,7 @@ export function Dropdown({
     >
       <button
         type="button"
-        className="notification-link relative flex items-center justify-center text-bb-header-link hover:text-bb-header-link-hover"
+        className="notification-link relative flex h-10 w-10 items-center justify-center text-bb-header-link hover:text-bb-header-link-hover"
         aria-expanded={open}
         aria-haspopup="true"
         onClick={() => toggleDropdown(id)}
@@ -43,9 +43,11 @@ export function Dropdown({
       {open && (
         <section
           className={clsx(
-            'notification-dropdown absolute top-[calc(100%+10px)] z-dropdown overflow-hidden rounded-bb border border-bb-border bg-bb-content shadow-dropdown',
+            'notification-dropdown z-dropdown overflow-hidden rounded-bb border border-bb-border bg-bb-content shadow-dropdown',
+            'fixed inset-x-2.5 top-[calc(var(--bb-header-height)+8px)] w-auto max-h-[min(72vh,520px)] overflow-y-auto',
+            'bb:absolute bb:inset-x-auto bb:top-[calc(100%+10px)] bb:max-h-[min(70vh,480px)]',
             width,
-            align === 'right' ? 'right-0' : 'left-0',
+            align === 'right' ? 'bb:right-0' : 'bb:left-0',
             panelClassName,
           )}
         >

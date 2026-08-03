@@ -19,19 +19,19 @@ export function ProfileNav({ memberId, isOwn }) {
 
   return (
     <nav
-      className="main-navs bp-navs no-ajax bp-single-vertical-nav mb-5 overflow-x-auto rounded-bb border border-bb-border bg-bb-content"
+      className="main-navs bp-navs no-ajax bp-single-vertical-nav mb-5 rounded-bb border border-bb-border bg-bb-content"
       role="navigation"
       aria-label="Profile menu"
     >
-      <ul className="m-0 flex list-none gap-0 p-0">
+      <ul className="bb-scroll-tabs m-0 list-none gap-0 p-0">
         {tabs.map((tab) => (
-          <li key={tab.id}>
+          <li key={tab.id} className="shrink-0">
             <NavLink
               to={tab.to}
               end={tab.id === 'activity'}
               className={({ isActive }) =>
                 clsx(
-                  'block whitespace-nowrap border-b-2 px-4 py-3 text-bb-sm font-medium transition-colors',
+                  'block whitespace-nowrap border-b-2 px-3 py-3 text-bb-sm font-medium transition-colors sm:px-4',
                   isActive
                     ? 'border-bb-primary text-bb-primary'
                     : 'border-transparent text-bb-text hover:text-bb-heading',

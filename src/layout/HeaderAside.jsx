@@ -16,7 +16,7 @@ export function HeaderAside({ isLoggedIn = true }) {
           <>
             <button
               type="button"
-              className="header-search-link hidden text-bb-header-link hover:text-bb-header-link-hover bb:inline-flex"
+              className="header-search-link hidden h-10 w-10 items-center justify-center text-bb-header-link hover:text-bb-header-link-hover bb:inline-flex"
               onClick={toggleSearch}
               aria-label="Search"
             >

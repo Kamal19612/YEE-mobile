@@ -129,16 +129,16 @@ function GroupNav({ groupId, isMember }) {
   if (isMember) tabs.push({ id: 'invite', label: 'Invite', to: `/groups/${groupId}/invite` })
 
   return (
-    <nav className="mb-5 overflow-x-auto rounded-bb border border-bb-border bg-bb-content" aria-label="Group menu">
-      <ul className="m-0 flex list-none p-0">
+    <nav className="mb-5 rounded-bb border border-bb-border bg-bb-content" aria-label="Group menu">
+      <ul className="bb-scroll-tabs m-0 list-none p-0">
         {tabs.map((tab) => (
-          <li key={tab.id}>
+          <li key={tab.id} className="shrink-0">
             <NavLink
               to={tab.to}
               end={tab.id === 'activity'}
               className={({ isActive }) =>
                 clsx(
-                  'block whitespace-nowrap border-b-2 px-4 py-3 text-bb-sm font-medium',
+                  'block whitespace-nowrap border-b-2 px-3 py-3 text-bb-sm font-medium sm:px-4',
                   isActive
                     ? 'border-bb-primary text-bb-primary'
                     : 'border-transparent text-bb-text hover:text-bb-heading',

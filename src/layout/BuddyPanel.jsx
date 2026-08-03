@@ -126,11 +126,11 @@ export function BuddyPanel({ items = panelItems }) {
         <div className="bb:hidden">
           <button
             type="button"
-            className="fixed inset-0 z-mobile bg-black/40"
+            className="fixed inset-0 z-[620] bg-black/40"
             aria-label="Close menu overlay"
             onClick={closeMobilePanel}
           />
-          <aside className="buddypanel fixed bottom-0 left-0 top-0 z-mobile flex w-panel-open flex-col bg-bb-sidenav shadow-panel">
+          <aside className="buddypanel fixed bottom-0 left-0 top-0 z-[621] flex w-[min(100vw-3rem,230px)] max-w-[85vw] flex-col bg-bb-sidenav shadow-panel">
             <header className="panel-head flex h-header items-center justify-between px-3">
               <SiteLogo />
               <button
@@ -142,7 +142,7 @@ export function BuddyPanel({ items = panelItems }) {
                 <IconClose />
               </button>
             </header>
-            <div className="side-panel-inner flex-1 overflow-y-auto px-2 pb-4">
+            <div className="side-panel-inner flex-1 overflow-y-auto overscroll-contain px-2 pb-4">
               <ul className="m-0 list-none p-0">
                 {renderItems({ onNavigate: closeMobilePanel, forceExpanded: true })}
               </ul>

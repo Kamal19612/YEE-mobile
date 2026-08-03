@@ -45,14 +45,14 @@ export function ProfileSettings({ member }) {
         </Link>
       </header>
 
-      <nav id="subnav" className="mb-4 overflow-x-auto" aria-label="Settings sub menu">
-        <ul className="subnav m-0 flex list-none gap-1 p-0">
+      <nav id="subnav" className="mb-4" aria-label="Settings sub menu">
+        <ul className="subnav bb-scroll-tabs m-0 list-none gap-1 p-0">
           {SETTINGS_TABS.map((t) => (
-            <li key={t.id}>
+            <li key={t.id} className="shrink-0">
               <button
                 type="button"
                 onClick={() => setTab(t.id)}
-                className={`rounded-bb-inner px-3 py-1.5 text-bb-sm font-medium ${
+                className={`rounded-bb-inner px-3 py-2 text-bb-sm font-medium ${
                   tab === t.id ? 'bg-bb-primary text-white' : 'bg-bb-alt text-bb-text'
                 }`}
               >

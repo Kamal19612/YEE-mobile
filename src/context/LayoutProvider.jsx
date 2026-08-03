@@ -32,6 +32,15 @@ export function LayoutProvider({ children }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [closeDropdowns, closeSearch, closeMobilePanel])
 
+  useEffect(() => {
+    const lock = mobilePanelOpen || searchOpen
+    const previous = document.body.style.overflow
+    if (lock) document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previous
+    }
+  }, [mobilePanelOpen, searchOpen])
+
   const value = useMemo(
     () => ({
       panelOpen,

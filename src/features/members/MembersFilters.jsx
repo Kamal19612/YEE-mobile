@@ -20,14 +20,14 @@ export function MembersFilters({
       </div>
 
       <div className="push-right flex flex-wrap items-center gap-2">
-        <label className="relative block min-w-[180px] flex-1 bb:flex-none">
+        <label className="relative block min-w-0 w-full flex-1 sm:min-w-[180px] bb:flex-none bb:w-auto">
           <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-bb-muted" />
           <input
             type="search"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search members..."
-            className="h-9 w-full rounded-bb-input border border-bb-border bg-bb-content py-1.5 pl-9 pr-3 text-bb-sm outline-none focus:border-bb-primary"
+            className="h-10 w-full rounded-bb-input border border-bb-border bg-bb-content py-1.5 pl-9 pr-3 text-bb-sm outline-none focus:border-bb-primary"
           />
         </label>
 

@@ -14,9 +14,8 @@ export function AppShell({ children, isLoggedIn = true }) {
       <div
         id="page"
         className={clsx(
-          'site flex min-h-screen flex-col transition-[margin] duration-panel',
-          'bb:ml-panel',
-          panelOpen && 'bb:ml-panel-open',
+          'site flex min-h-screen flex-col overflow-x-hidden transition-[margin] duration-panel',
+          panelOpen ? 'bb:ml-panel-open' : 'bb:ml-panel',
         )}
       >
         <Header isLoggedIn={isLoggedIn} />
@@ -24,7 +23,7 @@ export function AppShell({ children, isLoggedIn = true }) {
 
         <div id="content" className="site-content flex-1">
           <div className="bb-container">
-            <div className="bb-grid site-content-grid py-bb-7">{children}</div>
+            <div className="bb-grid site-content-grid py-4 bb:py-bb-7">{children}</div>
           </div>
         </div>
 

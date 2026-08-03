@@ -14,7 +14,7 @@ export function CartDropdown() {
   return (
     <Dropdown
       id="cart"
-      width="w-[340px]"
+      width="bb:w-[340px]"
       trigger={
         <span data-balloon-pos="down" data-balloon="Cart" className="relative inline-flex">
           <IconCart />
@@ -53,7 +53,8 @@ export function CartDropdown() {
                 </div>
                 <button
                   type="button"
-                  className="text-bb-xs text-bb-danger"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-bb-inner text-bb-lg leading-none text-bb-danger hover:bg-bb-alt"
+                  aria-label={`Remove ${item.name}`}
                   onClick={() => removeItem(item.id)}
                 >
                   ×

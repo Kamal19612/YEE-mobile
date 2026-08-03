@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
 import { Avatar } from '../../components/ui/Avatar'
 import { IconEllipsis, IconGlobe, IconUsersLock } from '../../components/icons'
@@ -17,22 +17,36 @@ export function ActivityCard({
   const [commentsOpen, setCommentsOpen] = useState(
     defaultCommentsOpen || (activity.comments?.length > 0 && activity.commentCount <= 3),
   )
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [hidden, setHidden] = useState(false)
+  const menuRef = useRef(null)
+
+  useEffect(() => {
+    if (!menuOpen) return undefined
+    const onPointer = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointer)
+    return () => document.removeEventListener('pointerdown', onPointer)
+  }, [menuOpen])
 
   const isGroup = activity.component === 'groups' && activity.group
+
+  if (hidden) return null
 
   return (
     <li
       id={`activity-${activity.id}`}
       data-bp-activity-id={activity.id}
       className={clsx(
-        'activity-item mb-5 list-none rounded-bb border border-bb-border bg-bb-content p-[15px] pb-2.5 text-[0.875rem] leading-normal',
+        'activity-item mb-5 list-none rounded-bb border border-bb-border bg-bb-content p-3 pb-2.5 text-[0.875rem] leading-normal sm:p-[15px]',
         activity.favorited && 'has-liked',
       )}
     >
       <div className="bp-activity-head mb-3 flex gap-3">
         {isGroup ? (
-          <div className="bp-activity-head-group flex gap-3">
-            <div className="activity-group-avatar relative">
+          <div className="bp-activity-head-group flex min-w-0 flex-1 gap-3">
+            <div className="activity-group-avatar relative shrink-0">
               <Avatar name={activity.group.name} src={activity.group.avatar} size="lg" />
               <div className="author-avatar absolute -bottom-1 -right-1 rounded-full ring-2 ring-bb-content">
                 <Avatar name={activity.userName} src={activity.avatar} size="sm" />
@@ -80,13 +94,46 @@ export function ActivityCard({
           </>
         )}
 
-        <button
-          type="button"
-          className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-bb-inner text-bb-muted hover:bg-bb-alt hover:text-bb-heading"
-          aria-label="More options"
-        >
-          <IconEllipsis />
-        </button>
+        <div className="relative ml-auto shrink-0" ref={menuRef}>
+          <button
+            type="button"
+            className="flex h-10 w-10 items-center justify-center rounded-bb-inner text-bb-muted hover:bg-bb-alt hover:text-bb-heading"
+            aria-label="More options"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((v) => !v)}
+          >
+            <IconEllipsis />
+          </button>
+          {menuOpen && (
+            <ul className="absolute right-0 top-[calc(100%+4px)] z-dropdown m-0 min-w-[160px] list-none overflow-hidden rounded-bb border border-bb-border bg-bb-content p-0 shadow-dropdown">
+              <li>
+                <button
+                  type="button"
+                  className="block w-full px-4 py-2.5 text-left text-bb-sm text-bb-heading hover:bg-bb-alt"
+                  onClick={() => {
+                    const text = stripHtml(activity.content || '')
+                    navigator.clipboard?.writeText(text).catch(() => {})
+                    setMenuOpen(false)
+                  }}
+                >
+                  Copy text
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className="block w-full px-4 py-2.5 text-left text-bb-sm text-bb-heading hover:bg-bb-alt"
+                  onClick={() => {
+                    setHidden(true)
+                    setMenuOpen(false)
+                  }}
+                >
+                  Hide post
+                </button>
+              </li>
+            </ul>
+          )}
+        </div>
       </div>
 
       <div className="activity-content mb-2">

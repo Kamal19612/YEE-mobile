@@ -63,20 +63,20 @@ export function SearchPage() {
 
       <div className="bp-search-results-wrapper dir-form">
         <nav
-          className="search_filters item-list-tabs mb-4 overflow-x-auto"
+          className="search_filters item-list-tabs mb-4"
           role="navigation"
           aria-label="Search filters"
         >
-          <ul className="component-navigation search-nav m-0 flex list-none gap-1 p-0">
+          <ul className="component-navigation search-nav bb-scroll-tabs m-0 list-none gap-1 p-0">
             {SEARCH_TABS.map((t) => {
               const count = t.id === 'all' ? total : counts[t.id] || 0
               return (
-                <li key={t.id}>
+                <li key={t.id} className="shrink-0">
                   <button
                     type="button"
                     onClick={() => setActiveTab(t.id)}
                     className={clsx(
-                      'rounded-bb-inner px-3 py-1.5 text-bb-sm font-medium whitespace-nowrap',
+                      'rounded-bb-inner px-3 py-2 text-bb-sm font-medium whitespace-nowrap',
                       tab === t.id ? 'bg-bb-primary text-white' : 'bg-bb-alt text-bb-text',
                     )}
                   >

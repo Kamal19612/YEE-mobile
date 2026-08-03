@@ -72,6 +72,14 @@ export function IconAngleRight(props) {
   )
 }
 
+export function IconAngleLeft(props) {
+  return (
+    <svg {...base} width={20} height={20} {...props}>
+      <path d="M15 6l-6 6 6 6" />
+    </svg>
+  )
+}
+
 export function IconClose(props) {
   return (
     <svg {...base} {...props}>
