@@ -30,7 +30,7 @@ export function HeaderSearch() {
   }
 
   return (
-    <div className="fixed inset-0 z-[630]">
+    <div className="fixed inset-0 z-search">
       <button
         type="button"
         className="absolute inset-0 bg-black/40"

@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Avatar } from '../components/ui/Avatar'
 import { IconAngleDown } from '../components/icons'
@@ -13,6 +13,7 @@ export function HeaderProfileMenu({
   mode = 'name_and_avatar',
 }) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const { openDropdown, toggleDropdown, closeDropdowns } = useLayout()
   const open = openDropdown === 'profile'
   const ref = useRef(null)
@@ -26,6 +27,12 @@ export function HeaderProfileMenu({
     return () => document.removeEventListener('pointerdown', onPointer)
   }, [open, closeDropdowns])
 
+  const go = (href, e) => {
+    e?.preventDefault()
+    closeDropdowns()
+    navigate(href)
+  }
+
   return (
     <div
       ref={ref}
@@ -38,7 +45,11 @@ export function HeaderProfileMenu({
           mode === 'avatar' ? 'h-10 w-10 justify-center' : 'rounded-bb-inner py-1 pl-1 pr-2 hover:bg-bb-alt',
         )}
         aria-expanded={open}
-        onClick={() => toggleDropdown('profile')}
+        aria-haspopup="true"
+        onClick={(e) => {
+          e.stopPropagation()
+          toggleDropdown('profile')
+        }}
       >
         {mode === 'name_and_avatar' && (
           <>
@@ -54,33 +65,48 @@ export function HeaderProfileMenu({
           className={clsx(
             'sub-menu z-dropdown overflow-hidden rounded-bb border border-bb-border bg-bb-content shadow-dropdown',
             'fixed inset-x-2.5 top-[calc(var(--bb-header-height)+8px)] w-auto',
-            'bb:absolute bb:inset-x-auto bb:right-0 bb:top-[calc(100%+10px)] bb:w-64',
+            'bb:inset-x-auto bb:right-4 bb:w-64',
           )}
+          onPointerDown={(e) => e.stopPropagation()}
         >
           <div className="wrapper">
             <ul className="sub-menu-inner m-0 list-none p-0">
               <li className="border-b border-bb-border px-4 py-3">
-                <Link
-                  to={`/members/${user.id}`}
-                  className="user-link flex items-center gap-3"
-                  onClick={closeDropdowns}
+                <button
+                  type="button"
+                  className="user-link flex w-full items-center gap-3 text-left"
+                  onClick={(e) => go(`/members/${user.id}`, e)}
                 >
                   <Avatar name={user.displayName} src={user.avatar} size="lg" />
                   <span>
                     <span className="user-name block font-semibold text-bb-heading">{user.displayName}</span>
                     <span className="user-mention text-bb-sm text-bb-muted">@{user.mentionName}</span>
                   </span>
-                </Link>
+                </button>
               </li>
               {items.map((item) => (
                 <li key={item.id}>
-                  <Link
-                    to={item.href}
-                    onClick={closeDropdowns}
-                    className="block px-4 py-3 text-bb-sm text-bb-heading hover:bg-bb-alt hover:text-bb-primary"
-                  >
-                    {t(item.labelKey)}
-                  </Link>
+                  {item.id === 'logout' ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        closeDropdowns()
+                        window.alert(t('profile.logoutDone', { defaultValue: 'Session terminée (mock).' }))
+                        navigate('/')
+                      }}
+                      className="block w-full px-4 py-3 text-left text-bb-sm text-bb-heading hover:bg-bb-alt hover:text-bb-primary"
+                    >
+                      {t(item.labelKey)}
+                    </button>
+                  ) : (
+                    <Link
+                      to={item.href}
+                      onClick={closeDropdowns}
+                      className="block px-4 py-3 text-bb-sm text-bb-heading hover:bg-bb-alt hover:text-bb-primary"
+                    >
+                      {t(item.labelKey)}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>

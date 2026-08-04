@@ -1,71 +1,65 @@
 import { demoActivities } from '../../data/activityData'
 import { ActivityCard } from '../activity/ActivityCard'
 import { ActivityComposer } from '../activity/ActivityComposer'
+import { applyComment, buildStoryPost } from '../activity/storyHelpers'
 import { useMemo, useState } from 'react'
 
 export function ProfileTimeline({ member, isOwn }) {
-  const initial = useMemo(
-    () => demoActivities.filter((a) => a.userId === member.id || a.userName === member.displayName),
-    [member],
-  )
-  const [posts, setPosts] = useState(
-    initial.length
-      ? initial
-      : [
-          {
-            id: `profile-${member.id}`,
-            userId: member.id,
-            userName: member.displayName,
-            userLink: `#`,
-            avatar: member.avatar,
-            content: member.bio || `${member.displayName} joined the community.`,
-            date: member.joined,
-            component: 'activity',
-            type: 'activity_update',
-            privacy: 'public',
-            favorited: false,
-            favoriteCount: 0,
-            commentCount: 0,
-            edited: false,
-            group: null,
-            media: [],
-            comments: [],
-          },
-        ],
-  )
+  const author = {
+    id: member.id,
+    displayName: member.displayName,
+    mentionName: member.mentionName,
+    avatar: member.avatar,
+  }
+
+  const initial = useMemo(() => {
+    const filtered = demoActivities.filter(
+      (a) => a.userId === member.id || a.userName === member.displayName,
+    )
+    if (filtered.length) {
+      return filtered.map((a) => ({
+        ...a,
+        status: a.status || 'published',
+        userLink: `/members/${member.id}`,
+      }))
+    }
+    return [
+      {
+        id: `profile-${member.id}`,
+        userId: member.id,
+        userName: member.displayName,
+        userLink: `/members/${member.id}`,
+        avatar: member.avatar,
+        content: member.bio || `${member.displayName} a rejoint la plateforme AfrEA-YEE.`,
+        date: member.joined,
+        component: 'activity',
+        type: 'story',
+        privacy: 'public',
+        status: 'published',
+        favorited: false,
+        favoriteCount: 0,
+        commentCount: 0,
+        edited: false,
+        group: null,
+        media: [],
+        comments: [],
+      },
+    ]
+  }, [member])
+
+  const [posts, setPosts] = useState(initial)
 
   return (
     <div>
       {isOwn && (
         <ActivityComposer
-          user={{
-            id: member.id,
-            displayName: member.displayName,
-            mentionName: member.mentionName,
-            avatar: member.avatar,
-          }}
-          onSubmit={async ({ content, privacy, media, poll }) => {
+          user={author}
+          onSubmit={async (payload) => {
             setPosts((prev) => [
-              {
-                id: Date.now(),
-                userId: member.id,
-                userName: member.displayName,
-                userLink: `#`,
-                avatar: member.avatar,
-                content,
-                date: new Date().toISOString(),
-                component: 'activity',
-                type: 'activity_update',
-                privacy,
-                favorited: false,
-                favoriteCount: 0,
-                commentCount: 0,
-                edited: false,
-                group: null,
-                media: media || [],
-                poll: poll || null,
-                comments: [],
-              },
+              buildStoryPost({
+                user: author,
+                payload: { ...payload, status: payload.status || 'pending' },
+              }),
               ...prev,
             ])
           }}
@@ -92,46 +86,9 @@ export function ProfileTimeline({ member, isOwn }) {
                 ),
               )
             }
-            onComment={(activityId, { content, parentId = 0 }) => {
-              const comment = {
-                id: Date.now(),
-                userId: member.id,
-                userName: member.displayName,
-                avatar: member.avatar,
-                content,
-                date: new Date().toISOString(),
-                children: [],
-              }
+            onComment={(activityId, payload) => {
               setPosts((prev) =>
-                prev.map((a) => {
-                  if (a.id !== activityId) return a
-                  if (!parentId) {
-                    return {
-                      ...a,
-                      commentCount: a.commentCount + 1,
-                      comments: [...(a.comments || []), comment],
-                    }
-                  }
-                  return a
-                })
-              )
-            }}
-            onVotePoll={(activityId, optionId) => {
-              setPosts((prev) =>
-                prev.map((a) => {
-                  if (a.id !== activityId || !a.poll || a.poll.votedOptionId) return a
-                  return {
-                    ...a,
-                    poll: {
-                      ...a.poll,
-                      votedOptionId: optionId,
-                      totalVotes: a.poll.totalVotes + 1,
-                      options: a.poll.options.map((o) =>
-                        o.id === optionId ? { ...o, votes: o.votes + 1 } : o,
-                      ),
-                    },
-                  }
-                }),
+                prev.map((a) => (a.id === activityId ? applyComment(a, payload, author) : a)),
               )
             }}
           />

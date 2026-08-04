@@ -69,8 +69,8 @@ export default {
         'bb-7': '1.875rem',
         'bb-8': '2.1875rem',
         header: 'var(--bb-header-height)',
-        panel: '68px',
-        'panel-open': '230px',
+        panel: 'var(--bb-panel-width)',
+        'panel-open': 'var(--bb-panel-width-open)',
       },
       maxWidth: {
         container: '1200px',
@@ -92,14 +92,20 @@ export default {
       height: {
         header: 'var(--bb-header-height)',
       },
+      width: {
+        panel: 'var(--bb-panel-width)',
+        'panel-open': 'var(--bb-panel-width-open)',
+      },
       screens: {
         bb: '800px',
       },
       zIndex: {
-        header: '610',
-        panel: '611',
-        dropdown: '1002',
-        mobile: '620',
+        header: 'var(--bb-z-header)',
+        panel: 'var(--bb-z-panel)',
+        mobile: 'var(--bb-z-mobile-overlay)',
+        'mobile-panel': 'var(--bb-z-mobile-panel)',
+        search: 'var(--bb-z-search)',
+        dropdown: 'var(--bb-z-dropdown)',
       },
       transitionDuration: {
         panel: '200ms',

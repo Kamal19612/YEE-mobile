@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { IconSearch } from '../../components/icons'
+import { Button } from '../../components/ui/Button'
 import { groupSortOptions, groupTypeFilters } from '../../data/groupsData'
 import { useGroups } from '../../hooks/useGroups'
 import { GroupCard } from './GroupCard'
@@ -9,11 +11,15 @@ import { GroupCard } from './GroupCard'
 /** Référence: buddypress/groups/index.php — cohortes AfrEA-YEE */
 export function GroupsPage() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState('active')
   const [typeFilter, setTypeFilter] = useState('all')
   const [view, setView] = useState('grid')
-  const { groups, total, loading, error, toggleMembership } = useGroups({
+  const [createOpen, setCreateOpen] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newDesc, setNewDesc] = useState('')
+  const { groups, total, loading, error, toggleMembership, createGroup } = useGroups({
     search,
     sort,
     typeFilter,
@@ -21,10 +27,54 @@ export function GroupsPage() {
 
   return (
     <div id="buddypress" className="buddypress-wrap w-full">
-      <header className="mb-4">
-        <h1 className="m-0 text-bb-xl font-semibold text-bb-heading">{t('groups.title')}</h1>
-        <p className="m-0 mt-1 text-bb-sm text-bb-text">{t('groups.subtitle')}</p>
+      <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="m-0 text-bb-xl font-semibold text-bb-heading">{t('groups.title')}</h1>
+          <p className="m-0 mt-1 text-bb-sm text-bb-text">{t('groups.subtitle')}</p>
+        </div>
+        <Button type="button" size="sm" onClick={() => setCreateOpen((v) => !v)}>
+          Créer une cohorte
+        </Button>
       </header>
+
+      {createOpen && (
+        <form
+          className="bb-card mb-5 space-y-3 p-4"
+          onSubmit={async (e) => {
+            e.preventDefault()
+            if (!newName.trim()) return
+            const g = await createGroup({ name: newName, description: newDesc })
+            setCreateOpen(false)
+            setNewName('')
+            setNewDesc('')
+            navigate(`/groups/${g.id}`)
+          }}
+        >
+          <h2 className="m-0 text-bb-md font-semibold text-bb-heading">Nouvelle cohorte</h2>
+          <input
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            placeholder="Nom de la cohorte"
+            required
+            className="h-10 w-full rounded-bb-input border border-bb-border px-3 text-bb-sm outline-none focus:border-bb-primary"
+          />
+          <textarea
+            value={newDesc}
+            onChange={(e) => setNewDesc(e.target.value)}
+            placeholder="Description"
+            rows={3}
+            className="w-full rounded-bb-input border border-bb-border px-3 py-2 text-bb-sm outline-none focus:border-bb-primary"
+          />
+          <div className="flex gap-2">
+            <Button type="submit" size="sm">
+              Créer
+            </Button>
+            <Button type="button" size="sm" variant="outline" onClick={() => setCreateOpen(false)}>
+              Annuler
+            </Button>
+          </div>
+        </form>
+      )}
 
       <div className="mb-5 flex flex-col gap-3 bb:flex-row bb:items-center bb:justify-between">
         <div className="bb-item-count text-bb-sm text-bb-text">

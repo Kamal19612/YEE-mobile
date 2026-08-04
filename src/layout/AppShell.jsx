@@ -6,6 +6,12 @@ import { Footer } from './Footer'
 import { Header } from './Header'
 import { HeaderMobile } from './HeaderMobile'
 
+/**
+ * Shell BuddyBoss-like :
+ * - BuddyPanel fixed (plein viewport)
+ * - #page décalé via ml-panel / ml-panel-open (breakpoint bb: unique)
+ * - Header sticky dans #page (colonne contenu)
+ */
 export function AppShell({ children, isLoggedIn = true }) {
   const { panelOpen } = useLayout()
 
@@ -15,15 +21,16 @@ export function AppShell({ children, isLoggedIn = true }) {
       <div
         id="page"
         className={clsx(
-          'site flex min-h-screen flex-col overflow-x-hidden transition-[margin] duration-panel',
-          panelOpen ? 'bb:ml-panel-open' : 'bb:ml-panel',
+          'site flex min-h-screen flex-col transition-[margin] duration-panel',
+          'bb:ml-panel',
+          panelOpen && 'bb:ml-panel-open',
         )}
       >
         <Header isLoggedIn={isLoggedIn} />
         <HeaderMobile isLoggedIn={isLoggedIn} />
         <OfflineBanner />
 
-        <div id="content" className="site-content flex-1">
+        <div id="content" className="site-content flex-1 overflow-x-hidden">
           <div className="bb-container">
             <div className="bb-grid site-content-grid py-4 bb:py-bb-7">{children}</div>
           </div>

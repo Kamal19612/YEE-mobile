@@ -9,6 +9,7 @@ import { demoActivities } from '../../data/activityData'
 import { useGroup } from '../../hooks/useGroups'
 import { ActivityCard } from '../activity/ActivityCard'
 import { ActivityComposer } from '../activity/ActivityComposer'
+import { applyComment, buildStoryPost } from '../activity/storyHelpers'
 import { formatTimeSince } from '../activity/utils'
 
 /** Référence: groups/single/home.php + invite-anyone.php */
@@ -158,9 +159,10 @@ function GroupActivity({ group }) {
   const initial = useMemo(
     () =>
       demoActivities
-        .filter((a) => a.group?.id === group.id || a.component === 'groups')
+        .filter((a) => a.group?.id === group.id || (a.component === 'groups' && a.group?.id === group.id))
         .map((a) => ({
           ...a,
+          status: a.status || 'published',
           group: { id: group.id, name: group.name, avatar: group.avatar, link: `/groups/${group.id}` },
           component: 'groups',
         })),
@@ -174,13 +176,14 @@ function GroupActivity({ group }) {
             id: `g-${group.id}-welcome`,
             userId: group.admins?.[0]?.id || 1,
             userName: group.admins?.[0]?.displayName || 'Admin',
-            userLink: '#',
+            userLink: `/members/${group.admins?.[0]?.id || 1}`,
             avatar: null,
-            content: `Welcome to ${group.name}! Introduce yourself below.`,
+            content: `Bienvenue dans ${group.name} ! Présentez-vous ci-dessous.`,
             date: group.created,
             component: 'groups',
-            type: 'activity_update',
+            type: 'story',
             privacy: 'public',
+            status: 'published',
             favorited: false,
             favoriteCount: 2,
             commentCount: 0,
@@ -196,28 +199,13 @@ function GroupActivity({ group }) {
     <div className="max-w-content">
       {group.isMember && (
         <ActivityComposer
-          onSubmit={async ({ content, privacy, media, poll }) => {
+          onSubmit={async (payload) => {
             setPosts((prev) => [
-              {
-                id: Date.now(),
-                userId: currentUser.id,
-                userName: currentUser.displayName,
-                userLink: `/members/${currentUser.id}`,
-                avatar: currentUser.avatar,
-                content,
-                date: new Date().toISOString(),
-                component: 'groups',
-                type: 'activity_update',
-                privacy,
-                favorited: false,
-                favoriteCount: 0,
-                commentCount: 0,
-                edited: false,
+              buildStoryPost({
+                user: currentUser,
+                payload: { ...payload, status: payload.status || 'pending' },
                 group: { id: group.id, name: group.name, avatar: group.avatar, link: `/groups/${group.id}` },
-                media: media || [],
-                poll: poll || null,
-                comments: [],
-              },
+              }),
               ...prev,
             ])
           }}
@@ -243,25 +231,10 @@ function GroupActivity({ group }) {
                 ),
               )
             }
-            onComment={(activityId, { content }) => {
-              const comment = {
-                id: Date.now(),
-                userId: currentUser.id,
-                userName: currentUser.displayName,
-                avatar: currentUser.avatar,
-                content,
-                date: new Date().toISOString(),
-                children: [],
-              }
+            onComment={(activityId, payload) => {
               setPosts((prev) =>
                 prev.map((a) =>
-                  a.id === activityId
-                    ? {
-                        ...a,
-                        commentCount: a.commentCount + 1,
-                        comments: [...(a.comments || []), comment],
-                      }
-                    : a,
+                  a.id === activityId ? applyComment(a, payload, currentUser) : a,
                 ),
               )
             }}

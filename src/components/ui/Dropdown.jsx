@@ -3,6 +3,9 @@ import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useLayout } from '../../context/LayoutProvider'
 
+/**
+ * Dropdown header — position fixed pour éviter le clip par overflow des ancêtres.
+ */
 export function Dropdown({
   id,
   trigger,
@@ -35,7 +38,10 @@ export function Dropdown({
         className="notification-link relative flex h-10 w-10 items-center justify-center text-bb-header-link hover:text-bb-header-link-hover"
         aria-expanded={open}
         aria-haspopup="true"
-        onClick={() => toggleDropdown(id)}
+        onClick={(e) => {
+          e.stopPropagation()
+          toggleDropdown(id)
+        }}
       >
         {trigger}
       </button>
@@ -45,11 +51,12 @@ export function Dropdown({
           className={clsx(
             'notification-dropdown z-dropdown overflow-hidden rounded-bb border border-bb-border bg-bb-content shadow-dropdown',
             'fixed inset-x-2.5 top-[calc(var(--bb-header-height)+8px)] w-auto max-h-[min(72vh,520px)] overflow-y-auto',
-            'bb:absolute bb:inset-x-auto bb:top-[calc(100%+10px)] bb:max-h-[min(70vh,480px)]',
+            'bb:inset-x-auto bb:top-[calc(var(--bb-header-height)+8px)] bb:max-h-[min(70vh,480px)]',
             width,
-            align === 'right' ? 'bb:right-0' : 'bb:left-0',
+            align === 'right' ? 'bb:right-4' : 'bb:left-4',
             panelClassName,
           )}
+          onPointerDown={(e) => e.stopPropagation()}
         >
           {children}
         </section>

@@ -86,5 +86,30 @@ export function useMessages(activeThreadId) {
 
   const unreadCount = useMemo(() => threads.filter((t) => t.unread).length, [threads])
 
-  return { threads, activeThread, loading, error, sendMessage, unreadCount }
+  const createThread = useCallback(async ({ participantName, subject, firstMessage }) => {
+    const id = Date.now()
+    const thread = {
+      id,
+      subject: subject || `Conversation avec ${participantName}`,
+      participants: [{ id: Date.now() + 1, displayName: participantName, avatar: null }],
+      unread: false,
+      updatedAt: new Date().toISOString(),
+      messages: firstMessage
+        ? [
+            {
+              id: Date.now() + 2,
+              senderId: currentUser.id,
+              senderName: currentUser.displayName,
+              content: firstMessage,
+              date: new Date().toISOString(),
+            },
+          ]
+        : [],
+    }
+    setThreads((prev) => [thread, ...prev])
+    demoThreads.unshift(thread)
+    return thread
+  }, [])
+
+  return { threads, activeThread, loading, error, sendMessage, unreadCount, createThread }
 }

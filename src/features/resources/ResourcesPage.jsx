@@ -100,7 +100,14 @@ export function ResourcesPage() {
                 {MEMBER_LANGUAGES.find((l) => l.code === resource.language)?.label || resource.language}
               </span>
             </div>
-            <Button as="a" href={resource.url} size="sm" variant="secondary">
+            <Button
+              as="a"
+              href={resource.url}
+              target="_blank"
+              rel="noreferrer"
+              size="sm"
+              variant="secondary"
+            >
               {t('resources.open')}
             </Button>
           </li>

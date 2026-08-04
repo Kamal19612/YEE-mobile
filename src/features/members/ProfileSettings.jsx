@@ -148,7 +148,16 @@ export function ProfileSettings({ member }) {
             <p className="m-0 mb-4 text-bb-sm text-bb-text">
               Request an export of your personal data stored in this community.
             </p>
-            <Button type="button" size="sm" variant="secondary">
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                setSaved(true)
+                window.alert('Export demandé — un e-mail vous sera envoyé (mock).')
+                setTimeout(() => setSaved(false), 2000)
+              }}
+            >
               Request Export
             </Button>
           </div>

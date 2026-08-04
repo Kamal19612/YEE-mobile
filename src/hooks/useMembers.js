@@ -166,5 +166,39 @@ export function useMember(id) {
     })
   }, [])
 
-  return { member, loading, error, updateProfile, updateXprofileField }
+  const toggleFriend = useCallback(async () => {
+    setMember((prev) => {
+      if (!prev || prev.friendshipStatus === 'self') return prev
+      let nextStatus = 'pending'
+      let friendsDelta = 0
+      if (prev.friendshipStatus === 'is_friend') {
+        nextStatus = 'not_friends'
+        friendsDelta = -1
+      } else if (prev.friendshipStatus === 'pending') {
+        nextStatus = 'not_friends'
+      } else {
+        nextStatus = 'pending'
+      }
+      const updated = {
+        ...prev,
+        friendshipStatus: nextStatus,
+        stats: {
+          ...prev.stats,
+          friends: Math.max(0, (prev.stats?.friends || 0) + friendsDelta),
+        },
+      }
+      const idx = demoMembers.findIndex((m) => m.id === prev.id)
+      if (idx >= 0) demoMembers[idx] = { ...demoMembers[idx], ...updated }
+      return updated
+    })
+    if (!USE_MOCK) {
+      try {
+        await updateFriendship(id, { action: 'create' })
+      } catch {
+        /* keep optimistic UI */
+      }
+    }
+  }, [id])
+
+  return { member, loading, error, updateProfile, updateXprofileField, toggleFriend }
 }

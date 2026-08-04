@@ -17,7 +17,7 @@ export const demoResources = [
     language: 'fr',
     thematic: 'Évaluation participative',
     format: 'PDF',
-    url: '#',
+    url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
     updatedAt: '2026-06-15T10:00:00.000Z',
   },
   {
@@ -28,7 +28,7 @@ export const demoResources = [
     language: 'fr',
     thematic: 'Gouvernance',
     format: 'PDF',
-    url: '#',
+    url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
     updatedAt: '2026-07-01T10:00:00.000Z',
   },
   {
@@ -39,7 +39,7 @@ export const demoResources = [
     language: 'en',
     thematic: 'Méthodes mixtes',
     format: 'Vidéo',
-    url: '#',
+    url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
     updatedAt: '2026-05-20T10:00:00.000Z',
   },
   {
@@ -50,7 +50,7 @@ export const demoResources = [
     language: 'fr',
     thematic: 'Jeunesse & Emploi',
     format: 'DOCX',
-    url: '#',
+    url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
     updatedAt: '2026-07-28T10:00:00.000Z',
   },
   {
@@ -61,7 +61,7 @@ export const demoResources = [
     language: 'en',
     thematic: 'Genre & Équité',
     format: 'PDF',
-    url: '#',
+    url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
     updatedAt: '2026-04-12T10:00:00.000Z',
   },
 ]

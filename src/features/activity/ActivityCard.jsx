@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
@@ -36,8 +37,9 @@ export function ActivityCard({
   const displayName = activity.anonymous
     ? t('stories.anonymousAuthor')
     : activity.userName
-  const isPublished = activity.status === 'published'
+  const isPublished = !activity.status || activity.status === 'published'
   const showComments = isPublished
+  const [shareHint, setShareHint] = useState('')
 
   if (hidden) return null
 
@@ -67,9 +69,12 @@ export function ActivityCard({
             </div>
             <div className="activity-header activity-header--group min-w-0">
               <div className="activity-group-heading">
-                <a href={activity.group.link} className="font-semibold text-bb-heading hover:text-bb-primary">
+                <Link
+                  to={activity.group.link || `/groups/${activity.group.id}`}
+                  className="font-semibold text-bb-heading hover:text-bb-primary"
+                >
                   {activity.group.name}
-                </a>
+                </Link>
               </div>
               <div className="activity-group-post-meta flex flex-wrap items-center gap-x-2 gap-y-0.5 text-bb-sm text-bb-muted">
                 <span className="activity-post-author font-medium text-bb-heading">{displayName}</span>
@@ -87,9 +92,9 @@ export function ActivityCard({
               {activity.anonymous ? (
                 <Avatar name="?" size="lg" />
               ) : (
-                <a href={activity.userLink}>
+                <Link to={activity.userLink || `/members/${activity.userId}`}>
                   <Avatar name={activity.userName} src={activity.avatar} size="lg" />
-                </a>
+                </Link>
               )}
             </div>
             <div className="activity-header min-w-0 flex-1">
@@ -97,9 +102,12 @@ export function ActivityCard({
                 {activity.anonymous ? (
                   displayName
                 ) : (
-                  <a href={activity.userLink} className="hover:text-bb-primary">
+                  <Link
+                    to={activity.userLink || `/members/${activity.userId}`}
+                    className="hover:text-bb-primary"
+                  >
                     {displayName}
-                  </a>
+                  </Link>
                 )}
                 <span className="font-normal text-bb-text"> {t('stories.postedUpdate')}</span>
               </div>
@@ -219,17 +227,26 @@ export function ActivityCard({
           commentsOpen={commentsOpen}
           onLike={() => onLike?.(activity.id)}
           onToggleComments={() => setCommentsOpen((v) => !v)}
-          onShare={() => {
-            if (navigator.share) {
-              navigator
-                .share({
-                  title: activity.title || displayName,
-                  text: stripHtml(activity.content),
-                })
-                .catch(() => {})
+          onShare={async () => {
+            const text = [activity.title, stripHtml(activity.content || '')].filter(Boolean).join('\n\n')
+            const url = `${window.location.origin}${window.location.pathname}#activity-${activity.id}`
+            try {
+              if (navigator.share) {
+                await navigator.share({ title: activity.title || displayName, text, url })
+              } else if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(`${text}\n${url}`)
+                setShareHint(t('stories.copied', { defaultValue: 'Lien copié' }))
+                setTimeout(() => setShareHint(''), 2000)
+              }
+            } catch {
+              /* cancelled */
             }
           }}
         />
+      )}
+
+      {shareHint && (
+        <p className="m-0 mt-2 text-center text-bb-xs text-bb-success">{shareHint}</p>
       )}
 
       {showComments && commentsOpen && (

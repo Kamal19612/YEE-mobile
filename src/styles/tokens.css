@@ -40,6 +40,14 @@
   --bb-header-links-hover: #385dff;
   --bb-header-height: 76px;
   --bb-header-mobile-logo-size: 40px;
+  --bb-panel-width: 68px;
+  --bb-panel-width-open: 230px;
+  --bb-z-header: 610;
+  --bb-z-panel: 611;
+  --bb-z-mobile-overlay: 620;
+  --bb-z-mobile-panel: 621;
+  --bb-z-search: 630;
+  --bb-z-dropdown: 1002;
 
   --bb-sidenav-background: #ffffff;
   --bb-sidenav-text-regular: #1e2132;

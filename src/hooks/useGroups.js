@@ -87,7 +87,39 @@ export function useGroups({ search = '', typeFilter = 'all', sort = 'active' } =
     [groups, load],
   )
 
-  return { groups: visible, total: visible.length, loading, error, toggleMembership, reload: load }
+  const createGroup = useCallback(async ({ name, description, status = 'public' }) => {
+    const group = {
+      id: Date.now(),
+      name: name.trim(),
+      slug: name.trim().toLowerCase().replace(/\s+/g, '-'),
+      description: description.trim() || 'Nouvelle cohorte AfrEA-YEE',
+      status,
+      cohortType: 'thematic',
+      avatar: null,
+      cover: null,
+      membersCount: 1,
+      lastActive: new Date().toISOString(),
+      created: new Date().toISOString(),
+      isMember: true,
+      isAdmin: true,
+      isMod: false,
+      memberIds: [currentUser.id],
+      admins: [{ id: currentUser.id, displayName: currentUser.displayName }],
+    }
+    demoGroups.unshift(group)
+    setGroups((prev) => [group, ...prev])
+    return group
+  }, [])
+
+  return {
+    groups: visible,
+    total: visible.length,
+    loading,
+    error,
+    toggleMembership,
+    createGroup,
+    reload: load,
+  }
 }
 
 export function useGroup(id) {

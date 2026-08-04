@@ -1,6 +1,6 @@
-import { Navigate, Route, Routes, useParams } from 'react-router-dom'
+import { Navigate, Route, Routes, Link, useParams } from 'react-router-dom'
 import { currentUser } from '../../data/demoData'
-import { useMember, useMembers } from '../../hooks/useMembers'
+import { useMember } from '../../hooks/useMembers'
 import { ProfileAbout } from './ProfileAbout'
 import { ProfileFriends } from './ProfileFriends'
 import { ProfileGroups } from './ProfileGroups'
@@ -14,8 +14,7 @@ import { ProfileTimeline } from './ProfileTimeline'
 /** Référence: members/single/home.php */
 export function ProfilePage() {
   const { memberId } = useParams()
-  const { member, loading, error, updateXprofileField } = useMember(memberId)
-  const { toggleFriend } = useMembers()
+  const { member, loading, error, updateXprofileField, toggleFriend } = useMember(memberId)
   const isOwn = member && member.id === currentUser.id
 
   if (loading) {
@@ -33,6 +32,9 @@ export function ProfilePage() {
       <div className="bb-card w-full p-8 text-center">
         <h1 className="m-0 mb-2 text-bb-lg text-bb-heading">Member not found</h1>
         <p className="m-0 text-bb-sm text-bb-muted">{error || 'This profile does not exist.'}</p>
+        <Link to="/members" className="mt-4 inline-block text-bb-primary hover:underline">
+          Retour à l’annuaire
+        </Link>
       </div>
     )
   }

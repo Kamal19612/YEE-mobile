@@ -24,7 +24,9 @@
     "resources": "Ressources & Guides",
     "messages": "Messages",
     "notifications": "Notifications",
-    "moderation": "Modération"
+    "moderation": "Modération",
+    "sectionMain": "Navigation",
+    "sectionAccount": "Espace perso"
   },
   "profile": {
     "profile": "Profil",
