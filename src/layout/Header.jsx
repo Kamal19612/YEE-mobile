@@ -3,9 +3,8 @@ import { useLayout } from '../context/LayoutProvider'
 import { HeaderAside } from './HeaderAside'
 import { HeaderSearch } from './HeaderSearch'
 import { SiteLogo } from './SiteLogo'
-import { SiteNavigation } from './SiteNavigation'
 
-/** Référence: template-parts/header.php (header style 1 / default) */
+/** Header sans navigation centrale (menus via BuddyPanel) */
 export function Header({ isLoggedIn = true }) {
   const { togglePanel } = useLayout()
 
@@ -27,7 +26,6 @@ export function Header({ isLoggedIn = true }) {
           </button>
 
           <SiteLogo />
-          <SiteNavigation />
           <HeaderAside isLoggedIn={isLoggedIn} />
         </div>
       </header>

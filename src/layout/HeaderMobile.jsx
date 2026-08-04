@@ -23,7 +23,7 @@ export function HeaderMobile({ isLoggedIn = true }) {
         </div>
 
         <div className="mobile-logo-wrapper flex min-w-0 flex-1 justify-center px-1">
-          <SiteLogo className="[&_img]:max-w-[100px] sm:[&_img]:max-w-[140px] [&_span]:text-bb-sm sm:[&_span]:text-bb-md" />
+          <SiteLogo className="[&_span]:text-bb-sm sm:[&_span]:text-bb-md" />
         </div>
 
         <div className="header-aside flex shrink-0 items-center gap-0.5">
