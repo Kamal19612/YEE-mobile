@@ -3,9 +3,9 @@ import { Link, Navigate, NavLink, Route, Routes, useParams } from 'react-router-
 import clsx from 'clsx'
 import { Avatar } from '../../components/ui/Avatar'
 import { Button } from '../../components/ui/Button'
-import { currentUser } from '../../data/demoData'
 import { demoMembers } from '../../data/membersData'
 import { demoActivities } from '../../data/activityData'
+import { useAuth } from '../../hooks/useAuth'
 import { useGroup } from '../../hooks/useGroups'
 import { ActivityCard } from '../activity/ActivityCard'
 import { ActivityComposer } from '../activity/ActivityComposer'
@@ -15,6 +15,8 @@ import { formatTimeSince } from '../activity/utils'
 /** Référence: groups/single/home.php + invite-anyone.php */
 export function GroupPage() {
   const { groupId } = useParams()
+  const { user } = useAuth()
+  const currentUser = user || { id: 0, displayName: 'Guest', avatar: null }
   const { group, loading, error, patch } = useGroup(groupId)
 
   if (loading) {

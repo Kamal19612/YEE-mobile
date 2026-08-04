@@ -4,8 +4,8 @@ import clsx from 'clsx'
 import { Avatar } from '../../components/ui/Avatar'
 import { Button } from '../../components/ui/Button'
 import { IconAngleLeft } from '../../components/icons'
-import { currentUser } from '../../data/demoData'
 import { useMessages } from '../../hooks/useMessages'
+import { useAuth } from '../../hooks/useAuth'
 import { formatTimeSince } from '../activity/utils'
 
 const DESKTOP_MQ = '(min-width: 800px)'
@@ -14,7 +14,9 @@ const DESKTOP_MQ = '(min-width: 800px)'
 export function MessagesPage() {
   const { threadId } = useParams()
   const navigate = useNavigate()
-  const { threads, activeThread, loading, sendMessage, createThread } = useMessages(threadId)
+  const { user } = useAuth()
+  const currentUser = user || { id: 0, displayName: 'Guest' }
+  const { threads, activeThread, loading, error, sendMessage, createThread } = useMessages(threadId)
   const [draft, setDraft] = useState('')
   const [composeOpen, setComposeOpen] = useState(false)
   const [composeName, setComposeName] = useState('')

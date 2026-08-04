@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { Avatar } from '../../components/ui/Avatar'
 import { Button } from '../../components/ui/Button'
-import { currentUser } from '../../data/demoData'
+import { useAuth } from '../../hooks/useAuth'
 
 /** Référence: bbpress/form-reply.php */
 export function ReplyForm({ onSubmit, replyToName, disabled }) {
+  const { user } = useAuth()
+  const currentUser = user || { displayName: 'Guest', avatar: null }
   const [content, setContent] = useState('')
   const [busy, setBusy] = useState(false)
 

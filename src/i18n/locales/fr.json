@@ -36,7 +36,16 @@
   },
   "auth": {
     "signin": "Connexion",
-    "signup": "Inscription"
+    "signup": "Inscription",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "signingIn": "Connexion…",
+    "loginFailed": "Identifiants invalides ou serveur inaccessible",
+    "sessionExpired": "Session expirée — veuillez vous reconnecter",
+    "loginHint": "Connectez-vous avec votre compte WordPress / BuddyPress",
+    "mockMode": "Mode démo (VITE_USE_MOCK) : la connexion simule l’utilisateur de test",
+    "backHome": "Retour à l’accueil",
+    "logoutDone": "Déconnexion réussie"
   },
   "footer": {
     "about": "À propos",

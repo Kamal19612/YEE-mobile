@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { fetchThreads, sendMessage as apiSend } from '../api/messages'
-import { currentUser } from '../data/demoData'
+import { createThread as apiCreateThread, fetchThreads, sendMessage as apiSend } from '../api/messages'
+import { USE_MOCK } from '../config/api'
 import { demoThreads } from '../data/messagesData'
-
-const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false'
+import { useAuth } from './useAuth'
 
 export function useMessages(activeThreadId) {
+  const { user } = useAuth()
+  const currentUser = user || { id: 0, displayName: 'Guest' }
   const [threads, setThreads] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -14,6 +15,7 @@ export function useMessages(activeThreadId) {
     let alive = true
     async function run() {
       setLoading(true)
+      setError(null)
       try {
         if (USE_MOCK) {
           await new Promise((r) => setTimeout(r, 250))
@@ -23,10 +25,7 @@ export function useMessages(activeThreadId) {
           if (alive) setThreads(list)
         }
       } catch (err) {
-        if (alive) {
-          setThreads(demoThreads)
-          setError(err.message)
-        }
+        if (alive) setError(err.message || 'Failed to load messages')
       } finally {
         if (alive) setLoading(false)
       }
@@ -81,35 +80,58 @@ export function useMessages(activeThreadId) {
       }
       return message
     },
-    [],
+    [currentUser],
   )
 
   const unreadCount = useMemo(() => threads.filter((t) => t.unread).length, [threads])
 
-  const createThread = useCallback(async ({ participantName, subject, firstMessage }) => {
-    const id = Date.now()
-    const thread = {
-      id,
-      subject: subject || `Conversation avec ${participantName}`,
-      participants: [{ id: Date.now() + 1, displayName: participantName, avatar: null }],
-      unread: false,
-      updatedAt: new Date().toISOString(),
-      messages: firstMessage
-        ? [
-            {
-              id: Date.now() + 2,
-              senderId: currentUser.id,
-              senderName: currentUser.displayName,
-              content: firstMessage,
-              date: new Date().toISOString(),
-            },
-          ]
-        : [],
-    }
-    setThreads((prev) => [thread, ...prev])
-    demoThreads.unshift(thread)
-    return thread
-  }, [])
+  const createThread = useCallback(
+    async ({ participantName, subject, firstMessage, recipientIds = [] }) => {
+      if (!USE_MOCK) {
+        const created = await apiCreateThread({
+          recipients: recipientIds.length ? recipientIds : undefined,
+          subject: subject || `Conversation avec ${participantName}`,
+          content: firstMessage || '',
+        })
+        const mapped = created?.id
+          ? created
+          : {
+              id: Date.now(),
+              subject: subject || `Conversation avec ${participantName}`,
+              participants: [{ id: Date.now() + 1, displayName: participantName, avatar: null }],
+              unread: false,
+              updatedAt: new Date().toISOString(),
+              messages: [],
+            }
+        setThreads((prev) => [mapped, ...prev])
+        return mapped
+      }
+
+      const id = Date.now()
+      const thread = {
+        id,
+        subject: subject || `Conversation avec ${participantName}`,
+        participants: [{ id: Date.now() + 1, displayName: participantName, avatar: null }],
+        unread: false,
+        updatedAt: new Date().toISOString(),
+        messages: firstMessage
+          ? [
+              {
+                id: Date.now() + 2,
+                senderId: currentUser.id,
+                senderName: currentUser.displayName,
+                content: firstMessage,
+                date: new Date().toISOString(),
+              },
+            ]
+          : [],
+      }
+      setThreads((prev) => [thread, ...prev])
+      demoThreads.unshift(thread)
+      return thread
+    },
+    [currentUser],
+  )
 
   return { threads, activeThread, loading, error, sendMessage, unreadCount, createThread }
 }

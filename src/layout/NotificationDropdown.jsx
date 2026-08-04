@@ -3,17 +3,15 @@ import { IconAngleRight, IconBell } from '../components/icons'
 import { Badge } from '../components/ui/Badge'
 import { Dropdown, DropdownFooter, DropdownHeader } from '../components/ui/Dropdown'
 import { useLayout } from '../context/LayoutProvider'
-import { demoNotifications } from '../data/notificationsData'
+import { useNotifications } from '../hooks/useNotifications'
 import { Avatar } from '../components/ui/Avatar'
 import { formatTimeSince } from '../features/activity/utils'
 import clsx from 'clsx'
-import { useMemo, useState } from 'react'
 
 export function NotificationDropdown() {
   const { closeDropdowns } = useLayout()
-  const [items, setItems] = useState(demoNotifications)
-  const unread = useMemo(() => items.filter((n) => n.unread).length, [items])
-  const preview = items.slice(0, 5)
+  const { notifications, unreadCount, markRead, markAllRead } = useNotifications()
+  const preview = notifications.slice(0, 5)
 
   return (
     <Dropdown
@@ -21,7 +19,7 @@ export function NotificationDropdown() {
       trigger={
         <span data-balloon-pos="down" data-balloon="Notifications" className="relative inline-flex">
           <IconBell />
-          <Badge count={unread} />
+          <Badge count={unreadCount} />
           <span className="screen-reader-text">Notifications</span>
         </span>
       }
@@ -29,11 +27,11 @@ export function NotificationDropdown() {
       <DropdownHeader
         title="Notifications"
         action={
-          unread > 0 ? (
+          unreadCount > 0 ? (
             <button
               type="button"
               className="mark-read-all text-bb-sm text-bb-primary hover:underline"
-              onClick={() => setItems((prev) => prev.map((n) => ({ ...n, unread: false })))}
+              onClick={() => markAllRead()}
             >
               Mark all as read
             </button>
@@ -46,7 +44,7 @@ export function NotificationDropdown() {
             <Link
               to={n.href}
               onClick={() => {
-                setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, unread: false } : x)))
+                markRead(n.id)
                 closeDropdowns()
               }}
               className={clsx(

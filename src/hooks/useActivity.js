@@ -1,30 +1,32 @@
 import { useCallback, useEffect, useState } from 'react'
-import {
-  createActivity as apiCreate,
-  favoriteActivity as apiFavorite,
-  fetchActivities,
-  postComment as apiComment,
-} from '../api/activity'
-import { currentUser } from '../data/demoData'
+import { favoriteActivity as apiFavorite, postComment as apiComment } from '../api/activity'
+import { createRecit, getRecits } from '../api/recits'
+import { USE_MOCK } from '../config/api'
 import { demoActivities, PUBLICATION_STATUS } from '../data/activityData'
+import { currentUser as demoUser } from '../data/demoData'
+import { useAuth } from './useAuth'
 
-const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false'
-const CURRENT_USER_ID = currentUser.id
-
-function filterMock(list, scope) {
-  if (scope === 'just-me') return list.filter((a) => a.userId === CURRENT_USER_ID)
+function filterMock(list, scope, userId) {
+  if (scope === 'just-me') return list.filter((a) => a.userId === userId)
   if (scope === 'pending') {
-    return list.filter(
-      (a) => a.userId === CURRENT_USER_ID && a.status === PUBLICATION_STATUS.PENDING,
-    )
+    return list.filter((a) => a.userId === userId && a.status === PUBLICATION_STATUS.PENDING)
   }
   if (scope === 'favorites') return list.filter((a) => a.favorited)
   if (scope === 'groups') return list.filter((a) => a.component === 'groups')
-  // Fil public : uniquement les récits publiés
   return list.filter((a) => a.status === PUBLICATION_STATUS.PUBLISHED)
 }
 
+function scopeToRecitStatus(scope) {
+  if (scope === 'pending') return 'pending'
+  if (scope === 'just-me') return 'any'
+  return 'publish'
+}
+
 export function useActivity({ scope = 'all', perPage = 10 } = {}) {
+  const { user } = useAuth()
+  const currentUser = user || demoUser
+  const userId = currentUser.id
+
   const [activities, setActivities] = useState([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -41,30 +43,43 @@ export function useActivity({ scope = 'all', perPage = 10 } = {}) {
       try {
         if (USE_MOCK) {
           await new Promise((r) => setTimeout(r, append ? 400 : 500))
-          const filtered = filterMock(demoActivities, scope)
+          const filtered = filterMock(demoActivities, scope, userId)
           const start = (nextPage - 1) * perPage
           const chunk = filtered.slice(start, start + perPage)
           setActivities((prev) => (append ? [...prev, ...chunk] : chunk))
           setHasMore(start + chunk.length < filtered.length)
         } else {
-          const list = await fetchActivities({ page: nextPage, perPage, scope })
+          const status = scopeToRecitStatus(scope)
+          const filtres = {
+            page: nextPage,
+            perPage,
+            status: status === 'any' ? 'publish,pending,draft' : status,
+          }
+          if (scope === 'just-me' || scope === 'pending') {
+            filtres.author = userId
+          }
+          if (scope === 'pending') filtres.status = 'pending'
+
+          let list = await getRecits(filtres)
+          if (scope === 'favorites') list = list.filter((a) => a.favorited)
+          if (scope === 'groups') list = list.filter((a) => a.component === 'groups')
+
           setActivities((prev) => (append ? [...prev, ...list] : list))
           setHasMore(list.length >= perPage)
         }
         setPage(nextPage)
       } catch (err) {
+        setError(err.message || 'Failed to load stories')
         if (!append && USE_MOCK) {
-          setActivities(filterMock(demoActivities, scope))
+          setActivities(filterMock(demoActivities, scope, userId))
           setHasMore(false)
-        } else {
-          setError(err.message || 'Failed to load stories')
         }
       } finally {
         setLoading(false)
         setLoadingMore(false)
       }
     },
-    [scope, perPage],
+    [scope, perPage, userId],
   )
 
   useEffect(() => {
@@ -86,58 +101,54 @@ export function useActivity({ scope = 'all', perPage = 10 } = {}) {
       anonymous = false,
       status = PUBLICATION_STATUS.PENDING,
     }) => {
-      const post = {
-        id: Date.now(),
-        userId: CURRENT_USER_ID,
-        userName: currentUser.displayName,
-        userLink: `/members/${CURRENT_USER_ID}`,
-        avatar: currentUser.avatar,
-        anonymous,
-        title,
-        content,
-        date: new Date().toISOString(),
-        component: 'activity',
-        type: 'story',
-        privacy: 'public',
-        status,
-        consent,
-        tags: tags || { country: '', thematic: '', language: '' },
-        favorited: false,
-        favoriteCount: 0,
-        commentCount: 0,
-        edited: false,
-        group: null,
-        media: media || [],
-        comments: [],
-      }
-
       if (USE_MOCK) {
+        const post = {
+          id: Date.now(),
+          userId,
+          userName: currentUser.displayName,
+          userLink: `/members/${userId}`,
+          avatar: currentUser.avatar,
+          anonymous,
+          title,
+          content,
+          date: new Date().toISOString(),
+          component: 'activity',
+          type: 'story',
+          privacy: 'public',
+          status,
+          consent,
+          tags: tags || { country: '', thematic: '', language: '' },
+          favorited: false,
+          favoriteCount: 0,
+          commentCount: 0,
+          edited: false,
+          group: null,
+          media: media || [],
+          comments: [],
+        }
         demoActivities.unshift(post)
-        // Afficher immédiatement si le filtre courant le permet
         const visibleNow =
           (scope === 'all' && status === PUBLICATION_STATUS.PUBLISHED) ||
-          (scope === 'just-me' && post.userId === CURRENT_USER_ID) ||
+          (scope === 'just-me' && post.userId === userId) ||
           (scope === 'pending' && status === PUBLICATION_STATUS.PENDING)
-        if (visibleNow) {
-          setActivities((prev) => [post, ...prev])
-        }
+        if (visibleNow) setActivities((prev) => [post, ...prev])
         return post
       }
 
-      const created = await apiCreate({
+      const created = await createRecit({
         content,
         title,
-        privacy: 'public',
         status,
         consent,
         anonymous,
         tags,
         media,
+        mediaType: media?.[0]?.type || '',
       })
       setActivities((prev) => [created, ...prev])
       return created
     },
-    [scope],
+    [scope, userId, currentUser],
   )
 
   const toggleFavorite = useCallback(
@@ -167,44 +178,47 @@ export function useActivity({ scope = 'all', perPage = 10 } = {}) {
     [activities, load],
   )
 
-  const addComment = useCallback(async (activityId, { content, parentId = 0 }) => {
-    const comment = USE_MOCK
-      ? {
-          id: Date.now(),
-          userId: CURRENT_USER_ID,
-          userName: currentUser.displayName,
-          avatar: currentUser.avatar,
-          content,
-          date: new Date().toISOString(),
-          children: [],
-        }
-      : await apiComment(activityId, { content, parentId })
+  const addComment = useCallback(
+    async (activityId, { content, parentId = 0 }) => {
+      const comment = USE_MOCK
+        ? {
+            id: Date.now(),
+            userId,
+            userName: currentUser.displayName,
+            avatar: currentUser.avatar,
+            content,
+            date: new Date().toISOString(),
+            children: [],
+          }
+        : await apiComment(activityId, { content, parentId })
 
-    setActivities((prev) =>
-      prev.map((a) => {
-        if (a.id !== activityId) return a
-        if (!parentId) {
+      setActivities((prev) =>
+        prev.map((a) => {
+          if (a.id !== activityId) return a
+          if (!parentId) {
+            return {
+              ...a,
+              commentCount: a.commentCount + 1,
+              comments: [...(a.comments || []), comment],
+            }
+          }
+          const nest = (list) =>
+            list.map((c) =>
+              c.id === parentId
+                ? { ...c, children: [...(c.children || []), comment] }
+                : { ...c, children: nest(c.children || []) },
+            )
           return {
             ...a,
             commentCount: a.commentCount + 1,
-            comments: [...(a.comments || []), comment],
+            comments: nest(a.comments || []),
           }
-        }
-        const nest = (list) =>
-          list.map((c) =>
-            c.id === parentId
-              ? { ...c, children: [...(c.children || []), comment] }
-              : { ...c, children: nest(c.children || []) },
-          )
-        return {
-          ...a,
-          commentCount: a.commentCount + 1,
-          comments: nest(a.comments || []),
-        }
-      }),
-    )
-    return comment
-  }, [])
+        }),
+      )
+      return comment
+    },
+    [userId, currentUser],
+  )
 
   return {
     activities,

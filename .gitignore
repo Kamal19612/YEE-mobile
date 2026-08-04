@@ -1,3 +1,8 @@
+# Env (secrets JWT / URLs locales)
+.env
+.env.local
+.env.*.local
+
 # Logs
 logs
 *.log

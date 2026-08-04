@@ -7,7 +7,7 @@ import { HeaderSearch } from './HeaderSearch'
  * Header desktop — sticky dans la colonne contenu (à droite du BuddyPanel).
  * Même --bb-header-height et breakpoint bb: que la sidebar.
  */
-export function Header({ isLoggedIn = true }) {
+export function Header() {
   const { togglePanel, panelOpen } = useLayout()
 
   return (
@@ -29,7 +29,7 @@ export function Header({ isLoggedIn = true }) {
             </button>
           )}
           <div className="min-w-0 flex-1" aria-hidden="true" />
-          <HeaderAside isLoggedIn={isLoggedIn} />
+          <HeaderAside />
         </div>
       </header>
       <HeaderSearch />

@@ -1,16 +1,23 @@
 import { useCallback, useEffect, useState } from 'react'
 import { fetchPendingStories, moderateStory as apiModerate } from '../api/moderation'
+import { USE_MOCK } from '../config/api'
 import { demoActivities, PUBLICATION_STATUS } from '../data/activityData'
-import { currentUser } from '../data/demoData'
-
-const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false'
+import { useAuth } from './useAuth'
 
 /** Rôles autorisés à modérer (TDR §7.iii) */
-export function canModerate(user = currentUser) {
-  return user.role === 'moderator' || user.role === 'secretariat' || user.role === 'yee'
+export function canModerate(user) {
+  if (!user) return false
+  const role = user.role || user.roles?.[0]
+  return (
+    role === 'moderator' ||
+    role === 'secretariat' ||
+    role === 'yee' ||
+    role === 'administrator'
+  )
 }
 
 export function useModeration({ perPage = 10 } = {}) {
+  const { user } = useAuth()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -22,19 +29,12 @@ export function useModeration({ perPage = 10 } = {}) {
     try {
       if (USE_MOCK) {
         await new Promise((r) => setTimeout(r, 300))
-        setItems(
-          demoActivities.filter((a) => a.status === PUBLICATION_STATUS.PENDING),
-        )
-      } else {
-        const list = await fetchPendingStories({ perPage })
-        setItems(list)
-      }
-    } catch (err) {
-      if (USE_MOCK) {
         setItems(demoActivities.filter((a) => a.status === PUBLICATION_STATUS.PENDING))
       } else {
-        setError(err.message || 'Failed to load moderation queue')
+        setItems(await fetchPendingStories({ perPage }))
       }
+    } catch (err) {
+      setError(err.message || 'Failed to load moderation queue')
     } finally {
       setLoading(false)
     }
@@ -44,34 +44,37 @@ export function useModeration({ perPage = 10 } = {}) {
     load()
   }, [load])
 
-  const moderate = useCallback(async (id, { action, comment = '' }) => {
-    setActingId(id)
-    try {
-      const nextStatus =
-        action === 'approve' ? PUBLICATION_STATUS.PUBLISHED : PUBLICATION_STATUS.REJECTED
+  const moderate = useCallback(
+    async (id, { action, comment = '' }) => {
+      setActingId(id)
+      try {
+        const nextStatus =
+          action === 'approve' ? PUBLICATION_STATUS.PUBLISHED : PUBLICATION_STATUS.REJECTED
 
-      if (USE_MOCK) {
-        const idx = demoActivities.findIndex((a) => a.id === id)
-        if (idx >= 0) {
-          demoActivities[idx] = {
-            ...demoActivities[idx],
-            status: nextStatus,
-            moderationComment: comment,
-            moderatedAt: new Date().toISOString(),
-            moderatedBy: currentUser.id,
+        if (USE_MOCK) {
+          const idx = demoActivities.findIndex((a) => a.id === id)
+          if (idx >= 0) {
+            demoActivities[idx] = {
+              ...demoActivities[idx],
+              status: nextStatus,
+              moderationComment: comment,
+              moderatedAt: new Date().toISOString(),
+              moderatedBy: user?.id,
+            }
           }
+          setItems((prev) => prev.filter((a) => a.id !== id))
+          return demoActivities[idx]
         }
-        setItems((prev) => prev.filter((a) => a.id !== id))
-        return demoActivities[idx]
-      }
 
-      const updated = await apiModerate(id, { action, comment })
-      setItems((prev) => prev.filter((a) => a.id !== id))
-      return updated
-    } finally {
-      setActingId(null)
-    }
-  }, [])
+        const updated = await apiModerate(id, { action, comment })
+        setItems((prev) => prev.filter((a) => a.id !== id))
+        return updated
+      } finally {
+        setActingId(null)
+      }
+    },
+    [user?.id],
+  )
 
   return {
     items,

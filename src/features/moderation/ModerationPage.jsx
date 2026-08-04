@@ -1,13 +1,14 @@
 import { useTranslation } from 'react-i18next'
 import { Button } from '../../components/ui/Button'
-import { currentUser } from '../../data/demoData'
+import { useAuth } from '../../hooks/useAuth'
 import { canModerate, useModeration } from '../../hooks/useModeration'
 import { ModerationCard } from './ModerationCard'
 
 /** File de modération pré-publication — TDR §1.2, §8, §7.iii */
 export function ModerationPage() {
   const { t } = useTranslation()
-  const allowed = canModerate(currentUser)
+  const { user } = useAuth()
+  const allowed = canModerate(user)
   const { items, loading, error, actingId, moderate, reload, pendingCount } = useModeration()
 
   if (!allowed) {

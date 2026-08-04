@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next'
 import { Avatar } from '../../components/ui/Avatar'
 import { Button } from '../../components/ui/Button'
 import { IconImage, IconMic, IconVideo } from '../../components/icons'
-import { currentUser } from '../../data/demoData'
 import {
   PUBLICATION_STATUS,
   STORY_COUNTRIES,
@@ -12,13 +11,16 @@ import {
   STORY_THEMATICS,
 } from '../../data/activityData'
 import { useOffline } from '../../hooks/useOffline'
+import { useAuth } from '../../hooks/useAuth'
 
 /**
  * Composeur de récits AfrEA-YEE
  * Réf. visuelle: #whats-new-form + exigences TDR (consentement, anonymisation, tags, modération)
  */
-export function ActivityComposer({ onSubmit, user = currentUser }) {
+export function ActivityComposer({ onSubmit, user: userProp }) {
   const { t } = useTranslation()
+  const { user: authUser } = useAuth()
+  const user = userProp || authUser || { id: 0, displayName: 'Guest', avatar: null }
   const { online, enqueue } = useOffline()
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')

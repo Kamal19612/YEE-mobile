@@ -4,19 +4,33 @@ import { useTranslation } from 'react-i18next'
 import { Avatar } from '../components/ui/Avatar'
 import { IconAngleDown } from '../components/icons'
 import { useLayout } from '../context/LayoutProvider'
-import { currentUser, profileMenuDefs } from '../data/demoData'
-import { useEffect, useRef } from 'react'
+import { useAuth } from '../hooks/useAuth'
+import { profileMenuDefs } from '../data/demoData'
+import { useEffect, useMemo, useRef } from 'react'
 
-export function HeaderProfileMenu({
-  user = currentUser,
-  items = profileMenuDefs,
-  mode = 'name_and_avatar',
-}) {
+export function HeaderProfileMenu({ mode = 'name_and_avatar' }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const { user, logout, isAuthenticated } = useAuth()
   const { openDropdown, toggleDropdown, closeDropdowns } = useLayout()
   const open = openDropdown === 'profile'
   const ref = useRef(null)
+
+  const menuUser = user || {
+    id: 0,
+    displayName: t('auth.signin'),
+    mentionName: 'guest',
+    avatar: null,
+  }
+
+  const items = useMemo(() => {
+    if (!user?.id) return []
+    return profileMenuDefs.map((item) => {
+      if (item.id === 'logout') return item
+      const href = item.href.replace(/\/members\/\d+/, `/members/${user.id}`)
+      return { ...item, href }
+    })
+  }, [user?.id])
 
   useEffect(() => {
     if (!open) return undefined
@@ -26,6 +40,17 @@ export function HeaderProfileMenu({
     document.addEventListener('pointerdown', onPointer)
     return () => document.removeEventListener('pointerdown', onPointer)
   }, [open, closeDropdowns])
+
+  if (!isAuthenticated) {
+    return (
+      <Link
+        to="/login"
+        className="rounded-bb-btn bg-bb-primary px-3 py-2 text-bb-sm font-medium text-white hover:opacity-90"
+      >
+        {t('auth.signin')}
+      </Link>
+    )
+  }
 
   const go = (href, e) => {
     e?.preventDefault()
@@ -53,11 +78,11 @@ export function HeaderProfileMenu({
       >
         {mode === 'name_and_avatar' && (
           <>
-            <span className="user-name hidden text-bb-sm font-medium lg:inline">{user.displayName}</span>
+            <span className="user-name hidden text-bb-sm font-medium lg:inline">{menuUser.displayName}</span>
             <IconAngleDown className="hidden lg:block" />
           </>
         )}
-        <Avatar name={user.displayName} src={user.avatar} size="md" />
+        <Avatar name={menuUser.displayName} src={menuUser.avatar} size="md" />
       </button>
 
       {open && (
@@ -75,12 +100,12 @@ export function HeaderProfileMenu({
                 <button
                   type="button"
                   className="user-link flex w-full items-center gap-3 text-left"
-                  onClick={(e) => go(`/members/${user.id}`, e)}
+                  onClick={(e) => go(`/members/${menuUser.id}`, e)}
                 >
-                  <Avatar name={user.displayName} src={user.avatar} size="lg" />
+                  <Avatar name={menuUser.displayName} src={menuUser.avatar} size="lg" />
                   <span>
-                    <span className="user-name block font-semibold text-bb-heading">{user.displayName}</span>
-                    <span className="user-mention text-bb-sm text-bb-muted">@{user.mentionName}</span>
+                    <span className="user-name block font-semibold text-bb-heading">{menuUser.displayName}</span>
+                    <span className="user-mention text-bb-sm text-bb-muted">@{menuUser.mentionName}</span>
                   </span>
                 </button>
               </li>
@@ -91,8 +116,7 @@ export function HeaderProfileMenu({
                       type="button"
                       onClick={() => {
                         closeDropdowns()
-                        window.alert(t('profile.logoutDone', { defaultValue: 'Session terminée (mock).' }))
-                        navigate('/')
+                        logout({ redirect: true })
                       }}
                       className="block w-full px-4 py-3 text-left text-bb-sm text-bb-heading hover:bg-bb-alt hover:text-bb-primary"
                     >

@@ -36,7 +36,16 @@
   },
   "auth": {
     "signin": "Sign in",
-    "signup": "Sign up"
+    "signup": "Sign up",
+    "email": "Email",
+    "password": "Password",
+    "signingIn": "Signing in…",
+    "loginFailed": "Invalid credentials or server unreachable",
+    "sessionExpired": "Session expired — please sign in again",
+    "loginHint": "Sign in with your WordPress / BuddyPress account",
+    "mockMode": "Demo mode (VITE_USE_MOCK): sign-in uses the sample user",
+    "backHome": "Back to home",
+    "logoutDone": "Signed out"
   },
   "footer": {
     "about": "About",

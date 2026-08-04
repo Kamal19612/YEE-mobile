@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { fetchGroup, fetchGroups, joinGroup, leaveGroup } from '../api/groups'
+import { USE_MOCK } from '../config/api'
 import { demoGroups } from '../data/groupsData'
-import { currentUser } from '../data/demoData'
-
-const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false'
+import { useAuth } from './useAuth'
 
 function applyFilters(list, { search, typeFilter, sort }) {
   let result = [...list]
@@ -27,6 +26,8 @@ function applyFilters(list, { search, typeFilter, sort }) {
 }
 
 export function useGroups({ search = '', typeFilter = 'all', sort = 'active' } = {}) {
+  const { user } = useAuth()
+  const currentUser = user || { id: 0, displayName: 'Guest' }
   const [groups, setGroups] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -42,8 +43,8 @@ export function useGroups({ search = '', typeFilter = 'all', sort = 'active' } =
         setGroups(await fetchGroups({ type: sort, search }))
       }
     } catch (err) {
+      setError(err.message || 'Failed to load groups')
       if (USE_MOCK) setGroups(demoGroups)
-      else setError(err.message || 'Failed to load groups')
     } finally {
       setLoading(false)
     }
@@ -84,32 +85,35 @@ export function useGroups({ search = '', typeFilter = 'all', sort = 'active' } =
         }
       }
     },
-    [groups, load],
+    [groups, load, currentUser.id],
   )
 
-  const createGroup = useCallback(async ({ name, description, status = 'public' }) => {
-    const group = {
-      id: Date.now(),
-      name: name.trim(),
-      slug: name.trim().toLowerCase().replace(/\s+/g, '-'),
-      description: description.trim() || 'Nouvelle cohorte AfrEA-YEE',
-      status,
-      cohortType: 'thematic',
-      avatar: null,
-      cover: null,
-      membersCount: 1,
-      lastActive: new Date().toISOString(),
-      created: new Date().toISOString(),
-      isMember: true,
-      isAdmin: true,
-      isMod: false,
-      memberIds: [currentUser.id],
-      admins: [{ id: currentUser.id, displayName: currentUser.displayName }],
-    }
-    demoGroups.unshift(group)
-    setGroups((prev) => [group, ...prev])
-    return group
-  }, [])
+  const createGroup = useCallback(
+    async ({ name, description, status = 'public' }) => {
+      const group = {
+        id: Date.now(),
+        name: name.trim(),
+        slug: name.trim().toLowerCase().replace(/\s+/g, '-'),
+        description: description.trim() || 'Nouvelle cohorte AfrEA-YEE',
+        status,
+        cohortType: 'thematic',
+        avatar: null,
+        cover: null,
+        membersCount: 1,
+        lastActive: new Date().toISOString(),
+        created: new Date().toISOString(),
+        isMember: true,
+        isAdmin: true,
+        isMod: false,
+        memberIds: [currentUser.id],
+        admins: [{ id: currentUser.id, displayName: currentUser.displayName }],
+      }
+      if (USE_MOCK) demoGroups.unshift(group)
+      setGroups((prev) => [group, ...prev])
+      return group
+    },
+    [currentUser],
+  )
 
   return {
     groups: visible,

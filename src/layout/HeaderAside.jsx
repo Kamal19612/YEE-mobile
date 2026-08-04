@@ -1,21 +1,24 @@
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { IconSearch } from '../components/icons'
 import { Button } from '../components/ui/Button'
 import { LanguageSwitcher } from '../components/ui/LanguageSwitcher'
 import { useLayout } from '../context/LayoutProvider'
+import { useAuth } from '../hooks/useAuth'
 import { HeaderProfileMenu } from './HeaderProfileMenu'
 import { MessagesDropdown } from './MessagesDropdown'
 import { NotificationDropdown } from './NotificationDropdown'
 
-export function HeaderAside({ isLoggedIn = true }) {
+export function HeaderAside() {
   const { t } = useTranslation()
   const { toggleSearch } = useLayout()
+  const { isAuthenticated } = useAuth()
 
   return (
     <div id="header-aside" className="header-aside ml-auto">
       <div className="header-aside-inner flex items-center gap-2 bb:gap-3">
         <LanguageSwitcher className="hidden bb:inline-flex" />
-        {isLoggedIn ? (
+        {isAuthenticated ? (
           <>
             <button
               type="button"
@@ -42,10 +45,10 @@ export function HeaderAside({ isLoggedIn = true }) {
             </button>
             <span className="search-separator bb-separator h-6 w-px bg-bb-border" />
             <div className="bb-header-buttons flex items-center gap-2">
-              <Button as="a" href="#" variant="link" size="sm" className="signin-button">
+              <Button as={Link} to="/login" variant="link" size="sm" className="signin-button">
                 {t('auth.signin')}
               </Button>
-              <Button as="a" href="#" variant="primary" size="sm" className="signup">
+              <Button as={Link} to="/login" variant="primary" size="sm" className="signup">
                 {t('auth.signup')}
               </Button>
             </div>

@@ -1,5 +1,5 @@
 import { Navigate, Route, Routes, Link, useParams } from 'react-router-dom'
-import { currentUser } from '../../data/demoData'
+import { useAuth } from '../../hooks/useAuth'
 import { useMember } from '../../hooks/useMembers'
 import { ProfileAbout } from './ProfileAbout'
 import { ProfileFriends } from './ProfileFriends'
@@ -14,8 +14,9 @@ import { ProfileTimeline } from './ProfileTimeline'
 /** Référence: members/single/home.php */
 export function ProfilePage() {
   const { memberId } = useParams()
+  const { user } = useAuth()
   const { member, loading, error, updateXprofileField, toggleFriend } = useMember(memberId)
-  const isOwn = member && member.id === currentUser.id
+  const isOwn = Boolean(member && user && String(member.id) === String(user.id))
 
   if (loading) {
     return (

@@ -12,7 +12,7 @@ import { HeaderMobile } from './HeaderMobile'
  * - #page décalé via ml-panel / ml-panel-open (breakpoint bb: unique)
  * - Header sticky dans #page (colonne contenu)
  */
-export function AppShell({ children, isLoggedIn = true }) {
+export function AppShell({ children }) {
   const { panelOpen } = useLayout()
 
   return (
@@ -26,8 +26,8 @@ export function AppShell({ children, isLoggedIn = true }) {
           panelOpen && 'bb:ml-panel-open',
         )}
       >
-        <Header isLoggedIn={isLoggedIn} />
-        <HeaderMobile isLoggedIn={isLoggedIn} />
+        <Header />
+        <HeaderMobile />
         <OfflineBanner />
 
         <div id="content" className="site-content flex-1 overflow-x-hidden">

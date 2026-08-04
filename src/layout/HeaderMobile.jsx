@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next'
  * Header mobile — sticky ; drawer BuddyPanel en z-mobile-panel au-dessus.
  * Même breakpoint bb: que la sidebar desktop (cachée ici, visible là).
  */
-export function HeaderMobile({ isLoggedIn = true }) {
+export function HeaderMobile() {
   const { t } = useTranslation()
   const { toggleMobilePanel, toggleSearch } = useLayout()
 
@@ -41,7 +41,7 @@ export function HeaderMobile({ isLoggedIn = true }) {
           >
             <IconSearch />
           </button>
-          {isLoggedIn && <HeaderProfileMenu mode="avatar" />}
+          <HeaderProfileMenu mode="avatar" />
         </div>
       </div>
     </div>

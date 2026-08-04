@@ -1,12 +1,18 @@
 import { useState } from 'react'
 import { Avatar } from '../../components/ui/Avatar'
 import { Button } from '../../components/ui/Button'
-import { currentUser } from '../../data/demoData'
+import { useAuth } from '../../hooks/useAuth'
 import { formatTimeSince, stripHtml } from './utils'
 
 export function ActivityComments({ comments = [], onAddComment, depth = 0 }) {
   return (
-    <div className={depth === 0 ? 'activity-comments threaded-comments mt-3 border-t border-bb-border pt-3' : 'mt-2 pl-2 sm:pl-3'}>
+    <div
+      className={
+        depth === 0
+          ? 'activity-comments threaded-comments mt-3 border-t border-bb-border pt-3'
+          : 'mt-2 pl-2 sm:pl-3'
+      }
+    >
       {depth === 0 && <CommentForm onSubmit={(content) => onAddComment({ content })} />}
       <ul className="activity-comments-list m-0 mt-3 list-none space-y-3 p-0">
         {comments.map((comment) => (
@@ -65,6 +71,8 @@ function CommentItem({ comment, onAddComment, depth }) {
 }
 
 function CommentForm({ onSubmit, placeholder = 'Write a comment...', autoFocus = false }) {
+  const { user } = useAuth()
+  const currentUser = user || { displayName: 'Guest', avatar: null }
   const [value, setValue] = useState('')
   const [busy, setBusy] = useState(false)
 

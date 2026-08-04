@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { fetchMembers, updateFriendship } from '../api/members'
+import { USE_MOCK } from '../config/api'
 import { demoMembers } from '../data/membersData'
-
-const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false'
 
 function sortMembers(list, sort) {
   const copy = [...list]

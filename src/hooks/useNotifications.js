@@ -4,13 +4,13 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from '../api/notifications'
+import { USE_MOCK } from '../config/api'
 import { demoNotifications } from '../data/notificationsData'
-
-const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false'
 
 export function useNotifications({ filter = 'all' } = {}) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [page, setPage] = useState(1)
   const perPage = 5
 
@@ -18,6 +18,7 @@ export function useNotifications({ filter = 'all' } = {}) {
     let alive = true
     async function run() {
       setLoading(true)
+      setError(null)
       try {
         if (USE_MOCK) {
           await new Promise((r) => setTimeout(r, 250))
@@ -26,8 +27,8 @@ export function useNotifications({ filter = 'all' } = {}) {
           const list = await fetchNotifications()
           if (alive) setItems(list)
         }
-      } catch {
-        if (alive) setItems(demoNotifications)
+      } catch (err) {
+        if (alive) setError(err.message || 'Failed to load notifications')
       } finally {
         if (alive) setLoading(false)
       }
@@ -73,6 +74,7 @@ export function useNotifications({ filter = 'all' } = {}) {
   return {
     notifications: visible,
     loading,
+    error,
     hasMore,
     loadMore: () => setPage((p) => p + 1),
     markRead,

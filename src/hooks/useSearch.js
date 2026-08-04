@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { globalSearch } from '../api/search'
+import { USE_MOCK } from '../config/api'
 import { demoActivities, PUBLICATION_STATUS } from '../data/activityData'
 import { demoForums, demoTopics } from '../data/forumsData'
 import { demoGroups } from '../data/groupsData'
 import { demoMembers } from '../data/membersData'
 import { demoResources } from '../data/resourcesData'
 import { stripHtml } from '../features/activity/utils'
-
-const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false'
 
 function mockSearch(query, filters = {}) {
   const q = query.trim().toLowerCase()
@@ -118,8 +117,18 @@ export function useSearch(query, filters = {}) {
           const data = await globalSearch(query)
           if (alive) setResults({ resources: [], ...data })
         }
-      } catch {
-        if (alive) setResults(mockSearch(query, filters))
+      } catch (err) {
+        if (USE_MOCK && alive) setResults(mockSearch(query, filters))
+        else if (alive) {
+          setResults({
+            members: [],
+            groups: [],
+            forums: [],
+            topics: [],
+            resources: [],
+            activity: [],
+          })
+        }
       } finally {
         if (alive) setLoading(false)
       }
