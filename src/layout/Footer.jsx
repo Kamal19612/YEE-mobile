@@ -1,10 +1,11 @@
-import { footerLinks } from '../data/demoData'
+import { useTranslation } from 'react-i18next'
+import { footerLinkDefs } from '../data/demoData'
 
 /** Référence: template-parts/footer.php */
-export function Footer({
-  copyright = `© ${new Date().getFullYear()} BuddyBoss Community`,
-  links = footerLinks,
-}) {
+export function Footer({ links = footerLinkDefs }) {
+  const { t } = useTranslation()
+  const copyright = t('app.copyright', { year: new Date().getFullYear() })
+
   return (
     <footer className="footer-bottom bb-footer style-1 border-t border-bb-border bg-bb-footer">
       <div className="bb-container flex flex-col items-center justify-between gap-3 py-5 bb:flex-row">
@@ -16,7 +17,7 @@ export function Footer({
                 href={link.href}
                 className="text-bb-sm text-[var(--bb-footer-menu-link-color-regular)] hover:text-[var(--bb-footer-menu-link-color-hover)]"
               >
-                {link.label}
+                {t(link.labelKey)}
               </a>
             </li>
           ))}

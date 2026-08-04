@@ -1,43 +1,67 @@
 import { Link, useSearchParams } from 'react-router-dom'
 import { useMemo, useState } from 'react'
 import clsx from 'clsx'
+import { useTranslation } from 'react-i18next'
 import { Avatar } from '../../components/ui/Avatar'
 import { IconSearch } from '../../components/icons'
+import { STORY_COUNTRIES, STORY_THEMATICS } from '../../data/activityData'
+import { MEMBER_LANGUAGES } from '../../data/membersData'
 import { SEARCH_TABS, useSearch } from '../../hooks/useSearch'
 import { formatTimeSince, stripHtml } from '../activity/utils'
 
-/** Référence: buddypress/search/results-page.php + results-page-content.php */
+/** Recherche globale multi-critères — contenu, langue, pays, thématique */
 export function SearchPage() {
+  const { t } = useTranslation()
   const [params, setParams] = useSearchParams()
   const query = params.get('s') || params.get('q') || ''
   const [draft, setDraft] = useState(query)
   const [tab, setTab] = useState(params.get('type') || 'all')
-  const { results, counts, total, loading } = useSearch(query)
+  const [country, setCountry] = useState(params.get('country') || '')
+  const [language, setLanguage] = useState(params.get('language') || '')
+  const [thematic, setThematic] = useState(params.get('thematic') || '')
+  const filters = { country, language, thematic }
+  const { results, counts, total, loading } = useSearch(query, filters)
+  const hasCriteria = Boolean(query || country || language || thematic)
 
   const title = useMemo(() => {
-    if (!query) return 'No results found'
-    if (total > 0) return `Showing results for '${query}'`
-    return `No results for '${query}'`
-  }, [query, total])
+    if (!hasCriteria) return t('search.prompt')
+    if (total > 0) return t('search.showing', { query: query || '…', count: total })
+    return t('search.none', { query: query || '…' })
+  }, [hasCriteria, query, total, t])
+
+  const applyParams = (overrides = {}) => {
+    const next = {
+      ...(overrides.s !== undefined ? { s: overrides.s } : query ? { s: query } : {}),
+      ...(overrides.type || tab !== 'all' ? { type: overrides.type || tab } : {}),
+      ...(overrides.country !== undefined
+        ? overrides.country
+          ? { country: overrides.country }
+          : {}
+        : country
+          ? { country }
+          : {}),
+      ...(overrides.language !== undefined
+        ? overrides.language
+          ? { language: overrides.language }
+          : {}
+        : language
+          ? { language }
+          : {}),
+      ...(overrides.thematic !== undefined
+        ? overrides.thematic
+          ? { thematic: overrides.thematic }
+          : {}
+        : thematic
+          ? { thematic }
+          : {}),
+    }
+    if (next.type === 'all') delete next.type
+    setParams(next)
+  }
 
   const submit = (e) => {
     e.preventDefault()
-    const next = draft.trim()
-    if (!next) {
-      setParams({})
-      return
-    }
-    const paramsObj = { s: next }
-    if (tab !== 'all') paramsObj.type = tab
-    setParams(paramsObj)
-  }
-
-  const setActiveTab = (id) => {
-    setTab(id)
-    if (!query) return
-    const paramsObj = { s: query }
-    if (id !== 'all') paramsObj.type = id
-    setParams(paramsObj)
+    applyParams({ s: draft.trim() })
   }
 
   return (
@@ -46,146 +70,195 @@ export function SearchPage() {
         <h1 className="entry-title m-0 text-bb-xl font-semibold text-bb-heading">{title}</h1>
       </header>
 
-      <form
-        onSubmit={submit}
-        className="bp-dir-search-form search-form-has-reset relative mb-5 max-w-xl"
-        role="search"
-      >
+      <form onSubmit={submit} className="relative mb-3 max-w-xl" role="search">
         <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-bb-muted" />
         <input
           type="search"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="Search members, groups, forums..."
+          placeholder={t('search.placeholder')}
           className="h-11 w-full rounded-bb-input border border-bb-border bg-bb-content py-2 pl-9 pr-3 text-bb-base outline-none focus:border-bb-primary"
         />
       </form>
 
-      <div className="bp-search-results-wrapper dir-form">
-        <nav
-          className="search_filters item-list-tabs mb-4"
-          role="navigation"
-          aria-label="Search filters"
+      <div className="mb-5 grid max-w-3xl gap-2 sm:grid-cols-3">
+        <select
+          value={country}
+          onChange={(e) => {
+            setCountry(e.target.value)
+            applyParams({ country: e.target.value, s: draft.trim() || query })
+          }}
+          className="h-9 rounded-bb-input border border-bb-border bg-bb-content px-2 text-bb-sm"
         >
-          <ul className="component-navigation search-nav bb-scroll-tabs m-0 list-none gap-1 p-0">
-            {SEARCH_TABS.map((t) => {
-              const count = t.id === 'all' ? total : counts[t.id] || 0
-              return (
-                <li key={t.id} className="shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab(t.id)}
-                    className={clsx(
-                      'rounded-bb-inner px-3 py-2 text-bb-sm font-medium whitespace-nowrap',
-                      tab === t.id ? 'bg-bb-primary text-white' : 'bg-bb-alt text-bb-text',
-                    )}
-                  >
-                    {t.label}
-                    {query && (
-                      <span className="ml-1 opacity-80">({count})</span>
-                    )}
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
-        </nav>
+          <option value="">{t('members.filters.country')} — {t('members.filters.all')}</option>
+          {STORY_COUNTRIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+        <select
+          value={language}
+          onChange={(e) => {
+            setLanguage(e.target.value)
+            applyParams({ language: e.target.value, s: draft.trim() || query })
+          }}
+          className="h-9 rounded-bb-input border border-bb-border bg-bb-content px-2 text-bb-sm"
+        >
+          <option value="">{t('members.filters.language')} — {t('members.filters.all')}</option>
+          {MEMBER_LANGUAGES.map((l) => (
+            <option key={l.code} value={l.code}>
+              {l.label}
+            </option>
+          ))}
+        </select>
+        <select
+          value={thematic}
+          onChange={(e) => {
+            setThematic(e.target.value)
+            applyParams({ thematic: e.target.value, s: draft.trim() || query })
+          }}
+          className="h-9 rounded-bb-input border border-bb-border bg-bb-content px-2 text-bb-sm"
+        >
+          <option value="">{t('members.filters.thematic')} — {t('members.filters.all')}</option>
+          {STORY_THEMATICS.map((th) => (
+            <option key={th} value={th}>
+              {th}
+            </option>
+          ))}
+        </select>
+      </div>
 
-        <div className="search_results space-y-4">
-          {loading && (
-            <div className="space-y-3">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-16 animate-pulse rounded-bb border border-bb-border bg-bb-content" />
-              ))}
-            </div>
-          )}
+      <nav className="mb-4" aria-label={t('nav.search')}>
+        <ul className="m-0 flex list-none flex-wrap gap-1 p-0">
+          {SEARCH_TABS.map((tabItem) => {
+            const count = tabItem.id === 'all' ? total : counts[tabItem.id] || 0
+            return (
+              <li key={tabItem.id}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTab(tabItem.id)
+                    applyParams({ type: tabItem.id, s: query })
+                  }}
+                  className={clsx(
+                    'rounded-bb-inner px-3 py-2 text-bb-sm font-medium whitespace-nowrap',
+                    tab === tabItem.id ? 'bg-bb-primary text-white' : 'bg-bb-alt text-bb-text',
+                  )}
+                >
+                  {t(tabItem.labelKey)}
+                  {hasCriteria && <span className="ml-1 opacity-80">({count})</span>}
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      </nav>
 
-          {!loading && query && total === 0 && (
-            <div className="bb-card p-8 text-center text-bb-sm text-bb-muted">
-              No results matched your search. Try another keyword.
-            </div>
-          )}
+      <div className="search_results space-y-4">
+        {loading && (
+          <div className="space-y-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-16 animate-pulse rounded-bb border border-bb-border bg-bb-content" />
+            ))}
+          </div>
+        )}
 
-          {!loading && (!query || total > 0) && (
-            <>
-              {(tab === 'all' || tab === 'members') && results.members.length > 0 && (
-                <ResultSection title="Members" count={counts.members}>
-                  {results.members.map((m) => (
-                    <ResultRow
-                      key={`m-${m.id}`}
-                      to={`/members/${m.id}`}
-                      title={m.displayName}
-                      meta={`@${m.mentionName}${m.location ? ` · ${m.location}` : ''}`}
-                      avatarName={m.displayName}
-                    />
-                  ))}
-                </ResultSection>
-              )}
+        {!loading && hasCriteria && total === 0 && (
+          <div className="bb-card p-8 text-center text-bb-sm text-bb-muted">{t('search.empty')}</div>
+        )}
 
-              {(tab === 'all' || tab === 'groups') && results.groups.length > 0 && (
-                <ResultSection title="Groups" count={counts.groups}>
-                  {results.groups.map((g) => (
-                    <ResultRow
-                      key={`g-${g.id}`}
-                      to={`/groups/${g.id}`}
-                      title={g.name}
-                      meta={`${g.membersCount} members · ${g.status}`}
-                      avatarName={g.name}
-                    />
-                  ))}
-                </ResultSection>
-              )}
+        {!loading && hasCriteria && total > 0 && (
+          <>
+            {(tab === 'all' || tab === 'activity') && results.activity.length > 0 && (
+              <ResultSection title={t('search.tabs.stories')} count={counts.activity}>
+                {results.activity.map((a) => (
+                  <ResultRow
+                    key={`a-${a.id}`}
+                    to="/"
+                    title={a.title || a.userName}
+                    meta={stripHtml(a.content)}
+                    avatarName={a.anonymous ? '?' : a.userName}
+                  />
+                ))}
+              </ResultSection>
+            )}
 
-              {(tab === 'all' || tab === 'forums') && results.forums.length > 0 && (
-                <ResultSection title="Forums" count={counts.forums}>
-                  {results.forums.map((f) => (
-                    <ResultRow
-                      key={`f-${f.id}`}
-                      to={`/forums/${f.id}`}
-                      title={f.title}
-                      meta={`${f.topicCount} discussions · ${f.replyCount} replies`}
-                      avatarName={f.title}
-                    />
-                  ))}
-                </ResultSection>
-              )}
+            {(tab === 'all' || tab === 'members') && results.members.length > 0 && (
+              <ResultSection title={t('search.tabs.members')} count={counts.members}>
+                {results.members.map((m) => (
+                  <ResultRow
+                    key={`m-${m.id}`}
+                    to={`/members/${m.id}`}
+                    title={m.displayName}
+                    meta={[m.country, m.thematic].filter(Boolean).join(' · ')}
+                    avatarName={m.displayName}
+                  />
+                ))}
+              </ResultSection>
+            )}
 
-              {(tab === 'all' || tab === 'topics') && results.topics.length > 0 && (
-                <ResultSection title="Discussions" count={counts.topics}>
-                  {results.topics.map((t) => (
-                    <ResultRow
-                      key={`t-${t.id}`}
-                      to={`/forums/${t.forumId}/topics/${t.id}`}
-                      title={t.title}
-                      meta={`By ${t.authorName} · ${t.replyCount} replies · ${formatTimeSince(t.lastReplyAt)}`}
-                      avatarName={t.authorName}
-                    />
-                  ))}
-                </ResultSection>
-              )}
+            {(tab === 'all' || tab === 'groups') && results.groups.length > 0 && (
+              <ResultSection title={t('search.tabs.cohorts')} count={counts.groups}>
+                {results.groups.map((g) => (
+                  <ResultRow
+                    key={`g-${g.id}`}
+                    to={`/groups/${g.id}`}
+                    title={g.name}
+                    meta={`${g.membersCount} · ${g.status}`}
+                    avatarName={g.name}
+                  />
+                ))}
+              </ResultSection>
+            )}
 
-              {(tab === 'all' || tab === 'activity') && results.activity.length > 0 && (
-                <ResultSection title="Activity" count={counts.activity}>
-                  {results.activity.map((a) => (
-                    <ResultRow
-                      key={`a-${a.id}`}
-                      to="/"
-                      title={a.userName}
-                      meta={stripHtml(a.content)}
-                      avatarName={a.userName}
-                    />
-                  ))}
-                </ResultSection>
-              )}
-            </>
-          )}
+            {(tab === 'all' || tab === 'forums') && results.forums.length > 0 && (
+              <ResultSection title={t('search.tabs.forums')} count={counts.forums}>
+                {results.forums.map((f) => (
+                  <ResultRow
+                    key={`f-${f.id}`}
+                    to={`/forums/${f.id}`}
+                    title={f.title}
+                    meta={`${f.topicCount} · ${f.replyCount}`}
+                    avatarName={f.title}
+                  />
+                ))}
+              </ResultSection>
+            )}
 
-          {!loading && !query && (
-            <div className="bb-card p-8 text-center text-bb-sm text-bb-muted">
-              Type a keyword above to search across members, groups, forums and discussions.
-            </div>
-          )}
-        </div>
+            {(tab === 'all' || tab === 'topics') && results.topics.length > 0 && (
+              <ResultSection title={t('search.tabs.topics')} count={counts.topics}>
+                {results.topics.map((topic) => (
+                  <ResultRow
+                    key={`t-${topic.id}`}
+                    to={`/forums/${topic.forumId}/topics/${topic.id}`}
+                    title={topic.title}
+                    meta={`${topic.authorName} · ${formatTimeSince(topic.lastReplyAt)}`}
+                    avatarName={topic.authorName}
+                  />
+                ))}
+              </ResultSection>
+            )}
+
+            {(tab === 'all' || tab === 'resources') && results.resources.length > 0 && (
+              <ResultSection title={t('search.tabs.resources')} count={counts.resources}>
+                {results.resources.map((r) => (
+                  <ResultRow
+                    key={`r-${r.id}`}
+                    to="/resources"
+                    title={r.title}
+                    meta={r.thematic}
+                    avatarName={r.title}
+                  />
+                ))}
+              </ResultSection>
+            )}
+          </>
+        )}
+
+        {!loading && !hasCriteria && (
+          <div className="bb-card p-8 text-center text-bb-sm text-bb-muted">{t('search.hint')}</div>
+        )}
       </div>
     </div>
   )

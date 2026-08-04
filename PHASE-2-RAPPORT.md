@@ -1,39 +1,48 @@
-# Rapport Phase 2 — Fil d'activité
+# Rapport Phase 2 — Fil de récits (AfrEA-YEE)
 
-**Références thème :** `buddypress/activity/index.php`, `buddypress/activity/entry.php`  
-**Note :** `activity/post-form` et `media/actions` sont fournis par BuddyBoss Platform (plugin), pas par le thème — reconstruits via classes CSS `#whats-new-form` / `#whats-new-toolbar` observées dans `buddypress.css`.
+**Référence :** prompt TDR juillet 2026 — module central narration  
+**Base visuelle :** BuddyBoss activity (`entry.php`, post-form)
 
-## Templates / zones couverts
+## Couvert
 
-| Source | React |
-|--------|--------|
-| `activity/index.php` (directory + stream + placeholders) | `ActivityPage`, `ActivityFeed`, `ActivityPlaceholder` |
-| `activity/entry.php` (carte, header user/groupe, content, comments) | `ActivityCard` |
-| Post form / toolbar (Platform) | `ActivityComposer` |
-| Filtres scope (Everything / Mentions / Groups / Follows…) | `ActivityFilters` |
-| Actions like / comment / share | `ActivityActions` |
-| Commentaires imbriqués + reply | `ActivityComments` |
-| API REST activity | `src/api/activity.js` + `useActivity` |
+| Exigence TDR | Implémentation |
+|--------------|----------------|
+| Composeur multimédia | Texte + photo / audio / vidéo |
+| Tags structurés | Pays, thématique, langue (selects) |
+| Consentement explicite | Checkbox obligatoire pour soumission |
+| Anonymisation | Option « masquer mon nom » |
+| Statuts publication | `draft` → `pending` → `published` (+ `rejected`) |
+| Carte de récit | Titre, tags, badge statut, média, réactions/commentaires si publié |
+| Filtres | Publiés / Mes récits / En modération / Favoris / Cohortes |
+| API | `src/api/activity.js` étendu (meta consent/tags/status) |
 
-## Fonctionnel
+## Fichiers
 
-- Composer : texte, photo (preview locale), sondage, privacy Public/Members
-- Cartes : avatar, groupe (double avatar), media, poll votable, edited, privacy
-- Like / commentaires threadés (depth 2) / share (Web Share API)
-- Filtres scope + recherche locale
-- Load more + skeleton loaders
-- Mode mock par défaut (`VITE_USE_MOCK` ≠ `false`) ; bascule API via `VITE_WP_API_URL`
+```
+src/data/activityData.js          ← récits YEE + taxonomies
+src/features/activity/ActivityComposer.jsx
+src/features/activity/ActivityCard.jsx
+src/features/activity/ActivityFilters.jsx
+src/features/activity/ActivityFeed.jsx
+src/features/activity/ActivityPage.jsx
+src/hooks/useActivity.js
+src/api/activity.js
+src/i18n/locales/{fr,en}.json     ← clés stories.*
+```
 
-## Non couvert (volontairement / plus tard)
+## Comportement mock
 
-- GIF / emoji picker / Medium Editor formatting
-- Dropzone multi-fichiers / vidéos / documents
-- Topics selector (`bb-topic`)
-- Modal lightbox média
-- Favorite sync serveur réelle (mock local)
+- Fil « Publiés » : uniquement `status === published`
+- Soumission → `pending` (pas de mise en ligne immédiate)
+- Brouillon → `draft` (visible dans « Mes récits »)
+- Commentaires / likes uniquement sur récits publiés
 
-## Phase suivante (Phase 3)
+## Non couvert (phases suivantes)
 
-Profils membres & annuaire :
-- `buddypress/members/index.php`, `single/home.php`, settings, invites
-- API `members`, `xprofile`, `friends`
+- Interface modérateur approve/reject → Phase 5
+- Sync offline des brouillons → Phase 6
+- Upload réel vers WP media library (mock blob URL pour l’instant)
+
+## Phase suivante
+
+**Phase 3 — Profils & annuaire** : filtres pays / région / langue / thématique + champs Xprofile YEE.

@@ -1,46 +1,19 @@
-# Rapport Phase 3 — Profils membres & annuaire
+# Rapport Phase 3 — Profils membres & annuaire (AfrEA-YEE)
 
-**Références thème :**  
-`buddypress/members/index.php`, `single/home.php`, `profile.php`, `profile/profile-loop.php`, `settings.php`, `invites.php`, `notifications.php`, `parts/item-subnav.php`
+## Couvert
 
-## Templates couverts
+| Exigence | Implémentation |
+|----------|----------------|
+| Annuaire filtrable | Pays, région, langue, thématique (+ type / tri / recherche) |
+| Champs Xprofile YEE | Pays, région, langue, thématique d’évaluation, à propos |
+| Carte membre | Tags pays/thématique, stats récits & cohortes |
+| Header profil | Chips YEE + stats récits / pairs / cohortes |
+| API | `mapMember` étendu (country/region/language/thematic) |
 
-| Source PHP | React |
-|------------|--------|
-| `members/index.php` | `MembersPage`, `MembersFilters`, `MemberCard` |
-| `members/single/home.php` + `#item-header` | `ProfilePage`, `ProfileHeader`, `ProfileNav` |
-| `profile.php` + `profile-loop.php` (XProfile) | `ProfileAbout` |
-| Timeline membre | `ProfileTimeline` (réutilise Activity) |
-| Friends / Groups tabs | `ProfileFriends`, `ProfileGroups` |
-| `settings.php` | `ProfileSettings` (general, privacy, email, export) |
-| `invites.php` | `ProfileInvites` |
-| `notifications.php` | `ProfileNotifications` |
-| API members / xprofile / friends | `src/api/members.js`, `useMembers`, `useMember` |
+## Données démo
 
-## Routes
+6 YEE (Nigeria, Sénégal, Cameroun, Ghana, Maroc, Rwanda) avec cohortes régionales / thématiques.
 
-- `/` — Activity (Phase 2)
-- `/members` — Annuaire (grid/list, search, sort, type filter)
-- `/members/:id` — Timeline profil
-- `/members/:id/profile|friends|groups|notifications|invites|settings`
+## Phase suivante
 
-## Fonctionnel
-
-- Cartes membre grid/list + statut online + Add Friend
-- Header profil : cover, avatar, stats, actions
-- Onglets profil + édition XProfile (mock)
-- Settings formulaires locaux
-- Invites email + liste sent
-- Navigation header / BuddyPanel / menu profil branchée via `react-router-dom`
-
-## Non couvert / partiel
-
-- `author-box.php` (blog post — hors scope social pur)
-- Change avatar / cover upload réel
-- Friend requests accept/reject UI dédiée
-- Photos tab média
-
-## Phase suivante (Phase 4)
-
-Groupes, messagerie, notifications page :
-- `buddypress/groups/*`, messages, notifications API
+**Phase 4** — recentrer Groupes (cohortes), Messages, Notifications, Forums sur le vocabulaire AfrEA (déjà fonctionnels ; alignement data/labels).

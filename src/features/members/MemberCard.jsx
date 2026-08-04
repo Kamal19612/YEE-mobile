@@ -1,10 +1,16 @@
 import { Link } from 'react-router-dom'
 import clsx from 'clsx'
+import { useTranslation } from 'react-i18next'
 import { Avatar } from '../../components/ui/Avatar'
 import { Button } from '../../components/ui/Button'
+import { MEMBER_LANGUAGES } from '../../data/membersData'
 import { formatTimeSince } from '../activity/utils'
 
 export function MemberCard({ member, view = 'grid', onFriendToggle }) {
+  const { t } = useTranslation()
+  const langLabel =
+    MEMBER_LANGUAGES.find((l) => l.code === member.language)?.label || member.language
+
   if (view === 'list') {
     return (
       <li className="bs-item-wrap flex list-none items-center gap-4 rounded-bb border border-bb-border bg-bb-content p-4">
@@ -14,13 +20,23 @@ export function MemberCard({ member, view = 'grid', onFriendToggle }) {
         </Link>
         <div className="item min-w-0 flex-1">
           <div className="item-title">
-            <Link to={`/members/${member.id}`} className="text-bb-lg font-medium text-bb-heading hover:text-bb-primary">
+            <Link
+              to={`/members/${member.id}`}
+              className="text-bb-lg font-medium text-bb-heading hover:text-bb-primary"
+            >
               {member.displayName}
             </Link>
           </div>
           <div className="item-meta text-bb-sm text-bb-muted">@{member.mentionName}</div>
-          {member.location && <div className="location mt-1 text-bb-sm text-bb-text">{member.location}</div>}
-          <div className="mt-1 text-bb-xs text-bb-muted">Active {formatTimeSince(member.lastActive)}</div>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {member.country && <Chip>{member.country}</Chip>}
+            {member.region && <Chip>{member.region}</Chip>}
+            {langLabel && <Chip>{langLabel}</Chip>}
+            {member.thematic && <Chip>{member.thematic}</Chip>}
+          </div>
+          <div className="mt-1 text-bb-xs text-bb-muted">
+            {t('members.active', { time: formatTimeSince(member.lastActive) })}
+          </div>
         </div>
         <div className="action shrink-0">
           <FriendButton member={member} onFriendToggle={onFriendToggle} />
@@ -63,12 +79,18 @@ export function MemberCard({ member, view = 'grid', onFriendToggle }) {
             {member.memberType}
           </span>
         )}
+        <div className="mt-3 flex flex-wrap justify-center gap-1">
+          {member.country && <Chip>{member.country}</Chip>}
+          {member.thematic && <Chip>{member.thematic}</Chip>}
+        </div>
         <div className="mt-3 flex justify-center gap-4 text-bb-xs text-bb-muted">
           <span>
-            <strong className="text-bb-heading">{member.stats.friends}</strong> friends
+            <strong className="text-bb-heading">{member.stats.stories ?? member.stats.activity}</strong>{' '}
+            {t('members.stats.stories')}
           </span>
           <span>
-            <strong className="text-bb-heading">{member.stats.groups}</strong> groups
+            <strong className="text-bb-heading">{member.stats.groups}</strong>{' '}
+            {t('members.stats.cohorts')}
           </span>
         </div>
         <div className="action mt-4">
@@ -79,6 +101,14 @@ export function MemberCard({ member, view = 'grid', onFriendToggle }) {
   )
 }
 
+function Chip({ children }) {
+  return (
+    <span className="inline-flex rounded-bb-option bg-[var(--bb-label-background-color)] px-2 py-0.5 text-[11px] font-medium text-[var(--bb-label-text-color)]">
+      {children}
+    </span>
+  )
+}
+
 function OnlineDot() {
   return (
     <span className="absolute bottom-1 right-1 h-3 w-3 rounded-full border-2 border-bb-content bg-bb-success" />
@@ -86,20 +116,21 @@ function OnlineDot() {
 }
 
 function FriendButton({ member, onFriendToggle }) {
+  const { t } = useTranslation()
   if (member.friendshipStatus === 'self') {
     return (
       <Button as={Link} to={`/members/${member.id}`} variant="outline" size="sm">
-        View Profile
+        {t('members.viewProfile')}
       </Button>
     )
   }
 
   const label =
     member.friendshipStatus === 'is_friend'
-      ? 'Unfriend'
+      ? t('members.disconnect')
       : member.friendshipStatus === 'pending'
-        ? 'Cancel Request'
-        : 'Add Friend'
+        ? t('members.cancelRequest')
+        : t('members.connect')
 
   const variant = member.friendshipStatus === 'is_friend' ? 'outline' : 'secondary'
 

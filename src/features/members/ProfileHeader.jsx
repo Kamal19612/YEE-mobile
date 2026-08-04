@@ -1,10 +1,16 @@
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Avatar } from '../../components/ui/Avatar'
 import { Button } from '../../components/ui/Button'
+import { MEMBER_LANGUAGES } from '../../data/membersData'
 import { formatTimeSince } from '../activity/utils'
 
-/** Référence: #item-header (members/single/home.php) */
+/** Référence: #item-header (members/single/home.php) — profil YEE */
 export function ProfileHeader({ member, isOwn, onFriendToggle }) {
+  const { t } = useTranslation()
+  const langLabel =
+    MEMBER_LANGUAGES.find((l) => l.code === member.language)?.label || member.language
+
   return (
     <div
       id="item-header"
@@ -40,14 +46,23 @@ export function ProfileHeader({ member, isOwn, onFriendToggle }) {
             </h2>
             <p className="m-0 text-bb-sm text-bb-muted">@{member.mentionName}</p>
             {member.bio && <p className="m-0 mt-2 max-w-xl text-bb-sm text-bb-text">{member.bio}</p>}
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {member.country && <Chip>{member.country}</Chip>}
+              {member.region && <Chip>{member.region}</Chip>}
+              {langLabel && <Chip>{langLabel}</Chip>}
+              {member.thematic && <Chip>{member.thematic}</Chip>}
+            </div>
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-bb-xs text-bb-muted">
-              {member.location && <span>{member.location}</span>}
-              <span>Joined {new Date(member.joined).toLocaleDateString()}</span>
+              <span>
+                {t('members.joined', {
+                  date: new Date(member.joined).toLocaleDateString(),
+                })}
+              </span>
               <span>
                 {member.online ? (
-                  <span className="text-bb-success">Online</span>
+                  <span className="text-bb-success">{t('members.online')}</span>
                 ) : (
-                  <>Active {formatTimeSince(member.lastActive)}</>
+                  t('members.active', { time: formatTimeSince(member.lastActive) })
                 )}
               </span>
             </div>
@@ -57,17 +72,17 @@ export function ProfileHeader({ member, isOwn, onFriendToggle }) {
             {isOwn ? (
               <>
                 <Button as={Link} to={`/members/${member.id}/settings`} variant="secondary" size="sm">
-                  Account Settings
+                  {t('members.settings')}
                 </Button>
                 <Button as={Link} to={`/members/${member.id}/profile`} variant="outline" size="sm">
-                  Edit Profile
+                  {t('members.editProfile')}
                 </Button>
               </>
             ) : (
               <>
                 <FriendAction member={member} onFriendToggle={onFriendToggle} />
                 <Button as={Link} to="/messages" variant="outline" size="sm">
-                  Message
+                  {t('members.message')}
                 </Button>
               </>
             )}
@@ -75,12 +90,20 @@ export function ProfileHeader({ member, isOwn, onFriendToggle }) {
         </div>
 
         <div className="mt-4 flex flex-wrap gap-6 border-t border-bb-border pt-3 text-center">
-          <Stat label="Friends" value={member.stats.friends} />
-          <Stat label="Groups" value={member.stats.groups} />
-          <Stat label="Activity" value={member.stats.activity} />
+          <Stat label={t('members.stats.stories')} value={member.stats.stories ?? member.stats.activity} />
+          <Stat label={t('members.stats.peers')} value={member.stats.friends} />
+          <Stat label={t('members.stats.cohorts')} value={member.stats.groups} />
         </div>
       </div>
     </div>
+  )
+}
+
+function Chip({ children }) {
+  return (
+    <span className="inline-flex rounded-bb-option bg-[var(--bb-label-background-color)] px-2 py-0.5 text-[11px] font-medium text-[var(--bb-label-text-color)]">
+      {children}
+    </span>
   )
 }
 
@@ -94,23 +117,24 @@ function Stat({ label, value }) {
 }
 
 function FriendAction({ member, onFriendToggle }) {
+  const { t } = useTranslation()
   if (member.friendshipStatus === 'is_friend') {
     return (
       <Button type="button" variant="outline" size="sm" onClick={() => onFriendToggle?.(member.id)}>
-        Unfriend
+        {t('members.disconnect')}
       </Button>
     )
   }
   if (member.friendshipStatus === 'pending') {
     return (
       <Button type="button" variant="secondary" size="sm" onClick={() => onFriendToggle?.(member.id)}>
-        Cancel Request
+        {t('members.cancelRequest')}
       </Button>
     )
   }
   return (
     <Button type="button" size="sm" onClick={() => onFriendToggle?.(member.id)}>
-      Add Friend
+      {t('members.connect')}
     </Button>
   )
 }

@@ -1,7 +1,8 @@
 import { apiFetch } from './client'
 
 /**
- * BuddyPress REST — wp-json/buddypress/v1/activity
+ * BuddyPress REST activity + champs custom AfrEA-YEE
+ * (consentement, anonymisation, tags, statut de publication)
  * @see https://developer.buddypress.org/bp-rest-api/
  */
 
@@ -9,20 +10,30 @@ const BASE = '/buddypress/v1/activity'
 
 export function mapActivity(item) {
   const user = item.user_avatar || item.user || {}
+  const meta = item.meta || {}
   return {
     id: item.id,
     userId: item.user_id,
     userName: item.user_name || item.name || 'Member',
     userLink: item.user_link || '#',
     avatar: typeof user === 'string' ? user : user.full || user.thumb || null,
+    anonymous: Boolean(item.anonymous ?? meta.anonymous),
+    title: item.title || meta.title || '',
     content: item.content?.rendered || item.content || '',
     date: item.date || item.date_gmt || new Date().toISOString(),
     component: item.component || 'activity',
-    type: item.type || 'activity_update',
+    type: item.type || 'story',
     privacy: item.privacy || 'public',
+    status: item.status || meta.publication_status || 'published',
+    consent: Boolean(item.consent ?? meta.consent),
+    tags: item.tags || meta.tags || {
+      country: meta.country || '',
+      thematic: meta.thematic || '',
+      language: meta.language || '',
+    },
     favorited: Boolean(item.favorited),
-    favoriteCount: item.favorite_count ?? item.meta?.favorite_count ?? 0,
-    commentCount: item.comment_count ?? item.meta?.comment_count ?? 0,
+    favoriteCount: item.favorite_count ?? meta.favorite_count ?? 0,
+    commentCount: item.comment_count ?? meta.comment_count ?? 0,
     comments: (item.comments || []).map(mapComment),
     group: item.group
       ? {
@@ -62,17 +73,45 @@ export async function fetchActivities({
   })
   if (scope && scope !== 'all') params.set('scope', scope)
   if (search) params.set('search', search)
+  if (scope === 'all') params.set('status', 'published')
 
   const data = await apiFetch(`${BASE}?${params}`, { token })
   const list = Array.isArray(data) ? data : data?.activities || []
   return list.map(mapActivity)
 }
 
-export async function createActivity({ content, privacy = 'public', token }) {
+export async function createActivity({
+  content,
+  title = '',
+  privacy = 'public',
+  status = 'pending',
+  consent = false,
+  anonymous = false,
+  tags = {},
+  media = [],
+  token,
+} = {}) {
   const data = await apiFetch(BASE, {
     method: 'POST',
     token,
-    body: JSON.stringify({ content, privacy, type: 'activity_update' }),
+    body: JSON.stringify({
+      content,
+      title,
+      privacy,
+      type: 'activity_update',
+      status,
+      consent,
+      anonymous,
+      tags,
+      media,
+      meta: {
+        publication_status: status,
+        consent,
+        anonymous,
+        title,
+        ...tags,
+      },
+    }),
   })
   return mapActivity(data)
 }

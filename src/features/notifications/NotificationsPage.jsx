@@ -26,19 +26,19 @@ export function NotificationsPage() {
         <div>
           <h1 className="m-0 text-bb-xl font-semibold text-bb-heading">Notifications</h1>
           <p className="m-0 mt-1 text-bb-sm text-bb-text">
-            {unreadCount} unread · {total} shown with current filter
+            {unreadCount} non lues · {total} affichées
           </p>
         </div>
         <Button type="button" size="sm" variant="outline" onClick={markAllRead} disabled={!unreadCount}>
-          Mark all as read
+          Tout marquer comme lu
         </Button>
       </header>
 
       <div className="mb-4 flex gap-1">
         {[
-          { id: 'all', label: 'All' },
-          { id: 'unread', label: 'Unread' },
-          { id: 'read', label: 'Read' },
+          { id: 'all', label: 'Toutes' },
+          { id: 'unread', label: 'Non lues' },
+          { id: 'read', label: 'Lues' },
         ].map((f) => (
           <button
             key={f.id}

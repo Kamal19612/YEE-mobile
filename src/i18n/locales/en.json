@@ -1,0 +1,222 @@
+{
+  "app": {
+    "name": "AfrEA-YEE",
+    "tagline": "Young and Emerging Evaluators Platform",
+    "copyright": "© {{year}} AfrEA — Young and Emerging Evaluators"
+  },
+  "nav": {
+    "stories": "Stories",
+    "members": "Members",
+    "groups": "Groups",
+    "forums": "Forums",
+    "resources": "Resources",
+    "messages": "Messages",
+    "notifications": "Notifications",
+    "moderation": "Moderation",
+    "search": "Search",
+    "more": "More options"
+  },
+  "panel": {
+    "stories": "Story feed",
+    "members": "Members",
+    "groups": "Cohorts",
+    "forums": "Forums",
+    "resources": "Resources & Guides",
+    "messages": "Messages",
+    "notifications": "Notifications",
+    "moderation": "Moderation"
+  },
+  "profile": {
+    "profile": "Profile",
+    "account": "Account",
+    "settings": "Settings",
+    "logout": "Log out"
+  },
+  "auth": {
+    "signin": "Sign in",
+    "signup": "Sign up"
+  },
+  "footer": {
+    "about": "About",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "contact": "Contact"
+  },
+  "common": {
+    "comingSoon": "Module under construction",
+    "loadMore": "Load more",
+    "loading": "Loading…",
+    "cancel": "Cancel",
+    "save": "Save",
+    "publish": "Publish",
+    "draft": "Draft",
+    "remove": "Remove",
+    "search": "Search…"
+  },
+  "stories": {
+    "postedUpdate": "shared a story",
+    "anonymousAuthor": "Anonymous YEE",
+    "edited": "edited",
+    "empty": "No stories found. Try a different filter.",
+    "copyText": "Copy text",
+    "hide": "Hide",
+    "sidebar": {
+      "community": "YEE Community",
+      "members": "Members",
+      "cohorts": "Cohorts",
+      "online": "Online",
+      "tips": "Tips",
+      "tipsBody": "Submit a multimedia story with tags (country, theme, language). Consent is required; publishing goes through pre-publication moderation."
+    },
+    "filters": {
+      "all": "Published",
+      "mine": "My stories",
+      "pending": "In moderation",
+      "likes": "Favorites",
+      "cohorts": "Cohorts"
+    },
+    "status": {
+      "draft": "Draft",
+      "pending": "In moderation",
+      "published": "Published",
+      "rejected": "Rejected"
+    },
+    "composer": {
+      "placeholder": "Share your evaluation story, {{name}}…",
+      "title": "Story title",
+      "titlePlaceholder": "E.g. Participatory evaluation in Senegal",
+      "country": "Country",
+      "thematic": "Theme",
+      "language": "Language",
+      "select": "Select…",
+      "photo": "Photo",
+      "audio": "Audio",
+      "video": "Video",
+      "consent": "I confirm I have consent from the people concerned and authorize publishing this story on the AfrEA-YEE platform.",
+      "consentRequired": "Consent is required to submit for moderation.",
+      "anonymize": "Hide my name on this story",
+      "saveDraft": "Save draft",
+      "submitModeration": "Submit for moderation",
+      "submitting": "Submitting…"
+    },
+    "tags": {
+      "country": "Country",
+      "thematic": "Theme",
+      "language": "Language"
+    }
+  },
+  "members": {
+    "title": "YEE Members",
+    "subtitle": "Directory filterable by country, region, language and theme.",
+    "empty": "No members found.",
+    "count_one": "{{count}} member",
+    "count_other": "{{count}} members",
+    "search": "Search a YEE…",
+    "grid": "Grid",
+    "list": "List",
+    "viewProfile": "View profile",
+    "connect": "Connect",
+    "disconnect": "Disconnect",
+    "cancelRequest": "Cancel request",
+    "message": "Message",
+    "editProfile": "Edit profile",
+    "settings": "Account settings",
+    "online": "Online",
+    "joined": "Joined {{date}}",
+    "active": "Active {{time}}",
+    "stats": {
+      "peers": "Peers",
+      "cohorts": "Cohorts",
+      "stories": "Stories"
+    },
+    "filters": {
+      "country": "Country",
+      "region": "Region",
+      "language": "Language",
+      "thematic": "Theme",
+      "all": "All"
+    },
+    "sort": {
+      "active": "Recently active",
+      "newest": "Newest registered",
+      "alphabetical": "Alphabetical"
+    },
+    "type": {
+      "all": "All YEEs",
+      "peers": "My peers",
+      "online": "Online"
+    }
+  },
+  "groups": {
+    "title": "Cohorts",
+    "subtitle": "Regional and thematic cohorts for peer exchange.",
+    "search": "Search a cohort…",
+    "empty": "No cohorts found.",
+    "count_one": "{{count}} cohort",
+    "count_other": "{{count}} cohorts",
+    "sort": {
+      "active": "Recently active",
+      "popular": "Most members",
+      "newest": "Newly created",
+      "alphabetical": "Alphabetical"
+    },
+    "type": {
+      "all": "All",
+      "mine": "My cohorts",
+      "public": "Public",
+      "private": "Private"
+    }
+  },
+  "forums": {
+    "title": "Forums",
+    "subtitle": "Discussion spaces required by the AfrEA-YEE ToR.",
+    "search": "Search forums…",
+    "empty": "No forums found."
+  },
+  "moderation": {
+    "title": "Moderation",
+    "subtitle": "{{count}} stor(y|ies) awaiting approval.",
+    "empty": "No stories pending. The queue is clear.",
+    "forbidden": "Access restricted to selected YEEs and the AfrEA Secretariat.",
+    "refresh": "Refresh",
+    "submitted": "Submitted {{time}}",
+    "anonymous": "Anonymous",
+    "consentOk": "Consent OK",
+    "approve": "Approve & publish",
+    "reject": "Reject",
+    "confirmReject": "Confirm rejection",
+    "rejectComment": "Rejection reason (required)",
+    "rejectPlaceholder": "Explain what should be fixed before resubmission…"
+  },
+  "resources": {
+    "title": "Resources & Guides",
+    "subtitle": "Training library — documents, videos and toolkits (replaces a full LMS).",
+    "empty": "No resources found.",
+    "open": "Open",
+    "filterType": "Type",
+    "types": {
+      "all": "All types",
+      "guide": "Guide",
+      "video": "Video",
+      "document": "Document",
+      "toolkit": "Toolkit"
+    }
+  },
+  "search": {
+    "prompt": "Global search",
+    "placeholder": "Stories, members, cohorts, forums, resources…",
+    "showing": "{{count}} result(s) for “{{query}}”",
+    "none": "No results for “{{query}}”",
+    "empty": "No results for these criteria.",
+    "hint": "Enter a keyword and/or filter by country, language, theme.",
+    "tabs": {
+      "all": "All",
+      "stories": "Stories",
+      "members": "Members",
+      "cohorts": "Cohorts",
+      "forums": "Forums",
+      "topics": "Discussions",
+      "resources": "Resources"
+    }
+  }
+}

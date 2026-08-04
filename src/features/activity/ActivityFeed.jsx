@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useActivity } from '../../hooks/useActivity'
 import { Button } from '../../components/ui/Button'
 import { ActivityCard } from './ActivityCard'
@@ -8,6 +9,7 @@ import { ActivityPlaceholder } from './ActivityPlaceholder'
 import { stripHtml } from './utils'
 
 export function ActivityFeed() {
+  const { t } = useTranslation()
   const [scope, setScope] = useState('all')
   const [search, setSearch] = useState('')
   const {
@@ -20,18 +22,26 @@ export function ActivityFeed() {
     createPost,
     toggleFavorite,
     addComment,
-    votePoll,
-  } = useActivity({ scope, perPage: 2 })
+  } = useActivity({ scope, perPage: 3 })
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase()
     if (!q) return activities
-    return activities.filter(
-      (a) =>
-        stripHtml(a.content).toLowerCase().includes(q) ||
-        a.userName.toLowerCase().includes(q) ||
-        a.group?.name?.toLowerCase().includes(q),
-    )
+    return activities.filter((a) => {
+      const hay = [
+        a.title,
+        stripHtml(a.content),
+        a.userName,
+        a.group?.name,
+        a.tags?.country,
+        a.tags?.thematic,
+        a.tags?.language,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+      return hay.includes(q)
+    })
   }, [activities, search])
 
   return (
@@ -60,7 +70,7 @@ export function ActivityFeed() {
 
           {!loading && !error && visible.length === 0 && (
             <div className="bb-card mb-5 p-8 text-center text-bb-sm text-bb-muted">
-              Sorry, there was no activity found. Please try a different filter.
+              {t('stories.empty')}
             </div>
           )}
 
@@ -72,7 +82,6 @@ export function ActivityFeed() {
                   activity={activity}
                   onLike={toggleFavorite}
                   onComment={addComment}
-                  onVotePoll={votePoll}
                 />
               ))}
             </ul>
@@ -81,7 +90,7 @@ export function ActivityFeed() {
           {!loading && hasMore && (
             <div className="load-more flex justify-center py-2">
               <Button variant="secondary" onClick={loadMore} disabled={loadingMore}>
-                {loadingMore ? 'Loading…' : 'Load More'}
+                {loadingMore ? t('common.loading') : t('common.loadMore')}
               </Button>
             </div>
           )}

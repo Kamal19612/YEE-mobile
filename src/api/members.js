@@ -11,6 +11,7 @@ const XPROFILE = '/buddypress/v1/xprofile'
 
 export function mapMember(item) {
   const avatar = item.avatar_urls || item.avatar || {}
+  const meta = item.meta || {}
   return {
     id: item.id,
     userLogin: item.user_login || item.mention_name || '',
@@ -19,6 +20,10 @@ export function mapMember(item) {
     avatar: avatar.full || avatar.thumb || null,
     cover: item.cover_url || item.cover || null,
     bio: item.biography || item.description || '',
+    country: item.country || meta.country || '',
+    region: item.region || meta.region || '',
+    language: item.language || meta.language || '',
+    thematic: item.thematic || meta.thematic || '',
     location: item.location || '',
     joined: item.registered_date || item.date_registered || null,
     lastActive: item.last_activity?.date || item.last_activity || null,
@@ -28,8 +33,10 @@ export function mapMember(item) {
       friends: item.total_friend_count ?? item.friends_count ?? 0,
       groups: item.total_group_count ?? item.groups_count ?? 0,
       activity: item.activity_count ?? 0,
+      stories: item.stories_count ?? item.activity_count ?? 0,
     },
-    memberType: item.member_types?.[0] || item.member_type || 'Member',
+    memberType: item.member_types?.[0] || item.member_type || 'YEE',
+    role: item.role || meta.role || 'yee',
     xprofile: item.xprofile?.groups || item.xprofile || [],
     friends: item.friends || [],
     groups: item.groups || [],

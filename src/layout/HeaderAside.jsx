@@ -1,31 +1,33 @@
+import { useTranslation } from 'react-i18next'
 import { IconSearch } from '../components/icons'
 import { Button } from '../components/ui/Button'
+import { LanguageSwitcher } from '../components/ui/LanguageSwitcher'
 import { useLayout } from '../context/LayoutProvider'
-import { CartDropdown } from './CartDropdown'
 import { HeaderProfileMenu } from './HeaderProfileMenu'
 import { MessagesDropdown } from './MessagesDropdown'
 import { NotificationDropdown } from './NotificationDropdown'
 
 export function HeaderAside({ isLoggedIn = true }) {
+  const { t } = useTranslation()
   const { toggleSearch } = useLayout()
 
   return (
     <div id="header-aside" className="header-aside ml-auto">
-      <div className="header-aside-inner flex items-center gap-3">
+      <div className="header-aside-inner flex items-center gap-2 bb:gap-3">
+        <LanguageSwitcher className="hidden bb:inline-flex" />
         {isLoggedIn ? (
           <>
             <button
               type="button"
               className="header-search-link hidden h-10 w-10 items-center justify-center text-bb-header-link hover:text-bb-header-link-hover bb:inline-flex"
               onClick={toggleSearch}
-              aria-label="Search"
+              aria-label={t('nav.search')}
             >
               <IconSearch />
             </button>
             <span className="bb-separator hidden h-6 w-px bg-bb-border bb:block" />
             <MessagesDropdown />
             <NotificationDropdown />
-            <CartDropdown />
             <HeaderProfileMenu />
           </>
         ) : (
@@ -34,18 +36,17 @@ export function HeaderAside({ isLoggedIn = true }) {
               type="button"
               className="header-search-link text-bb-header-link hover:text-bb-header-link-hover"
               onClick={toggleSearch}
-              aria-label="Search"
+              aria-label={t('nav.search')}
             >
               <IconSearch />
             </button>
             <span className="search-separator bb-separator h-6 w-px bg-bb-border" />
-            <CartDropdown />
             <div className="bb-header-buttons flex items-center gap-2">
               <Button as="a" href="#" variant="link" size="sm" className="signin-button">
-                Sign in
+                {t('auth.signin')}
               </Button>
               <Button as="a" href="#" variant="primary" size="sm" className="signup">
-                Sign up
+                {t('auth.signup')}
               </Button>
             </div>
           </>

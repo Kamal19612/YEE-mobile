@@ -1,9 +1,9 @@
-/** Données de démo — Phase 4 (notifications page) */
+/** Données de démo — Phase 4 (notifications engagement récits) */
 
 export const demoNotifications = [
   {
     id: 21,
-    text: 'Sophie Durand liked your update',
+    text: 'Fatou Diallo a réagi à votre récit',
     time: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
     unread: true,
     component: 'activity',
@@ -11,39 +11,39 @@ export const demoNotifications = [
   },
   {
     id: 22,
-    text: 'You were mentioned in Design Crew',
+    text: 'Votre récit est en attente de modération',
     time: new Date(Date.now() - 1000 * 60 * 40).toISOString(),
     unread: true,
-    component: 'groups',
-    href: '/groups/7',
+    component: 'moderation',
+    href: '/moderation',
   },
   {
     id: 23,
-    text: 'Julien Petit sent you a friend request',
+    text: 'Invitation à rejoindre la cohorte Afrique centrale',
     time: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
     unread: true,
-    component: 'friends',
-    href: '/members/3',
+    component: 'groups',
+    href: '/groups/9',
   },
   {
     id: 24,
-    text: 'New reply in “Welcome to the community”',
+    text: 'Nouvelle réponse dans « Méthodes d’évaluation »',
     time: new Date(Date.now() - 1000 * 60 * 60 * 26).toISOString(),
     unread: false,
-    component: 'activity',
-    href: '/',
+    component: 'forums',
+    href: '/forums/2',
   },
   {
     id: 25,
-    text: 'Camille Roux invited you to Design Crew',
+    text: 'Kwame Asante vous a invité·e dans Genre & Équité',
     time: new Date(Date.now() - 1000 * 60 * 60 * 30).toISOString(),
     unread: false,
     component: 'groups',
-    href: '/groups/7',
+    href: '/groups/8',
   },
   {
     id: 26,
-    text: 'Lucas Moreau accepted your friend request',
+    text: 'Grace Uwase a accepté votre connexion',
     time: new Date(Date.now() - 1000 * 60 * 60 * 50).toISOString(),
     unread: false,
     component: 'friends',
@@ -51,7 +51,7 @@ export const demoNotifications = [
   },
   {
     id: 27,
-    text: 'New message from Sophie Durand',
+    text: 'Nouveau message de Fatou Diallo',
     time: new Date(Date.now() - 1000 * 60 * 60 * 52).toISOString(),
     unread: true,
     component: 'messages',
@@ -59,10 +59,10 @@ export const demoNotifications = [
   },
   {
     id: 28,
-    text: 'Paris Meetup has a new update',
-    time: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(),
+    text: 'Commentaire sur « Gender-responsive evaluation in Accra schools »',
+    time: new Date(Date.now() - 1000 * 60 * 60 * 70).toISOString(),
     unread: false,
-    component: 'groups',
-    href: '/groups/8',
+    component: 'activity',
+    href: '/',
   },
 ]

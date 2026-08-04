@@ -1,10 +1,10 @@
 import { IconBars, IconSearch } from '../components/icons'
+import { LanguageSwitcher } from '../components/ui/LanguageSwitcher'
 import { useLayout } from '../context/LayoutProvider'
 import { SiteLogo } from './SiteLogo'
-import { CartDropdown } from './CartDropdown'
 import { HeaderProfileMenu } from './HeaderProfileMenu'
 
-/** Référence: template-parts/header-mobile.php */
+/** Référence: template-parts/header-mobile.php — sans panier (hors TDR) */
 export function HeaderMobile({ isLoggedIn = true }) {
   const { toggleMobilePanel, toggleSearch } = useLayout()
 
@@ -23,10 +23,11 @@ export function HeaderMobile({ isLoggedIn = true }) {
         </div>
 
         <div className="mobile-logo-wrapper flex min-w-0 flex-1 justify-center px-1">
-          <SiteLogo className="[&_img]:max-w-[120px] sm:[&_img]:max-w-[160px]" />
+          <SiteLogo className="[&_img]:max-w-[100px] sm:[&_img]:max-w-[140px] [&_span]:text-bb-sm sm:[&_span]:text-bb-md" />
         </div>
 
-        <div className="header-aside flex shrink-0 items-center">
+        <div className="header-aside flex shrink-0 items-center gap-0.5">
+          <LanguageSwitcher />
           <button
             type="button"
             className="header-search-link flex h-10 w-10 items-center justify-center text-bb-header-link"
@@ -35,12 +36,7 @@ export function HeaderMobile({ isLoggedIn = true }) {
           >
             <IconSearch />
           </button>
-          {isLoggedIn && (
-            <>
-              <CartDropdown />
-              <HeaderProfileMenu mode="avatar" />
-            </>
-          )}
+          {isLoggedIn && <HeaderProfileMenu mode="avatar" />}
         </div>
       </div>
     </div>

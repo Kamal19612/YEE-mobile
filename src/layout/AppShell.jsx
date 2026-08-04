@@ -1,5 +1,6 @@
 import clsx from 'clsx'
 import { useLayout } from '../context/LayoutProvider'
+import { OfflineBanner } from '../components/ui/OfflineBanner'
 import { BuddyPanel } from './BuddyPanel'
 import { Footer } from './Footer'
 import { Header } from './Header'
@@ -20,6 +21,7 @@ export function AppShell({ children, isLoggedIn = true }) {
       >
         <Header isLoggedIn={isLoggedIn} />
         <HeaderMobile isLoggedIn={isLoggedIn} />
+        <OfflineBanner />
 
         <div id="content" className="site-content flex-1">
           <div className="bb-container">

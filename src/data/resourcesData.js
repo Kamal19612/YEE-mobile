@@ -1,0 +1,67 @@
+/** Bibliothèque Ressources & Guides — remplace Courses (TDR §4.v, §5.vii) */
+
+export const RESOURCE_TYPES = [
+  { id: 'all', labelKey: 'resources.types.all' },
+  { id: 'guide', labelKey: 'resources.types.guide' },
+  { id: 'video', labelKey: 'resources.types.video' },
+  { id: 'document', labelKey: 'resources.types.document' },
+  { id: 'toolkit', labelKey: 'resources.types.toolkit' },
+]
+
+export const demoResources = [
+  {
+    id: 1,
+    title: 'Guide de narration YEE',
+    description: 'Comment structurer un récit d’évaluation : contexte, méthode, apprentissages, plaidoyer.',
+    type: 'guide',
+    language: 'fr',
+    thematic: 'Évaluation participative',
+    format: 'PDF',
+    url: '#',
+    updatedAt: '2026-06-15T10:00:00.000Z',
+  },
+  {
+    id: 2,
+    title: 'Checklist consentement & anonymisation',
+    description: 'Liste de contrôle avant soumission d’un récit à la modération.',
+    type: 'toolkit',
+    language: 'fr',
+    thematic: 'Gouvernance',
+    format: 'PDF',
+    url: '#',
+    updatedAt: '2026-07-01T10:00:00.000Z',
+  },
+  {
+    id: 3,
+    title: 'Storytelling for evaluators (EN)',
+    description: 'Short video workshop on multimedia storytelling for emerging evaluators.',
+    type: 'video',
+    language: 'en',
+    thematic: 'Méthodes mixtes',
+    format: 'Vidéo',
+    url: '#',
+    updatedAt: '2026-05-20T10:00:00.000Z',
+  },
+  {
+    id: 4,
+    title: 'Manuel de la 12e Conférence AfrEA — vitrine YEE',
+    description: 'Orientations pour les récits présentés au Maroc, novembre 2026.',
+    type: 'document',
+    language: 'fr',
+    thematic: 'Jeunesse & Emploi',
+    format: 'DOCX',
+    url: '#',
+    updatedAt: '2026-07-28T10:00:00.000Z',
+  },
+  {
+    id: 5,
+    title: 'Gender-responsive evaluation toolkit',
+    description: 'Practical tools and indicators for gender-responsive evaluation practice.',
+    type: 'toolkit',
+    language: 'en',
+    thematic: 'Genre & Équité',
+    format: 'PDF',
+    url: '#',
+    updatedAt: '2026-04-12T10:00:00.000Z',
+  },
+]

@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import clsx from 'clsx'
+import { useTranslation } from 'react-i18next'
 import { IconSearch } from '../../components/icons'
 import { groupSortOptions, groupTypeFilters } from '../../data/groupsData'
 import { useGroups } from '../../hooks/useGroups'
 import { GroupCard } from './GroupCard'
 
-/** Référence: buddypress/groups/index.php */
+/** Référence: buddypress/groups/index.php — cohortes AfrEA-YEE */
 export function GroupsPage() {
+  const { t } = useTranslation()
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState('active')
   const [typeFilter, setTypeFilter] = useState('all')
@@ -20,13 +22,13 @@ export function GroupsPage() {
   return (
     <div id="buddypress" className="buddypress-wrap w-full">
       <header className="mb-4">
-        <h1 className="m-0 text-bb-xl font-semibold text-bb-heading">Groups</h1>
-        <p className="m-0 mt-1 text-bb-sm text-bb-text">Discover communities and join the conversation.</p>
+        <h1 className="m-0 text-bb-xl font-semibold text-bb-heading">{t('groups.title')}</h1>
+        <p className="m-0 mt-1 text-bb-sm text-bb-text">{t('groups.subtitle')}</p>
       </header>
 
       <div className="mb-5 flex flex-col gap-3 bb:flex-row bb:items-center bb:justify-between">
         <div className="bb-item-count text-bb-sm text-bb-text">
-          <span className="font-semibold text-bb-heading">{total}</span> {total === 1 ? 'Group' : 'Groups'}
+          {t(total === 1 ? 'groups.count_one' : 'groups.count_other', { count: total })}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <label className="relative block min-w-0 w-full flex-1 sm:min-w-[180px]">
@@ -35,7 +37,7 @@ export function GroupsPage() {
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search groups..."
+              placeholder={t('groups.search')}
               className="h-10 w-full rounded-bb-input border border-bb-border bg-bb-content py-1.5 pl-9 pr-3 text-bb-sm outline-none focus:border-bb-primary"
             />
           </label>
@@ -46,7 +48,7 @@ export function GroupsPage() {
           >
             {groupTypeFilters.map((f) => (
               <option key={f.id} value={f.id}>
-                {f.label}
+                {t(f.labelKey)}
               </option>
             ))}
           </select>
@@ -57,7 +59,7 @@ export function GroupsPage() {
           >
             {groupSortOptions.map((f) => (
               <option key={f.id} value={f.id}>
-                {f.label}
+                {t(f.labelKey)}
               </option>
             ))}
           </select>
@@ -67,11 +69,11 @@ export function GroupsPage() {
                 key={v}
                 type="button"
                 onClick={() => setView(v)}
-                className={`px-3 py-1.5 text-bb-xs font-medium capitalize ${
+                className={`px-3 py-1.5 text-bb-xs font-medium ${
                   view === v ? 'bg-bb-primary text-white' : 'bg-bb-content text-bb-text'
                 }`}
               >
-                {v}
+                {t(v === 'grid' ? 'members.grid' : 'members.list')}
               </button>
             ))}
           </div>
@@ -89,7 +91,7 @@ export function GroupsPage() {
       {!loading && error && <div className="bb-card p-4 text-bb-sm text-bb-danger">{error}</div>}
 
       {!loading && !error && groups.length === 0 && (
-        <div className="bb-card p-8 text-center text-bb-sm text-bb-muted">Sorry, no groups were found.</div>
+        <div className="bb-card p-8 text-center text-bb-sm text-bb-muted">{t('groups.empty')}</div>
       )}
 
       {!loading && groups.length > 0 && (

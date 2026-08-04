@@ -1,27 +1,37 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import clsx from 'clsx'
 import { useMembers } from '../../hooks/useMembers'
 import { MemberCard } from './MemberCard'
 import { MembersFilters } from './MembersFilters'
 
-/** Référence: buddypress/members/index.php */
+/** Référence: buddypress/members/index.php — annuaire YEE */
 export function MembersPage() {
+  const { t } = useTranslation()
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState('active')
   const [typeFilter, setTypeFilter] = useState('all')
+  const [country, setCountry] = useState('')
+  const [region, setRegion] = useState('')
+  const [language, setLanguage] = useState('')
+  const [thematic, setThematic] = useState('')
   const [view, setView] = useState('grid')
   const { members, total, loading, error, toggleFriend } = useMembers({
     sort,
     typeFilter,
     search,
+    country,
+    region,
+    language,
+    thematic,
   })
 
   return (
     <div id="buddypress" className="buddypress-wrap members-directory-wrapper w-full">
       <div className="members-directory-container">
         <header className="mb-4">
-          <h1 className="m-0 text-bb-xl font-semibold text-bb-heading">Members</h1>
-          <p className="m-0 mt-1 text-bb-sm text-bb-text">Browse and connect with the community.</p>
+          <h1 className="m-0 text-bb-xl font-semibold text-bb-heading">{t('members.title')}</h1>
+          <p className="m-0 mt-1 text-bb-sm text-bb-text">{t('members.subtitle')}</p>
         </header>
 
         <MembersFilters
@@ -31,6 +41,14 @@ export function MembersPage() {
           onSortChange={setSort}
           typeFilter={typeFilter}
           onTypeFilterChange={setTypeFilter}
+          country={country}
+          onCountryChange={setCountry}
+          region={region}
+          onRegionChange={setRegion}
+          language={language}
+          onLanguageChange={setLanguage}
+          thematic={thematic}
+          onThematicChange={setThematic}
           view={view}
           onViewChange={setView}
           total={total}
@@ -40,7 +58,10 @@ export function MembersPage() {
           {loading && (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="h-56 animate-pulse rounded-bb border border-bb-border bg-bb-content" />
+                <div
+                  key={i}
+                  className="h-56 animate-pulse rounded-bb border border-bb-border bg-bb-content"
+                />
               ))}
             </div>
           )}
@@ -51,7 +72,7 @@ export function MembersPage() {
 
           {!loading && !error && members.length === 0 && (
             <div className="bb-card p-8 text-center text-bb-sm text-bb-muted">
-              Sorry, no members were found.
+              {t('members.empty')}
             </div>
           )}
 

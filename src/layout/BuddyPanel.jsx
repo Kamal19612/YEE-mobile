@@ -1,22 +1,20 @@
 import clsx from 'clsx'
 import { NavLink, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   IconActivity,
-  IconBadge,
   IconBell,
   IconBook,
-  IconBriefcase,
-  IconCalendar,
-  IconCart,
   IconClose,
   IconForum,
   IconGroup,
   IconInbox,
+  IconShield,
   IconSidebar,
   IconUsers,
 } from '../components/icons'
 import { useLayout } from '../context/LayoutProvider'
-import { panelItems } from '../data/demoData'
+import { panelItemDefs } from '../data/demoData'
 import { SiteLogo } from './SiteLogo'
 
 const iconMap = {
@@ -27,10 +25,7 @@ const iconMap = {
   inbox: IconInbox,
   bell: IconBell,
   book: IconBook,
-  calendar: IconCalendar,
-  briefcase: IconBriefcase,
-  cart: IconCart,
-  badge: IconBadge,
+  shield: IconShield,
 }
 
 function isItemActive(pathname, href) {
@@ -38,8 +33,9 @@ function isItemActive(pathname, href) {
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
-/** Référence: template-parts/buddypanel.php */
-export function BuddyPanel({ items = panelItems }) {
+/** Référence: template-parts/buddypanel.php — nav AfrEA-YEE */
+export function BuddyPanel({ items = panelItemDefs }) {
+  const { t } = useTranslation()
   const { panelOpen, togglePanel, mobilePanelOpen, closeMobilePanel } = useLayout()
   const { pathname } = useLocation()
 
@@ -48,6 +44,7 @@ export function BuddyPanel({ items = panelItems }) {
       const Icon = iconMap[item.icon] || IconActivity
       const active = isItemActive(pathname, item.href)
       const expanded = forceExpanded || panelOpen
+      const label = t(item.labelKey)
       return (
         <li key={item.id}>
           <NavLink
@@ -59,13 +56,13 @@ export function BuddyPanel({ items = panelItems }) {
                 ? 'bg-bb-sidenav-active text-white'
                 : 'text-bb-sidenav-text hover:bg-bb-sidenav-hover',
             )}
-            title={item.label}
+            title={label}
           >
             <Icon className="shrink-0" />
             <span
               className={clsx('link-text truncate text-bb-sm font-medium', !expanded && 'sr-only')}
             >
-              {item.label}
+              {label}
             </span>
             {item.count > 0 && expanded && (
               <span

@@ -1,0 +1,18 @@
+{
+  "name": "AfrEA-YEE",
+  "short_name": "AfrEA-YEE",
+  "description": "Plateforme des Jeunes Évaluateurs Émergents — AfrEA",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#FAFBFD",
+  "theme_color": "#385DFF",
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

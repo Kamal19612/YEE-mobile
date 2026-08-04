@@ -1,40 +1,24 @@
-# Rapport Phase 5 — Forums (bbPress) & recherche globale
+# Rapport Phase 5 — File de modération (AfrEA-YEE)
 
-## Templates PHP couverts
+## Couvert
 
-| Source | React |
-|--------|--------|
-| `bbpress.php` + archive forums | `ForumsPage` |
-| `loop-forum-card.php` | `ForumCard` |
-| `content-single-forum.php` / `loop-topics.php` | `ForumPage` |
-| `form-topic.php` | `TopicForm` |
-| `content-single-topic.php` / `loop-single-reply.php` | `TopicPage` |
-| `form-reply.php` | `ReplyForm` |
-| `buddypress/search/results-page.php` + `results-page-content.php` | `SearchPage` |
-| `common/search/search-form.php` / `header-search.php` | `HeaderSearch` → `/search?s=` |
-| API forums / search | `src/api/forums.js`, `src/api/search.js` |
+| Exigence TDR | Implémentation |
+|--------------|----------------|
+| File pré-publication | Liste des récits `status === pending` |
+| Aperçu | Titre, contenu, tags, média, anonymat, consentement |
+| Approbation | → `published` (visible dans le fil public) |
+| Rejet | Commentaire obligatoire → `rejected` |
+| Rôles | `canModerate()` — YEE / moderator / secretariat |
 
-## Routes
+## Fichiers
 
-- `/forums` — grille forums + recherche locale
-- `/forums/:id` — liste discussions + création topic
-- `/forums/:id/topics/:topicId` — lead + réponses imbriquées + reply form
-- `/search?s=` — résultats multi-onglets (All / Members / Groups / Forums / Discussions / Activity)
+```
+src/features/moderation/ModerationPage.jsx
+src/features/moderation/ModerationCard.jsx
+src/hooks/useModeration.js
+src/api/moderation.js
+```
 
-## Fonctionnel
+## Phase suivante
 
-- Cartes forum (cover, counts, freshness)
-- Sticky / closed badges sur topics
-- Réponses threadées (depth 2) + post reply
-- Recherche globale mock agrégée ; bascule REST via `VITE_USE_MOCK=false`
-- Loupe header navigue vers la page search
-
-## Phases 1–5 = cœur social reconstruit
-
-Phase 6 (optionnelle) : WooCommerce, LearnDash, MemberPress, Events, Job Manager — uniquement si besoin métier.
-
-## Non couvert / partiel
-
-- Tags topics bbPress
-- Modal reply exacte du thème
-- Recherche posts WordPress classiques (slot `posts` prévu vide en mock)
+**Phase 6** — Recherche multi-critères, Ressources & Guides, PWA / sync offline, i18n contenu.

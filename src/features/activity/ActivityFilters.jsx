@@ -1,4 +1,5 @@
 import clsx from 'clsx'
+import { useTranslation } from 'react-i18next'
 import { activityFilters } from '../../data/activityData'
 import { IconSearch } from '../../components/icons'
 
@@ -9,8 +10,10 @@ export function ActivityFilters({
   onSearchChange,
   filters = activityFilters,
 }) {
+  const { t } = useTranslation()
+
   return (
-    <div className="activity-head-bar flex flex-col gap-3 bb:flex-row bb:items-center bb:justify-between">
+    <div className="activity-head-bar mb-4 flex flex-col gap-3 bb:flex-row bb:items-center bb:justify-between">
       <ul className="m-0 flex list-none flex-wrap gap-1 p-0" role="tablist">
         {filters.map((f) => (
           <li key={f.id}>
@@ -26,7 +29,7 @@ export function ActivityFilters({
                   : 'bg-bb-alt text-bb-text hover:text-bb-heading',
               )}
             >
-              {f.label}
+              {t(f.labelKey)}
             </button>
           </li>
         ))}
@@ -38,7 +41,7 @@ export function ActivityFilters({
           type="search"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Search feed..."
+          placeholder={t('common.search')}
           className="h-9 w-full rounded-bb-input border border-bb-border bg-bb-content py-1.5 pl-9 pr-3 text-bb-sm text-bb-heading outline-none focus:border-bb-primary"
         />
       </label>

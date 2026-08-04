@@ -47,7 +47,7 @@ export function MessagesPage() {
       >
         <header className="flex items-center justify-between border-b border-bb-border px-4 py-3">
           <h1 className="m-0 text-bb-md font-semibold text-bb-heading">Messages</h1>
-          <span className="text-bb-xs text-bb-muted">{threads.filter((t) => t.unread).length} unread</span>
+          <span className="text-bb-xs text-bb-muted">{threads.filter((t) => t.unread).length} non lus</span>
         </header>
         <ul className="m-0 flex-1 list-none overflow-y-auto p-0">
           {loading &&

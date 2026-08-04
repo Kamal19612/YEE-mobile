@@ -1,31 +1,30 @@
-# Rapport Phase 6 — Intégrations tierces (optionnelle)
+# Rapport Phase 6 — Recherche, ressources, offline & multilingue
 
-Modules construits pour couvrir les dossiers d’intégration du thème BuddyBoss, en restant volontairement **léger** (UI + mock + stubs API, pas de paiement réel ni LMS complet).
+## Couvert
 
-## Modules livrés
+| Exigence | Implémentation |
+|----------|----------------|
+| Recherche multi-critères | Mot-clé + pays / langue / thématique ; onglets récits, membres, cohortes, forums, discussions, ressources |
+| Ressources & Guides | `/resources` — bibliothèque (guide, vidéo, document, toolkit) |
+| PWA | `manifest.webmanifest` + `sw.js` (enregistré en prod) |
+| Sync offline | `useOffline` + file `localStorage` ; composeur enqueue hors-ligne ; `OfflineBanner` |
+| i18n | FR/EN étendu (stories, members, groups, forums, moderation, resources, search) |
 
-| Domaine thème | React | Routes |
-|---------------|--------|--------|
-| WooCommerce + `cart-dropdown.php` | Shop, Product, Cart, Checkout, `CartDropdown` | `/shop`, `/shop/:id`, `/shop/cart`, `/shop/checkout` |
-| LearnDash `ld30` course grid/course | `CoursesPage`, `CoursePage` (curriculum + progress) | `/courses`, `/courses/:id` |
-| The Events Calendar `tribe-events` | `EventsPage`, `EventPage` | `/events`, `/events/:id` |
-| WP Job Manager `content-job.php` | `JobsPage`, `JobPage` | `/jobs`, `/jobs/:id` |
-| MemberPress / PMPro (pricing) | `MembershipsPage` | `/memberships` |
+## Fichiers clés
 
-## Technique
+```
+src/features/resources/ResourcesPage.jsx
+src/features/search/SearchPage.jsx (filtres)
+src/hooks/useSearch.js, useOffline.js
+src/components/ui/OfflineBanner.jsx
+public/sw.js, public/manifest.webmanifest
+```
 
-- `CartProvider` pour panier partagé header ↔ pages shop
-- Stubs API : `src/api/integrations.js` (wc / ldlms / tribe / jobs / mp)
-- Nav header + BuddyPanel étendus (Courses, Shop, Events, Jobs, Memberships)
+## Hors scope Phase 7 (optionnelle)
 
-## Non couvert (volontaire)
+- Matomo / Google Analytics
+- App mobile native (PWA installable déjà amorcée)
 
-- LifterLMS / Tutor / Academy (même pattern que LearnDash — non dupliqué)
-- Paiement Stripe / Woo checkout réel
-- Focus mode LearnDash / quiz engine
-- Job applications + resumes plugin
-- Events map / calendar month view
+## Synthèse globale AfrEA-YEE
 
-## État du projet
-
-Phases **1 → 6** livrées. Le cœur social (1–5) + intégrations optionnelles (6) forment une base React/Tailwind headless prête à brancher sur WordPress REST.
+Phases 1→6 livrées selon le prompt TDR juillet 2026. Modules abandonnés (Shop, Courses, Events, Jobs, Memberships) hors routes.

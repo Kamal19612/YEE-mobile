@@ -1,19 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
+import { useTranslation } from 'react-i18next'
 import { Avatar } from '../../components/ui/Avatar'
 import { IconEllipsis, IconGlobe, IconUsersLock } from '../../components/icons'
+import { STORY_LANGUAGES } from '../../data/activityData'
 import { ActivityActions, ActivityState } from './ActivityActions'
 import { ActivityComments } from './ActivityComments'
 import { formatTimeSince, stripHtml } from './utils'
 
-/** Référence: buddypress/activity/entry.php */
+/** Carte de récit — buddypress/activity/entry.php adapté AfrEA-YEE */
 export function ActivityCard({
   activity,
   onLike,
   onComment,
-  onVotePoll,
   defaultCommentsOpen = false,
 }) {
+  const { t } = useTranslation()
   const [commentsOpen, setCommentsOpen] = useState(
     defaultCommentsOpen || (activity.comments?.length > 0 && activity.commentCount <= 3),
   )
@@ -31,6 +33,11 @@ export function ActivityCard({
   }, [menuOpen])
 
   const isGroup = activity.component === 'groups' && activity.group
+  const displayName = activity.anonymous
+    ? t('stories.anonymousAuthor')
+    : activity.userName
+  const isPublished = activity.status === 'published'
+  const showComments = isPublished
 
   if (hidden) return null
 
@@ -38,9 +45,13 @@ export function ActivityCard({
     <li
       id={`activity-${activity.id}`}
       data-bp-activity-id={activity.id}
+      data-story-status={activity.status}
       className={clsx(
         'activity-item mb-5 list-none rounded-bb border border-bb-border bg-bb-content p-3 pb-2.5 text-[0.875rem] leading-normal sm:p-[15px]',
         activity.favorited && 'has-liked',
+        activity.status === 'pending' && 'border-l-4 border-l-bb-warning',
+        activity.status === 'draft' && 'border-l-4 border-l-bb-muted',
+        activity.status === 'rejected' && 'border-l-4 border-l-bb-danger',
       )}
     >
       <div className="bp-activity-head mb-3 flex gap-3">
@@ -48,9 +59,11 @@ export function ActivityCard({
           <div className="bp-activity-head-group flex min-w-0 flex-1 gap-3">
             <div className="activity-group-avatar relative shrink-0">
               <Avatar name={activity.group.name} src={activity.group.avatar} size="lg" />
-              <div className="author-avatar absolute -bottom-1 -right-1 rounded-full ring-2 ring-bb-content">
-                <Avatar name={activity.userName} src={activity.avatar} size="sm" />
-              </div>
+              {!activity.anonymous && (
+                <div className="author-avatar absolute -bottom-1 -right-1 rounded-full ring-2 ring-bb-content">
+                  <Avatar name={activity.userName} src={activity.avatar} size="sm" />
+                </div>
+              )}
             </div>
             <div className="activity-header activity-header--group min-w-0">
               <div className="activity-group-heading">
@@ -59,36 +72,42 @@ export function ActivityCard({
                 </a>
               </div>
               <div className="activity-group-post-meta flex flex-wrap items-center gap-x-2 gap-y-0.5 text-bb-sm text-bb-muted">
-                <span className="activity-post-author">
-                  <a href={activity.userLink} className="font-medium text-bb-heading hover:text-bb-primary">
-                    {activity.userName}
-                  </a>
-                </span>
+                <span className="activity-post-author font-medium text-bb-heading">{displayName}</span>
                 <span>·</span>
                 <span className="time-since">{formatTimeSince(activity.date)}</span>
-                {activity.edited && <span className="activity-edited">(edited)</span>}
+                {activity.edited && <span>({t('stories.edited')})</span>}
                 <PrivacyIcon privacy={activity.privacy} />
+                <StatusBadge status={activity.status} />
               </div>
             </div>
           </div>
         ) : (
           <>
             <div className="activity-avatar item-avatar shrink-0">
-              <a href={activity.userLink}>
-                <Avatar name={activity.userName} src={activity.avatar} size="lg" />
-              </a>
+              {activity.anonymous ? (
+                <Avatar name="?" size="lg" />
+              ) : (
+                <a href={activity.userLink}>
+                  <Avatar name={activity.userName} src={activity.avatar} size="lg" />
+                </a>
+              )}
             </div>
             <div className="activity-header min-w-0 flex-1">
               <div className="font-semibold text-bb-heading">
-                <a href={activity.userLink} className="hover:text-bb-primary">
-                  {activity.userName}
-                </a>
-                <span className="font-normal text-bb-text"> posted an update</span>
+                {activity.anonymous ? (
+                  displayName
+                ) : (
+                  <a href={activity.userLink} className="hover:text-bb-primary">
+                    {displayName}
+                  </a>
+                )}
+                <span className="font-normal text-bb-text"> {t('stories.postedUpdate')}</span>
               </div>
               <p className="activity-date m-0 flex flex-wrap items-center gap-2 text-bb-sm text-bb-muted">
                 <span className="time-since">{formatTimeSince(activity.date)}</span>
-                {activity.edited && <span>(edited)</span>}
+                {activity.edited && <span>({t('stories.edited')})</span>}
                 <PrivacyIcon privacy={activity.privacy} />
+                <StatusBadge status={activity.status} />
               </p>
             </div>
           </>
@@ -98,7 +117,7 @@ export function ActivityCard({
           <button
             type="button"
             className="flex h-10 w-10 items-center justify-center rounded-bb-inner text-bb-muted hover:bg-bb-alt hover:text-bb-heading"
-            aria-label="More options"
+            aria-label={t('nav.more')}
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((v) => !v)}
           >
@@ -111,12 +130,14 @@ export function ActivityCard({
                   type="button"
                   className="block w-full px-4 py-2.5 text-left text-bb-sm text-bb-heading hover:bg-bb-alt"
                   onClick={() => {
-                    const text = stripHtml(activity.content || '')
+                    const text = [activity.title, stripHtml(activity.content || '')]
+                      .filter(Boolean)
+                      .join('\n\n')
                     navigator.clipboard?.writeText(text).catch(() => {})
                     setMenuOpen(false)
                   }}
                 >
-                  Copy text
+                  {t('stories.copyText')}
                 </button>
               </li>
               <li>
@@ -128,7 +149,7 @@ export function ActivityCard({
                     setMenuOpen(false)
                   }}
                 >
-                  Hide post
+                  {t('stories.hide')}
                 </button>
               </li>
             </ul>
@@ -137,53 +158,115 @@ export function ActivityCard({
       </div>
 
       <div className="activity-content mb-2">
+        {activity.title && (
+          <h3 className="mb-2 mt-0 text-bb-lg font-semibold text-bb-heading">{activity.title}</h3>
+        )}
+
         {activity.content && (
           <div className="activity-inner mb-3 whitespace-pre-wrap text-bb-base text-bb-heading">
             {stripHtml(activity.content)}
           </div>
         )}
 
-        {activity.media?.length > 0 && (
-          <div className="bb-activity-media-wrap mb-3 overflow-hidden rounded-bb-inner">
-            {activity.media.map((m) => (
-              <img
-                key={m.id}
-                src={m.url}
-                alt={m.alt || ''}
-                className="max-h-[420px] w-full object-cover"
-              />
-            ))}
+        {activity.tags && (
+          <div className="mb-3 flex flex-wrap gap-1.5">
+            {activity.tags.country && <TagChip>{activity.tags.country}</TagChip>}
+            {activity.tags.thematic && <TagChip>{activity.tags.thematic}</TagChip>}
+            {activity.tags.language && (
+              <TagChip>
+                {STORY_LANGUAGES.find((l) => l.code === activity.tags.language)?.label ||
+                  activity.tags.language}
+              </TagChip>
+            )}
           </div>
         )}
 
-        {activity.poll && (
-          <PollBlock poll={activity.poll} onVote={(optionId) => onVotePoll?.(activity.id, optionId)} />
+        {activity.media?.length > 0 && (
+          <div className="bb-activity-media-wrap mb-3 overflow-hidden rounded-bb-inner">
+            {activity.media.map((m) => {
+              if (m.type === 'audio') {
+                return (
+                  <div key={m.id} className="bg-bb-alt p-3">
+                    <audio controls src={m.url} className="w-full" />
+                  </div>
+                )
+              }
+              if (m.type === 'video') {
+                return <video key={m.id} controls src={m.url} className="max-h-[420px] w-full bg-black" />
+              }
+              return (
+                <img
+                  key={m.id}
+                  src={m.url}
+                  alt={m.alt || ''}
+                  className="max-h-[420px] w-full object-cover"
+                />
+              )
+            })}
+          </div>
         )}
 
-        <ActivityState favoriteCount={activity.favoriteCount} commentCount={activity.commentCount} />
+        {showComments && (
+          <ActivityState favoriteCount={activity.favoriteCount} commentCount={activity.commentCount} />
+        )}
       </div>
 
-      <ActivityActions
-        favorited={activity.favorited}
-        favoriteCount={activity.favoriteCount}
-        commentCount={activity.commentCount}
-        commentsOpen={commentsOpen}
-        onLike={() => onLike?.(activity.id)}
-        onToggleComments={() => setCommentsOpen((v) => !v)}
-        onShare={() => {
-          if (navigator.share) {
-            navigator.share({ title: `${activity.userName}'s Post`, text: stripHtml(activity.content) }).catch(() => {})
-          }
-        }}
-      />
+      {showComments && (
+        <ActivityActions
+          favorited={activity.favorited}
+          favoriteCount={activity.favoriteCount}
+          commentCount={activity.commentCount}
+          commentsOpen={commentsOpen}
+          onLike={() => onLike?.(activity.id)}
+          onToggleComments={() => setCommentsOpen((v) => !v)}
+          onShare={() => {
+            if (navigator.share) {
+              navigator
+                .share({
+                  title: activity.title || displayName,
+                  text: stripHtml(activity.content),
+                })
+                .catch(() => {})
+            }
+          }}
+        />
+      )}
 
-      {commentsOpen && (
+      {showComments && commentsOpen && (
         <ActivityComments
           comments={activity.comments || []}
           onAddComment={(payload) => onComment?.(activity.id, payload)}
         />
       )}
     </li>
+  )
+}
+
+function StatusBadge({ status }) {
+  const { t } = useTranslation()
+  if (!status || status === 'published') return null
+  const styles = {
+    draft: 'bg-bb-alt text-bb-muted',
+    pending: 'bg-[rgba(237,150,21,0.15)] text-bb-warning',
+    rejected: 'bg-[rgba(219,34,42,0.12)] text-bb-danger',
+  }
+  return (
+    <span
+      className={clsx(
+        'inline-flex items-center rounded-bb-option px-2 py-0.5 text-[11px] font-semibold',
+        styles[status],
+      )}
+    >
+      {t(`stories.status.${status}`)}
+    </span>
+  )
+}
+
+function TagChip({ children }) {
+  return (
+    <span className="inline-flex rounded-bb-option bg-[var(--bb-label-background-color)] px-2 py-0.5 text-[11px] font-medium text-[var(--bb-label-text-color)]">
+      {children}
+    </span>
   )
 }
 
@@ -199,46 +282,5 @@ function PrivacyIcon({ privacy }) {
     <span title="Public" className="inline-flex items-center">
       <IconGlobe className="h-3.5 w-3.5" />
     </span>
-  )
-}
-
-function PollBlock({ poll, onVote }) {
-  return (
-    <div className="mb-3 rounded-bb-inner border border-bb-border p-3">
-      <div className="mb-3 font-semibold text-bb-heading">{poll.question}</div>
-      <div className="space-y-2">
-        {poll.options.map((opt) => {
-          const pct = poll.totalVotes ? Math.round((opt.votes / poll.totalVotes) * 100) : 0
-          const voted = poll.votedOptionId === opt.id
-          return (
-            <button
-              key={opt.id}
-              type="button"
-              disabled={Boolean(poll.votedOptionId)}
-              onClick={() => onVote?.(opt.id)}
-              className={clsx(
-                'relative w-full overflow-hidden rounded-bb-inner border px-3 py-2 text-left text-bb-sm transition-colors',
-                voted
-                  ? 'border-bb-primary text-bb-primary'
-                  : 'border-bb-border text-bb-heading hover:border-bb-primary',
-                poll.votedOptionId && 'cursor-default',
-              )}
-            >
-              {poll.votedOptionId && (
-                <span
-                  className="absolute inset-y-0 left-0 bg-[rgba(var(--bb-primary-color-rgb),0.1)]"
-                  style={{ width: `${pct}%` }}
-                />
-              )}
-              <span className="relative z-[1] flex justify-between gap-2">
-                <span>{opt.label}</span>
-                {poll.votedOptionId && <span>{pct}%</span>}
-              </span>
-            </button>
-          )
-        })}
-      </div>
-      <div className="mt-2 text-bb-xs text-bb-muted">{poll.totalVotes} votes</div>
-    </div>
   )
 }

@@ -5,17 +5,23 @@ import {
   fetchActivities,
   postComment as apiComment,
 } from '../api/activity'
-import { demoActivities } from '../data/activityData'
+import { currentUser } from '../data/demoData'
+import { demoActivities, PUBLICATION_STATUS } from '../data/activityData'
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false'
+const CURRENT_USER_ID = currentUser.id
 
 function filterMock(list, scope) {
-  if (scope === 'just-me') return list.filter((a) => a.userId === 1)
-  if (scope === 'mentions') return list.filter((a) => a.content.includes('@'))
+  if (scope === 'just-me') return list.filter((a) => a.userId === CURRENT_USER_ID)
+  if (scope === 'pending') {
+    return list.filter(
+      (a) => a.userId === CURRENT_USER_ID && a.status === PUBLICATION_STATUS.PENDING,
+    )
+  }
   if (scope === 'favorites') return list.filter((a) => a.favorited)
   if (scope === 'groups') return list.filter((a) => a.component === 'groups')
-  if (scope === 'following') return list.filter((a) => [2, 4].includes(a.userId))
-  return list
+  // Fil public : uniquement les récits publiés
+  return list.filter((a) => a.status === PUBLICATION_STATUS.PUBLISHED)
 }
 
 export function useActivity({ scope = 'all', perPage = 10 } = {}) {
@@ -51,7 +57,7 @@ export function useActivity({ scope = 'all', perPage = 10 } = {}) {
           setActivities(filterMock(demoActivities, scope))
           setHasMore(false)
         } else {
-          setError(err.message || 'Failed to load activity')
+          setError(err.message || 'Failed to load stories')
         }
       } finally {
         setLoading(false)
@@ -70,65 +76,104 @@ export function useActivity({ scope = 'all', perPage = 10 } = {}) {
     load(page + 1, { append: true })
   }, [hasMore, loadingMore, load, page])
 
-  const createPost = useCallback(async ({ content, privacy = 'public', poll, media }) => {
-    if (USE_MOCK) {
+  const createPost = useCallback(
+    async ({
+      title = '',
+      content,
+      media,
+      tags,
+      consent = false,
+      anonymous = false,
+      status = PUBLICATION_STATUS.PENDING,
+    }) => {
       const post = {
         id: Date.now(),
-        userId: 1,
-        userName: 'Alex Martin',
-        userLink: '#',
-        avatar: null,
+        userId: CURRENT_USER_ID,
+        userName: currentUser.displayName,
+        userLink: `/members/${CURRENT_USER_ID}`,
+        avatar: currentUser.avatar,
+        anonymous,
+        title,
         content,
         date: new Date().toISOString(),
         component: 'activity',
-        type: 'activity_update',
-        privacy,
+        type: 'story',
+        privacy: 'public',
+        status,
+        consent,
+        tags: tags || { country: '', thematic: '', language: '' },
         favorited: false,
         favoriteCount: 0,
         commentCount: 0,
         edited: false,
         group: null,
         media: media || [],
-        poll: poll || null,
         comments: [],
       }
-      setActivities((prev) => [post, ...prev])
-      return post
-    }
-    const post = await apiCreate({ content, privacy })
-    setActivities((prev) => [post, ...prev])
-    return post
-  }, [])
 
-  const toggleFavorite = useCallback(async (id) => {
-    setActivities((prev) =>
-      prev.map((a) =>
-        a.id === id
-          ? {
-              ...a,
-              favorited: !a.favorited,
-              favoriteCount: a.favorited ? Math.max(0, a.favoriteCount - 1) : a.favoriteCount + 1,
-            }
-          : a,
-      ),
-    )
-    if (!USE_MOCK) {
-      const current = activities.find((a) => a.id === id)
-      try {
-        await apiFavorite(id, { favorited: current?.favorited })
-      } catch {
-        load(1)
+      if (USE_MOCK) {
+        demoActivities.unshift(post)
+        // Afficher immédiatement si le filtre courant le permet
+        const visibleNow =
+          (scope === 'all' && status === PUBLICATION_STATUS.PUBLISHED) ||
+          (scope === 'just-me' && post.userId === CURRENT_USER_ID) ||
+          (scope === 'pending' && status === PUBLICATION_STATUS.PENDING)
+        if (visibleNow) {
+          setActivities((prev) => [post, ...prev])
+        }
+        return post
       }
-    }
-  }, [activities, load])
+
+      const created = await apiCreate({
+        content,
+        title,
+        privacy: 'public',
+        status,
+        consent,
+        anonymous,
+        tags,
+        media,
+      })
+      setActivities((prev) => [created, ...prev])
+      return created
+    },
+    [scope],
+  )
+
+  const toggleFavorite = useCallback(
+    async (id) => {
+      setActivities((prev) =>
+        prev.map((a) =>
+          a.id === id
+            ? {
+                ...a,
+                favorited: !a.favorited,
+                favoriteCount: a.favorited
+                  ? Math.max(0, a.favoriteCount - 1)
+                  : a.favoriteCount + 1,
+              }
+            : a,
+        ),
+      )
+      if (!USE_MOCK) {
+        const current = activities.find((a) => a.id === id)
+        try {
+          await apiFavorite(id, { favorited: current?.favorited })
+        } catch {
+          load(1)
+        }
+      }
+    },
+    [activities, load],
+  )
 
   const addComment = useCallback(async (activityId, { content, parentId = 0 }) => {
     const comment = USE_MOCK
       ? {
           id: Date.now(),
-          userId: 1,
-          userName: 'Alex Martin',
-          avatar: null,
+          userId: CURRENT_USER_ID,
+          userName: currentUser.displayName,
+          avatar: currentUser.avatar,
           content,
           date: new Date().toISOString(),
           children: [],
@@ -161,25 +206,6 @@ export function useActivity({ scope = 'all', perPage = 10 } = {}) {
     return comment
   }, [])
 
-  const votePoll = useCallback((activityId, optionId) => {
-    setActivities((prev) =>
-      prev.map((a) => {
-        if (a.id !== activityId || !a.poll || a.poll.votedOptionId) return a
-        return {
-          ...a,
-          poll: {
-            ...a.poll,
-            votedOptionId: optionId,
-            totalVotes: a.poll.totalVotes + 1,
-            options: a.poll.options.map((o) =>
-              o.id === optionId ? { ...o, votes: o.votes + 1 } : o,
-            ),
-          },
-        }
-      }),
-    )
-  }, [])
-
   return {
     activities,
     loading,
@@ -190,7 +216,6 @@ export function useActivity({ scope = 'all', perPage = 10 } = {}) {
     createPost,
     toggleFavorite,
     addComment,
-    votePoll,
     reload: () => load(1),
   }
 }

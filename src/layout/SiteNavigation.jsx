@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import clsx from 'clsx'
-import { navItems } from '../data/demoData'
+import { navItemDefs } from '../data/demoData'
 import { IconEllipsis } from '../components/icons'
 
 const PRIMARY_COUNT = 4
 
-export function SiteNavigation({ items = navItems }) {
+export function SiteNavigation({ items = navItemDefs }) {
+  const { t } = useTranslation()
   const primary = items.slice(0, PRIMARY_COUNT)
   const more = items.slice(PRIMARY_COUNT)
   const [moreOpen, setMoreOpen] = useState(false)
@@ -39,7 +41,7 @@ export function SiteNavigation({ items = navItems }) {
                   )
                 }
               >
-                {item.label}
+                {t(item.labelKey)}
               </NavLink>
             </li>
           ))}
@@ -58,7 +60,7 @@ export function SiteNavigation({ items = navItems }) {
               onClick={() => setMoreOpen((v) => !v)}
             >
               <IconEllipsis />
-              <span className="screen-reader-text">More options</span>
+              <span className="screen-reader-text">{t('nav.more')}</span>
             </button>
 
             {moreOpen && (
@@ -76,7 +78,7 @@ export function SiteNavigation({ items = navItems }) {
                         )
                       }
                     >
-                      {item.label}
+                      {t(item.labelKey)}
                     </NavLink>
                   </li>
                 ))}

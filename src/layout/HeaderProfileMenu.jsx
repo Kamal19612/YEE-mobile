@@ -1,16 +1,18 @@
 import clsx from 'clsx'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Avatar } from '../components/ui/Avatar'
 import { IconAngleDown } from '../components/icons'
 import { useLayout } from '../context/LayoutProvider'
-import { currentUser, profileMenuItems } from '../data/demoData'
+import { currentUser, profileMenuDefs } from '../data/demoData'
 import { useEffect, useRef } from 'react'
 
 export function HeaderProfileMenu({
   user = currentUser,
-  items = profileMenuItems,
+  items = profileMenuDefs,
   mode = 'name_and_avatar',
 }) {
+  const { t } = useTranslation()
   const { openDropdown, toggleDropdown, closeDropdowns } = useLayout()
   const open = openDropdown === 'profile'
   const ref = useRef(null)
@@ -77,7 +79,7 @@ export function HeaderProfileMenu({
                     onClick={closeDropdowns}
                     className="block px-4 py-3 text-bb-sm text-bb-heading hover:bg-bb-alt hover:text-bb-primary"
                   >
-                    {item.label}
+                    {t(item.labelKey)}
                   </Link>
                 </li>
               ))}

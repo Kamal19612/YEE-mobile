@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Theme source reference (large)
+buddyboss-theme/
+buddyboss-theme.zip
+Buddyboss-workdir-backup/
+

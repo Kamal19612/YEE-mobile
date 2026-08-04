@@ -1,0 +1,222 @@
+{
+  "app": {
+    "name": "AfrEA-YEE",
+    "tagline": "Plateforme des Jeunes Évaluateurs Émergents",
+    "copyright": "© {{year}} AfrEA — Jeunes Évaluateurs Émergents"
+  },
+  "nav": {
+    "stories": "Récits",
+    "members": "Membres",
+    "groups": "Groupes",
+    "forums": "Forums",
+    "resources": "Ressources",
+    "messages": "Messages",
+    "notifications": "Notifications",
+    "moderation": "Modération",
+    "search": "Recherche",
+    "more": "Plus d'options"
+  },
+  "panel": {
+    "stories": "Fil de récits",
+    "members": "Membres",
+    "groups": "Cohortes",
+    "forums": "Forums",
+    "resources": "Ressources & Guides",
+    "messages": "Messages",
+    "notifications": "Notifications",
+    "moderation": "Modération"
+  },
+  "profile": {
+    "profile": "Profil",
+    "account": "Compte",
+    "settings": "Réglages",
+    "logout": "Déconnexion"
+  },
+  "auth": {
+    "signin": "Connexion",
+    "signup": "Inscription"
+  },
+  "footer": {
+    "about": "À propos",
+    "privacy": "Confidentialité",
+    "terms": "Conditions",
+    "contact": "Contact"
+  },
+  "common": {
+    "comingSoon": "Module en cours de construction",
+    "loadMore": "Charger plus",
+    "loading": "Chargement…",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "publish": "Publier",
+    "draft": "Brouillon",
+    "remove": "Retirer",
+    "search": "Rechercher…"
+  },
+  "stories": {
+    "postedUpdate": "a publié un récit",
+    "anonymousAuthor": "YEE anonyme",
+    "edited": "modifié",
+    "empty": "Aucun récit trouvé. Essayez un autre filtre.",
+    "copyText": "Copier le texte",
+    "hide": "Masquer",
+    "sidebar": {
+      "community": "Communauté YEE",
+      "members": "Membres",
+      "cohorts": "Cohortes",
+      "online": "En ligne",
+      "tips": "Conseils",
+      "tipsBody": "Soumettez un récit multimédia avec tags (pays, thématique, langue). Le consentement est obligatoire ; la publication passe par une modération pré-mise en ligne."
+    },
+    "filters": {
+      "all": "Publiés",
+      "mine": "Mes récits",
+      "pending": "En modération",
+      "likes": "Favoris",
+      "cohorts": "Cohortes"
+    },
+    "status": {
+      "draft": "Brouillon",
+      "pending": "En modération",
+      "published": "Publié",
+      "rejected": "Rejeté"
+    },
+    "composer": {
+      "placeholder": "Partagez votre récit d’évaluation, {{name}}…",
+      "title": "Titre du récit",
+      "titlePlaceholder": "Ex. Évaluation participative au Sénégal",
+      "country": "Pays",
+      "thematic": "Thématique",
+      "language": "Langue",
+      "select": "Sélectionner…",
+      "photo": "Photo",
+      "audio": "Audio",
+      "video": "Vidéo",
+      "consent": "Je confirme disposer du consentement des personnes concernées et autorise la publication de ce récit sur la plateforme AfrEA-YEE.",
+      "consentRequired": "Le consentement est obligatoire pour soumettre à la modération.",
+      "anonymize": "Anonymiser mon nom sur ce récit",
+      "saveDraft": "Enregistrer brouillon",
+      "submitModeration": "Soumettre à la modération",
+      "submitting": "Envoi…"
+    },
+    "tags": {
+      "country": "Pays",
+      "thematic": "Thématique",
+      "language": "Langue"
+    }
+  },
+  "members": {
+    "title": "Membres YEE",
+    "subtitle": "Annuaire filtrable par pays, région, langue et thématique.",
+    "empty": "Aucun membre trouvé.",
+    "count_one": "{{count}} membre",
+    "count_other": "{{count}} membres",
+    "search": "Rechercher un YEE…",
+    "grid": "Grille",
+    "list": "Liste",
+    "viewProfile": "Voir le profil",
+    "connect": "Se connecter",
+    "disconnect": "Se déconnecter",
+    "cancelRequest": "Annuler la demande",
+    "message": "Message",
+    "editProfile": "Modifier le profil",
+    "settings": "Réglages du compte",
+    "online": "En ligne",
+    "joined": "Inscrit·e le {{date}}",
+    "active": "Actif·ve {{time}}",
+    "stats": {
+      "peers": "Pairs",
+      "cohorts": "Cohortes",
+      "stories": "Récits"
+    },
+    "filters": {
+      "country": "Pays",
+      "region": "Région",
+      "language": "Langue",
+      "thematic": "Thématique",
+      "all": "Tous"
+    },
+    "sort": {
+      "active": "Récemment actif·ves",
+      "newest": "Inscriptions récentes",
+      "alphabetical": "Alphabétique"
+    },
+    "type": {
+      "all": "Tous les YEE",
+      "peers": "Mes pairs",
+      "online": "En ligne"
+    }
+  },
+  "groups": {
+    "title": "Cohortes",
+    "subtitle": "Cohortes régionales et thématiques pour échanger entre pairs.",
+    "search": "Rechercher une cohorte…",
+    "empty": "Aucune cohorte trouvée.",
+    "count_one": "{{count}} cohorte",
+    "count_other": "{{count}} cohortes",
+    "sort": {
+      "active": "Récemment actives",
+      "popular": "Plus de membres",
+      "newest": "Créées récemment",
+      "alphabetical": "Alphabétique"
+    },
+    "type": {
+      "all": "Toutes",
+      "mine": "Mes cohortes",
+      "public": "Publiques",
+      "private": "Privées"
+    }
+  },
+  "forums": {
+    "title": "Forums",
+    "subtitle": "Espaces de discussion demandés par le TDR AfrEA-YEE.",
+    "search": "Rechercher dans les forums…",
+    "empty": "Aucun forum trouvé."
+  },
+  "moderation": {
+    "title": "Modération",
+    "subtitle": "{{count}} récit(s) en attente d’approbation.",
+    "empty": "Aucun récit en attente. La file est à jour.",
+    "forbidden": "Accès réservé aux YEE sélectionnés et au Secrétariat AfrEA.",
+    "refresh": "Actualiser",
+    "submitted": "Soumis {{time}}",
+    "anonymous": "Anonyme",
+    "consentOk": "Consentement OK",
+    "approve": "Approuver & publier",
+    "reject": "Rejeter",
+    "confirmReject": "Confirmer le rejet",
+    "rejectComment": "Motif du rejet (obligatoire)",
+    "rejectPlaceholder": "Expliquez ce qui doit être corrigé avant resoumission…"
+  },
+  "resources": {
+    "title": "Ressources & Guides",
+    "subtitle": "Bibliothèque de formation ponctuelle — documents, vidéos et boîtes à outils (remplace un LMS).",
+    "empty": "Aucune ressource trouvée.",
+    "open": "Ouvrir",
+    "filterType": "Type",
+    "types": {
+      "all": "Tous les types",
+      "guide": "Guide",
+      "video": "Vidéo",
+      "document": "Document",
+      "toolkit": "Boîte à outils"
+    }
+  },
+  "search": {
+    "prompt": "Recherche globale",
+    "placeholder": "Récits, membres, cohortes, forums, ressources…",
+    "showing": "{{count}} résultat(s) pour « {{query}} »",
+    "none": "Aucun résultat pour « {{query}} »",
+    "empty": "Aucun résultat pour ces critères.",
+    "hint": "Saisissez un mot-clé et/ou filtrez par pays, langue, thématique.",
+    "tabs": {
+      "all": "Tout",
+      "stories": "Récits",
+      "members": "Membres",
+      "cohorts": "Cohortes",
+      "forums": "Forums",
+      "topics": "Discussions",
+      "resources": "Ressources"
+    }
+  }
+}

@@ -259,3 +259,31 @@ export function IconBadge(props) {
     </svg>
   )
 }
+
+export function IconShield(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6l7-3z" />
+      <path d="M9.5 12l1.8 1.8L14.5 10" />
+    </svg>
+  )
+}
+
+export function IconMic(props) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="9" y="3" width="6" height="11" rx="3" />
+      <path d="M5 11a7 7 0 0 0 14 0" />
+      <path d="M12 18v3" />
+    </svg>
+  )
+}
+
+export function IconVideo(props) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="3" y="6" width="12" height="12" rx="2" />
+      <path d="M15 10l6-3v10l-6-3V10z" />
+    </svg>
+  )
+}

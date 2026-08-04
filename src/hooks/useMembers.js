@@ -15,25 +15,39 @@ function sortMembers(list, sort) {
   return copy.sort((a, b) => new Date(b.lastActive) - new Date(a.lastActive))
 }
 
-function filterMembers(list, { search, typeFilter }) {
+function filterMembers(list, { search, typeFilter, country, region, language, thematic }) {
   let result = list
   if (typeFilter === 'online') result = result.filter((m) => m.online)
   if (typeFilter === 'friends') {
     result = result.filter((m) => m.friendshipStatus === 'is_friend' || m.friendshipStatus === 'self')
   }
+  if (country) result = result.filter((m) => m.country === country)
+  if (region) result = result.filter((m) => m.region === region)
+  if (language) result = result.filter((m) => m.language === language)
+  if (thematic) result = result.filter((m) => m.thematic === thematic)
   const q = search.trim().toLowerCase()
   if (q) {
     result = result.filter(
       (m) =>
         m.displayName.toLowerCase().includes(q) ||
         m.mentionName.toLowerCase().includes(q) ||
-        m.location.toLowerCase().includes(q),
+        (m.location || '').toLowerCase().includes(q) ||
+        (m.country || '').toLowerCase().includes(q) ||
+        (m.thematic || '').toLowerCase().includes(q),
     )
   }
   return result
 }
 
-export function useMembers({ sort = 'active', typeFilter = 'all', search = '' } = {}) {
+export function useMembers({
+  sort = 'active',
+  typeFilter = 'all',
+  search = '',
+  country = '',
+  region = '',
+  language = '',
+  thematic = '',
+} = {}) {
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -62,8 +76,12 @@ export function useMembers({ sort = 'active', typeFilter = 'all', search = '' } 
   }, [load])
 
   const visible = useMemo(
-    () => sortMembers(filterMembers(members, { search, typeFilter }), sort),
-    [members, search, typeFilter, sort],
+    () =>
+      sortMembers(
+        filterMembers(members, { search, typeFilter, country, region, language, thematic }),
+        sort,
+      ),
+    [members, search, typeFilter, sort, country, region, language, thematic],
   )
 
   const toggleFriend = useCallback(async (id) => {
