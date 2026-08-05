@@ -44,15 +44,25 @@ export function ModerationCard({ story, acting, onApprove, onReject }) {
 
       {story.media?.length > 0 && (
         <div className="mb-3 overflow-hidden rounded-bb-inner">
-          {story.media.map((m) =>
-            m.type === 'image' ? (
-              <img key={m.id} src={m.url} alt={m.alt || ''} className="max-h-64 w-full object-cover" />
-            ) : m.type === 'audio' ? (
-              <audio key={m.id} controls src={m.url} className="w-full" />
-            ) : (
-              <video key={m.id} controls src={m.url} className="max-h-64 w-full bg-black" />
-            ),
-          )}
+          {story.media.map((m, index) => {
+            const mediaKey = m.id ?? m.url ?? `${m.type || 'media'}-${index}`
+            if (m.type === 'image') {
+              return (
+                <img
+                  key={mediaKey}
+                  src={m.url}
+                  alt={m.alt || ''}
+                  className="max-h-64 w-full object-cover"
+                />
+              )
+            }
+            if (m.type === 'audio') {
+              return <audio key={mediaKey} controls src={m.url} className="w-full" />
+            }
+            return (
+              <video key={mediaKey} controls src={m.url} className="max-h-64 w-full bg-black" />
+            )
+          })}
         </div>
       )}
 

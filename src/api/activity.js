@@ -8,23 +8,34 @@ import { apiFetch } from './client'
 
 const BASE = '/buddypress/v1/activity'
 
+function stripHtml(html) {
+  if (!html || typeof html !== 'string') return ''
+  return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
+}
+
 export function mapActivity(item) {
   const user = item.user_avatar || item.user || {}
   const meta = item.meta || {}
+  const rawContent = item.content?.rendered || item.content?.raw || item.content || ''
+  const content = typeof rawContent === 'string' ? stripHtml(rawContent) : ''
+  const statusRaw = item.status || meta.publication_status || 'published'
+  const status =
+    statusRaw === 'publish' || statusRaw === 'public' ? 'published' : statusRaw
+
   return {
     id: item.id,
     userId: item.user_id,
     userName: item.user_name || item.name || 'Member',
-    userLink: item.user_link || '#',
+    userLink: item.user_link || (item.user_id ? `/members/${item.user_id}` : '#'),
     avatar: typeof user === 'string' ? user : user.full || user.thumb || null,
     anonymous: Boolean(item.anonymous ?? meta.anonymous),
     title: item.title || meta.title || '',
-    content: item.content?.rendered || item.content || '',
+    content,
     date: item.date || item.date_gmt || new Date().toISOString(),
     component: item.component || 'activity',
     type: item.type || 'story',
     privacy: item.privacy || 'public',
-    status: item.status || meta.publication_status || 'published',
+    status,
     consent: Boolean(item.consent ?? meta.consent),
     tags: item.tags || meta.tags || {
       country: meta.country || '',
@@ -71,11 +82,13 @@ export async function fetchActivities({
     page: String(page),
     per_page: String(perPage),
   })
-  if (scope && scope !== 'all') params.set('scope', scope)
+  if (scope && scope !== 'all' && scope !== 'pending') params.set('scope', scope)
   if (search) params.set('search', search)
-  if (scope === 'all') params.set('status', 'published')
 
-  const data = await apiFetch(`${BASE}?${params}`, { token })
+  const data = await apiFetch(`${BASE}?${params}`, {
+    // GET public OK ; si session App API, envoie le Bearer (utile avec le bridge JWT)
+    ...(token !== undefined ? { token } : { auth: true }),
+  })
   const list = Array.isArray(data) ? data : data?.activities || []
   return list.map(mapActivity)
 }

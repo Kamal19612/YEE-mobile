@@ -31,9 +31,18 @@ export async function fetchThreads({ page = 1, perPage = 20, box = 'inbox', toke
     per_page: String(perPage),
     box,
   })
-  const data = await apiFetch(`${BASE}?${params}`, { token })
-  const list = Array.isArray(data) ? data : data?.threads || []
-  return list.map(mapThread)
+  try {
+    const data = await apiFetch(`${BASE}?${params}`, {
+      token,
+      auth: true,
+      suppressUnauthorized: true,
+    })
+    const list = Array.isArray(data) ? data : data?.threads || []
+    return list.map(mapThread)
+  } catch (err) {
+    if (err.status === 401 || err.status === 403 || err.status === 400) return []
+    throw err
+  }
 }
 
 export async function fetchThread(id, { token } = {}) {

@@ -12,6 +12,7 @@ export function LoginPage() {
   const location = useLocation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [rememberMe, setRememberMe] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [localError, setLocalError] = useState(null)
 
@@ -27,10 +28,15 @@ export function LoginPage() {
     setLocalError(null)
     setSubmitting(true)
     try {
-      await login(email.trim(), password)
+      await login(email.trim(), password, { rememberMe })
       navigate(from, { replace: true })
     } catch (err) {
-      setLocalError(err.message || t('auth.loginFailed'))
+      const code = err.code || err.body?.error?.code
+      if (code === 'email_not_verified') {
+        setLocalError(err.message || t('auth.emailNotVerified'))
+      } else {
+        setLocalError(err.message || t('auth.loginFailed'))
+      }
     } finally {
       setSubmitting(false)
     }
@@ -76,12 +82,34 @@ export function LoginPage() {
             className="h-11 w-full rounded-bb-input border border-bb-border bg-bb-content px-3 text-bb-base outline-none focus:border-bb-primary"
           />
         </label>
+
+        <div className="flex items-center justify-between gap-3">
+          <label className="flex cursor-pointer items-center gap-2 text-bb-sm text-bb-muted">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="h-4 w-4 rounded border-bb-border text-bb-primary"
+            />
+            {t('auth.rememberMe')}
+          </label>
+          <Link to="/forgot-password" className="shrink-0 text-bb-sm text-bb-primary hover:underline">
+            {t('auth.forgotLink')}
+          </Link>
+        </div>
+
         <Button type="submit" variant="primary" className="w-full" disabled={submitting}>
           {submitting ? t('auth.signingIn') : t('auth.signin')}
         </Button>
       </form>
 
       <p className="mt-6 text-center text-bb-sm text-bb-muted">
+        {t('auth.noAccount')}{' '}
+        <Link to="/register" className="text-bb-primary hover:underline">
+          {t('auth.signup')}
+        </Link>
+      </p>
+      <p className="mt-2 text-center text-bb-sm text-bb-muted">
         <Link to="/" className="text-bb-primary hover:underline">
           {t('auth.backHome')}
         </Link>

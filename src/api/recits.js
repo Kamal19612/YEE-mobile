@@ -61,9 +61,9 @@ export function mapRecit(item) {
     comments: [],
     group: null,
     media: featured
-      ? [{ type: mediaType || 'image', url: featured }]
+      ? [{ id: `media-${item.id}`, type: mediaType || 'image', url: featured }]
       : mediaType
-        ? [{ type: mediaType }]
+        ? [{ id: `media-${item.id}`, type: mediaType }]
         : [],
     edited: Boolean(item.modified && item.modified !== item.date),
     wpStatus: statusRaw,
@@ -105,13 +105,17 @@ export async function getRecits(filtres = {}) {
   if (langue) params.set('langue', langue)
   if (thematique) params.set('thematique', thematique)
 
-  const data = await apiFetch(`${BASE}?${params}`)
+  const data = await apiFetch(`${BASE}?${params}`, {
+    // publish = public ; draft/pending = JWT requis
+    skipAuth: status === 'publish',
+    auth: status !== 'publish',
+  })
   const list = Array.isArray(data) ? data : data?.recits || []
   return list.map(mapRecit)
 }
 
 export async function getRecit(id) {
-  const data = await apiFetch(`${BASE}/${id}?_embed=1`)
+  const data = await apiFetch(`${BASE}/${id}?_embed=1`, { skipAuth: true })
   return mapRecit(data)
 }
 

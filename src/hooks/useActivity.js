@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
-import { favoriteActivity as apiFavorite, postComment as apiComment } from '../api/activity'
-import { createRecit, getRecits } from '../api/recits'
+import {
+  createFeedItem,
+  favoriteActivity as apiFavorite,
+  getFeedItems,
+  postComment as apiComment,
+} from '../api/feed'
 import { USE_MOCK } from '../config/api'
 import { demoActivities, PUBLICATION_STATUS } from '../data/activityData'
 import { currentUser as demoUser } from '../data/demoData'
@@ -14,12 +18,6 @@ function filterMock(list, scope, userId) {
   if (scope === 'favorites') return list.filter((a) => a.favorited)
   if (scope === 'groups') return list.filter((a) => a.component === 'groups')
   return list.filter((a) => a.status === PUBLICATION_STATUS.PUBLISHED)
-}
-
-function scopeToRecitStatus(scope) {
-  if (scope === 'pending') return 'pending'
-  if (scope === 'just-me') return 'any'
-  return 'publish'
 }
 
 export function useActivity({ scope = 'all', perPage = 10 } = {}) {
@@ -49,18 +47,17 @@ export function useActivity({ scope = 'all', perPage = 10 } = {}) {
           setActivities((prev) => (append ? [...prev, ...chunk] : chunk))
           setHasMore(start + chunk.length < filtered.length)
         } else {
-          const status = scopeToRecitStatus(scope)
           const filtres = {
             page: nextPage,
             perPage,
-            status: status === 'any' ? 'publish,pending,draft' : status,
+            scope,
           }
           if (scope === 'just-me' || scope === 'pending') {
             filtres.author = userId
           }
           if (scope === 'pending') filtres.status = 'pending'
 
-          let list = await getRecits(filtres)
+          let list = await getFeedItems(filtres)
           if (scope === 'favorites') list = list.filter((a) => a.favorited)
           if (scope === 'groups') list = list.filter((a) => a.component === 'groups')
 
@@ -135,7 +132,7 @@ export function useActivity({ scope = 'all', perPage = 10 } = {}) {
         return post
       }
 
-      const created = await createRecit({
+      const created = await createFeedItem({
         content,
         title,
         status,

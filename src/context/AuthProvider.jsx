@@ -1,7 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import * as authApi from '../api/auth'
-import { clearToken, getToken, setUnauthorizedHandler } from '../api/client'
+import { clearToken, setUnauthorizedHandler } from '../api/client'
+import { enrichSessionUser } from '../api/users'
 import { USE_MOCK } from '../config/api'
 import { currentUser as demoUser } from '../data/demoData'
 
@@ -14,8 +15,8 @@ export function AuthProvider({ children }) {
   const [authError, setAuthError] = useState(null)
 
   const logout = useCallback(
-    ({ redirect = true } = {}) => {
-      authApi.logout()
+    async ({ redirect = true } = {}) => {
+      await authApi.logout()
       setUser(null)
       setAuthError(null)
       if (redirect) navigate('/login', { replace: true })
@@ -42,17 +43,16 @@ export function AuthProvider({ children }) {
         return
       }
 
-      if (!getToken()) {
-        if (alive) {
-          setUser(null)
-          setBootstrapping(false)
-        }
-        return
-      }
-
+      // Access token mémoire perdu au F5 → restauration via cookie refresh httpOnly
       try {
-        const me = await authApi.getCurrentUser()
-        if (alive) setUser(me)
+        const session = await authApi.restoreSession()
+        if (!alive) return
+        if (!session?.user) {
+          setUser(null)
+          return
+        }
+        const enriched = await enrichSessionUser(session.user)
+        if (alive) setUser(enriched)
       } catch {
         clearToken()
         if (alive) setUser(null)
@@ -66,18 +66,26 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
-  const login = useCallback(async (email, password) => {
+  const login = useCallback(async (email, password, { rememberMe = true } = {}) => {
     setAuthError(null)
     if (USE_MOCK) {
       setUser(demoUser)
       return demoUser
     }
     try {
-      await authApi.login(email, password)
-      const me = await authApi.getCurrentUser()
-      setUser(me)
-      return me
+      const { user: me } = await authApi.login(email, password, { rememberMe })
+      if (!me) {
+        clearToken()
+        const err = new Error('Impossible de récupérer le profil utilisateur')
+        setAuthError(err.message)
+        throw err
+      }
+      const enriched = await enrichSessionUser(me)
+      setUser(enriched)
+      return enriched
     } catch (err) {
+      clearToken()
+      setUser(null)
       setAuthError(err.message || 'Échec de connexion')
       throw err
     }
@@ -91,7 +99,7 @@ export function AuthProvider({ children }) {
       authError,
       login,
       logout,
-      /** En mock : utilisateur démo. En live : user WP ou null. */
+      /** En mock : utilisateur démo. En live : user App API ou null. */
       currentUser: user,
     }),
     [user, bootstrapping, authError, login, logout],

@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { fetchMembers, updateFriendship } from '../api/members'
+import {
+  fetchMyProfile,
+  fetchPublicProfile,
+  followUser,
+  unfollowUser,
+  updateProfileField,
+} from '../api/users'
 import { USE_MOCK } from '../config/api'
 import { demoMembers } from '../data/membersData'
+import { useAuth } from './useAuth'
 
 function sortMembers(list, sort) {
   const copy = [...list]
@@ -83,32 +91,48 @@ export function useMembers({
     [members, search, typeFilter, sort, country, region, language, thematic],
   )
 
-  const toggleFriend = useCallback(async (id) => {
-    setMembers((prev) =>
-      prev.map((m) => {
-        if (m.id !== id) return m
-        if (m.friendshipStatus === 'is_friend') {
-          return { ...m, friendshipStatus: 'not_friends', stats: { ...m.stats, friends: Math.max(0, m.stats.friends - 1) } }
+  const toggleFriend = useCallback(
+    async (id) => {
+      const target = members.find((m) => m.id === id)
+      const wasFriend = target?.friendshipStatus === 'is_friend'
+      setMembers((prev) =>
+        prev.map((m) => {
+          if (m.id !== id) return m
+          if (wasFriend) {
+            return {
+              ...m,
+              friendshipStatus: 'not_friends',
+              stats: { ...m.stats, friends: Math.max(0, m.stats.friends - 1) },
+            }
+          }
+          return {
+            ...m,
+            friendshipStatus: 'is_friend',
+            stats: { ...m.stats, friends: (m.stats.friends || 0) + 1 },
+          }
+        }),
+      )
+      if (!USE_MOCK) {
+        try {
+          if (wasFriend) await unfollowUser(id)
+          else await followUser(id)
+        } catch {
+          try {
+            await updateFriendship(id, { action: 'create' })
+          } catch {
+            load()
+          }
         }
-        if (m.friendshipStatus === 'pending') {
-          return { ...m, friendshipStatus: 'not_friends' }
-        }
-        return { ...m, friendshipStatus: 'pending' }
-      }),
-    )
-    if (!USE_MOCK) {
-      try {
-        await updateFriendship(id, { action: 'create' })
-      } catch {
-        load()
       }
-    }
-  }, [load])
+    },
+    [load, members],
+  )
 
   return { members: visible, total: visible.length, loading, error, toggleFriend, reload: load }
 }
 
 export function useMember(id) {
+  const { user } = useAuth()
   const [member, setMember] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -124,15 +148,21 @@ export function useMember(id) {
           const found = demoMembers.find((m) => String(m.id) === String(id)) || null
           if (alive) setMember(found)
         } else {
-          const { fetchMember } = await import('../api/members')
-          const data = await fetchMember(id)
+          const isSelf = Boolean(user && String(user.id) === String(id))
+          const data = isSelf ? await fetchMyProfile() : await fetchPublicProfile(id)
           if (alive) setMember(data)
         }
       } catch (err) {
         if (alive) {
-          const found = demoMembers.find((m) => String(m.id) === String(id)) || null
-          if (found) setMember(found)
-          else setError(err.message || 'Member not found')
+          try {
+            const { fetchMember } = await import('../api/members')
+            const data = await fetchMember(id)
+            if (alive) setMember(data)
+          } catch {
+            const found = demoMembers.find((m) => String(m.id) === String(id)) || null
+            if (found) setMember(found)
+            else setError(err.message || 'Member not found')
+          }
         }
       } finally {
         if (alive) setLoading(false)
@@ -142,17 +172,21 @@ export function useMember(id) {
     return () => {
       alive = false
     }
-  }, [id])
+  }, [id, user])
 
   const updateProfile = useCallback((patch) => {
     setMember((prev) => (prev ? { ...prev, ...patch } : prev))
   }, [])
 
-  const updateXprofileField = useCallback((groupId, fieldId, value) => {
+  const updateXprofileField = useCallback(async (groupId, fieldId, value) => {
     setMember((prev) => {
       if (!prev) return prev
       return {
         ...prev,
+        ...(fieldId === 'bio' ? { bio: value } : {}),
+        ...(fieldId === 'profession' ? { profession: value } : {}),
+        ...(fieldId === 'organization' ? { organization: value } : {}),
+        ...(fieldId === 'location' ? { location: value } : {}),
         xprofile: prev.xprofile.map((g) =>
           g.id === groupId
             ? {
@@ -163,36 +197,37 @@ export function useMember(id) {
         ),
       }
     })
+    if (!USE_MOCK) {
+      try {
+        const updated = await updateProfileField(fieldId, value)
+        setMember(updated)
+      } catch {
+        /* garde l’UI optimiste */
+      }
+    }
   }, [])
 
   const toggleFriend = useCallback(async () => {
+    let snapshot = null
     setMember((prev) => {
       if (!prev || prev.friendshipStatus === 'self') return prev
-      let nextStatus = 'pending'
-      let friendsDelta = 0
-      if (prev.friendshipStatus === 'is_friend') {
-        nextStatus = 'not_friends'
-        friendsDelta = -1
-      } else if (prev.friendshipStatus === 'pending') {
-        nextStatus = 'not_friends'
-      } else {
-        nextStatus = 'pending'
-      }
-      const updated = {
+      snapshot = prev
+      const isFriend = prev.friendshipStatus === 'is_friend'
+      const friendsDelta = isFriend ? -1 : 1
+      return {
         ...prev,
-        friendshipStatus: nextStatus,
+        friendshipStatus: isFriend ? 'not_friends' : 'is_friend',
         stats: {
           ...prev.stats,
           friends: Math.max(0, (prev.stats?.friends || 0) + friendsDelta),
+          followers: Math.max(0, (prev.stats?.followers || 0) + friendsDelta),
         },
       }
-      const idx = demoMembers.findIndex((m) => m.id === prev.id)
-      if (idx >= 0) demoMembers[idx] = { ...demoMembers[idx], ...updated }
-      return updated
     })
-    if (!USE_MOCK) {
+    if (!USE_MOCK && snapshot) {
       try {
-        await updateFriendship(id, { action: 'create' })
+        if (snapshot.friendshipStatus === 'is_friend') await unfollowUser(id)
+        else await followUser(id)
       } catch {
         /* keep optimistic UI */
       }

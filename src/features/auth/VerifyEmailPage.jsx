@@ -1,0 +1,85 @@
+import { useEffect, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { verifyEmail } from '../../api/auth'
+import { USE_MOCK } from '../../config/api'
+import { Button } from '../../components/ui/Button'
+
+/**
+ * Vérification email App API — POST /app/v1/auth/verify-email
+ * Lien email : {APP_FRONTEND_URL}/verify-email?token=…
+ */
+
+export function VerifyEmailPage() {
+  const { t } = useTranslation()
+  const [searchParams] = useSearchParams()
+  const token = searchParams.get('token') || ''
+  const [status, setStatus] = useState(() => (token ? 'loading' : 'missing'))
+  const [message, setMessage] = useState(null)
+
+  useEffect(() => {
+    if (!token) return
+
+    let alive = true
+    async function run() {
+      try {
+        if (USE_MOCK) {
+          if (alive) {
+            setStatus('ok')
+            setMessage(t('auth.verifySuccessMock'))
+          }
+          return
+        }
+        const data = await verifyEmail(token)
+        if (!alive) return
+        setStatus('ok')
+        setMessage(data?.message || t('auth.verifySuccess'))
+      } catch (err) {
+        if (!alive) return
+        setStatus('error')
+        setMessage(err.message || t('auth.verifyFailed'))
+      }
+    }
+    run()
+    return () => {
+      alive = false
+    }
+  }, [token, t])
+
+  return (
+    <div className="mx-auto flex min-h-[60vh] w-full max-w-md flex-col justify-center py-10">
+      <h1 className="m-0 mb-2 text-bb-xl font-semibold text-bb-heading">{t('auth.verifyTitle')}</h1>
+
+      {status === 'loading' && (
+        <p className="m-0 text-bb-sm text-bb-muted">{t('auth.verifying')}</p>
+      )}
+
+      {status === 'missing' && (
+        <p className="mb-6 rounded-bb-inner border border-red-200 bg-red-50 px-3 py-2 text-bb-sm text-red-700" role="alert">
+          {t('auth.verifyMissingToken')}
+        </p>
+      )}
+
+      {status === 'ok' && (
+        <p
+          className="mb-6 rounded-bb-inner border border-green-200 bg-green-50 px-3 py-3 text-bb-sm text-green-800"
+          role="status"
+        >
+          {message}
+        </p>
+      )}
+
+      {status === 'error' && (
+        <p className="mb-6 rounded-bb-inner border border-red-200 bg-red-50 px-3 py-2 text-bb-sm text-red-700" role="alert">
+          {message}
+        </p>
+      )}
+
+      {(status === 'ok' || status === 'error' || status === 'missing') && (
+        <Button as={Link} to="/login" variant="primary" className="w-full">
+          {t('auth.signin')}
+        </Button>
+      )}
+    </div>
+  )
+}

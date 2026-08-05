@@ -19,9 +19,18 @@ export async function fetchNotifications({ page = 1, perPage = 20, isNew, token 
     per_page: String(perPage),
   })
   if (typeof isNew === 'boolean') params.set('is_new', isNew ? 'true' : 'false')
-  const data = await apiFetch(`${BASE}?${params}`, { token })
-  const list = Array.isArray(data) ? data : data?.notifications || []
-  return list.map(mapNotification)
+  try {
+    const data = await apiFetch(`${BASE}?${params}`, {
+      token,
+      auth: true,
+      suppressUnauthorized: true,
+    })
+    const list = Array.isArray(data) ? data : data?.notifications || []
+    return list.map(mapNotification)
+  } catch (err) {
+    if (err.status === 401 || err.status === 403 || err.status === 400) return []
+    throw err
+  }
 }
 
 export async function markNotificationRead(id, { token } = {}) {

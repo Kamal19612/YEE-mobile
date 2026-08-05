@@ -48,7 +48,7 @@ export function HeaderAside() {
               <Button as={Link} to="/login" variant="link" size="sm" className="signin-button">
                 {t('auth.signin')}
               </Button>
-              <Button as={Link} to="/login" variant="primary" size="sm" className="signup">
+              <Button as={Link} to="/register" variant="primary" size="sm" className="signup">
                 {t('auth.signup')}
               </Button>
             </div>

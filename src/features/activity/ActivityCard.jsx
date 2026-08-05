@@ -191,20 +191,28 @@ export function ActivityCard({
 
         {activity.media?.length > 0 && (
           <div className="bb-activity-media-wrap mb-3 overflow-hidden rounded-bb-inner">
-            {activity.media.map((m) => {
+            {activity.media.map((m, index) => {
+              const mediaKey = m.id ?? m.url ?? `${m.type || 'media'}-${index}`
               if (m.type === 'audio') {
                 return (
-                  <div key={m.id} className="bg-bb-alt p-3">
+                  <div key={mediaKey} className="bg-bb-alt p-3">
                     <audio controls src={m.url} className="w-full" />
                   </div>
                 )
               }
               if (m.type === 'video') {
-                return <video key={m.id} controls src={m.url} className="max-h-[420px] w-full bg-black" />
+                return (
+                  <video
+                    key={mediaKey}
+                    controls
+                    src={m.url}
+                    className="max-h-[420px] w-full bg-black"
+                  />
+                )
               }
               return (
                 <img
-                  key={m.id}
+                  key={mediaKey}
                   src={m.url}
                   alt={m.alt || ''}
                   className="max-h-[420px] w-full object-cover"

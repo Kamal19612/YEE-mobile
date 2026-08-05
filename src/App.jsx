@@ -17,6 +17,10 @@ import { SearchPage } from './features/search/SearchPage'
 import { ModerationPage } from './features/moderation/ModerationPage'
 import { ResourcesPage } from './features/resources/ResourcesPage'
 import { LoginPage } from './features/auth/LoginPage'
+import { RegisterPage } from './features/auth/RegisterPage'
+import { VerifyEmailPage } from './features/auth/VerifyEmailPage'
+import { ForgotPasswordPage } from './features/auth/ForgotPasswordPage'
+import { ResetPasswordPage } from './features/auth/ResetPasswordPage'
 
 /**
  * AfrEA-YEE — périmètre TDR juillet 2026
@@ -31,6 +35,10 @@ export default function App() {
             <AppShell>
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/verify-email" element={<VerifyEmailPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/" element={<ActivityPage />} />
                 <Route path="/activity" element={<Navigate to="/" replace />} />
                 <Route path="/stories" element={<Navigate to="/" replace />} />

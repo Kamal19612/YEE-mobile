@@ -57,13 +57,20 @@ export async function fetchMembers({
     type,
   })
   if (search) params.set('search', search)
-  const data = await apiFetch(`${MEMBERS}?${params}`, { token })
+  const data = await apiFetch(`${MEMBERS}?${params}`, {
+    token,
+    // Liste publique : sans JWT (middleware SJL casse les GET si la clé email est mal réglée)
+    skipAuth: token == null,
+  })
   const list = Array.isArray(data) ? data : data?.members || []
   return list.map(mapMember)
 }
 
 export async function fetchMember(id, { token } = {}) {
-  const data = await apiFetch(`${MEMBERS}/${id}`, { token })
+  const data = await apiFetch(`${MEMBERS}/${id}`, {
+    token,
+    skipAuth: token == null,
+  })
   return mapMember(data)
 }
 

@@ -1,74 +1,167 @@
-import { JWT_AUTH_ENDPOINT } from '../config/api'
-import { apiFetch, clearToken, getToken, setToken } from './client'
+import { ENDPOINTS } from '../config/api'
+import { appApiFetch, clearToken, getToken, setToken } from './client'
 
 /**
- * Authentification Simple JWT Login
- * POST …/simple-jwt-login/v1/auth
+ * AuthService — App API `/app/v1/auth/*`
+ * Contrat : { success, data } géré par appApiFetch.
  */
 
-function extractJwt(payload) {
-  if (!payload || typeof payload !== 'object') return null
-  return (
-    payload.jwt ||
-    payload.token ||
-    payload.data?.jwt ||
-    payload.data?.token ||
-    null
-  )
-}
-
-export function mapWpUser(raw) {
-  if (!raw) return null
-  const avatar =
-    raw.avatar_urls?.['96'] ||
-    raw.avatar_urls?.['48'] ||
-    raw.meta?.avatar ||
-    null
+/**
+ * @param {object|null} raw
+ * @returns {object|null} forme UI existante (AuthProvider / Header / Profile)
+ */
+export function mapAppUser(raw) {
+  if (!raw || typeof raw !== 'object') return null
+  const id = raw.id ?? raw.ID ?? raw.user_id
+  if (id == null || id === '') return null
+  const numericId = Number(id)
+  const safeId = Number.isFinite(numericId) ? numericId : id
+  const email = raw.email || raw.user_email || ''
+  const displayName = raw.displayName || raw.display_name || raw.name || email || 'Member'
   return {
-    id: raw.id,
-    displayName: raw.name || raw.slug || 'Member',
-    mentionName: raw.slug || raw.nickname || String(raw.id),
-    email: raw.email || '',
-    avatar,
-    role: Array.isArray(raw.roles) ? raw.roles[0] : raw.role || 'yee',
-    roles: raw.roles || [],
-    link: `/members/${raw.id}`,
+    id: safeId,
+    displayName,
+    mentionName: raw.mentionName || raw.slug || raw.user_login || String(safeId),
+    email,
+    avatar: raw.avatar || raw.avatarUrl || null,
+    cover: raw.cover || raw.coverUrl || null,
+    role: raw.role || (Array.isArray(raw.roles) && raw.roles[0]) || 'yee',
+    roles: Array.isArray(raw.roles) ? raw.roles : [],
+    link: `/members/${safeId}`,
   }
 }
 
 /**
- * @returns {{ jwt: string, raw: unknown }}
+ * @returns {Promise<{ accessToken: string, expiresIn: number, user: object }>}
  */
-export async function login(email, password) {
-  const data = await apiFetch(JWT_AUTH_ENDPOINT, {
+export async function login(email, password, { rememberMe = true } = {}) {
+  const data = await appApiFetch(ENDPOINTS.auth.login, {
     method: 'POST',
     skipAuth: true,
-    body: JSON.stringify({ email, password }),
+    suppressUnauthorized: true,
+    body: JSON.stringify({ email, password, rememberMe }),
   })
 
-  const jwt = extractJwt(data)
-  if (!jwt) {
-    const err = new Error(
-      data?.message || data?.data?.message || 'Réponse JWT invalide — vérifier Simple JWT Login',
-    )
+  const accessToken = data?.accessToken
+  if (!accessToken) {
+    const err = new Error('Réponse login invalide — accessToken manquant')
     err.status = 401
     err.body = data
     throw err
   }
 
-  setToken(jwt)
-  return { jwt, raw: data }
+  setToken(accessToken)
+  return {
+    accessToken,
+    expiresIn: data.expiresIn ?? 900,
+    user: mapAppUser(data.user),
+    raw: data,
+  }
 }
 
-export function logout() {
-  clearToken()
+/**
+ * Déconnexion serveur (révoque refresh cookie) + clear mémoire.
+ */
+export async function logout() {
+  try {
+    if (getToken()) {
+      await appApiFetch(ENDPOINTS.auth.logout, {
+        method: 'POST',
+        auth: true,
+        suppressUnauthorized: true,
+      })
+    }
+  } catch {
+    /* session déjà invalide — on nettoie quand même */
+  } finally {
+    clearToken()
+  }
 }
 
-export async function getCurrentUser() {
-  const token = getToken()
-  if (!token) return null
-  const raw = await apiFetch('/wp/v2/users/me?context=edit')
-  return mapWpUser(raw)
+/**
+ * Restaure la session via cookie refresh (F5 / nouvel onglet).
+ * Le cookie `app_refresh_token` (path /wp-json/app/v1/auth) doit être présent.
+ * @returns {Promise<{ accessToken: string, user: object }|null>}
+ */
+export async function restoreSession() {
+  try {
+    // Un seul round-trip : refresh renvoie déjà accessToken + user
+    const data = await appApiFetch(ENDPOINTS.auth.refresh, {
+      method: 'POST',
+      skipAuth: true,
+      suppressUnauthorized: true,
+    })
+    if (!data?.accessToken) {
+      clearToken()
+      return null
+    }
+    setToken(data.accessToken)
+    const user = mapAppUser(data.user)
+    if (!user) {
+      clearToken()
+      return null
+    }
+    return { accessToken: data.accessToken, user }
+  } catch {
+    clearToken()
+    return null
+  }
 }
 
-export { getToken }
+/**
+ * @param {{ suppressUnauthorized?: boolean }} [opts]
+ */
+export async function getCurrentUser(opts = {}) {
+  const { suppressUnauthorized = false } = opts
+  if (!getToken()) return null
+
+  try {
+    const data = await appApiFetch(ENDPOINTS.auth.me, {
+      method: 'GET',
+      auth: true,
+      suppressUnauthorized,
+    })
+    return mapAppUser(data)
+  } catch (err) {
+    if (!suppressUnauthorized) clearToken()
+    throw err
+  }
+}
+
+export async function register({ email, password, displayName }) {
+  return appApiFetch(ENDPOINTS.auth.register, {
+    method: 'POST',
+    skipAuth: true,
+    suppressUnauthorized: true,
+    body: JSON.stringify({ email, password, displayName }),
+  })
+}
+
+export async function verifyEmail(token) {
+  return appApiFetch(ENDPOINTS.auth.verifyEmail, {
+    method: 'POST',
+    skipAuth: true,
+    suppressUnauthorized: true,
+    body: JSON.stringify({ token }),
+  })
+}
+
+export async function forgotPassword(email) {
+  return appApiFetch(ENDPOINTS.auth.forgotPassword, {
+    method: 'POST',
+    skipAuth: true,
+    suppressUnauthorized: true,
+    body: JSON.stringify({ email }),
+  })
+}
+
+export async function resetPassword(token, newPassword) {
+  return appApiFetch(ENDPOINTS.auth.resetPassword, {
+    method: 'POST',
+    skipAuth: true,
+    suppressUnauthorized: true,
+    body: JSON.stringify({ token, newPassword }),
+  })
+}
+
+export { getToken, clearToken, setToken }
