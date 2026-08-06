@@ -111,7 +111,8 @@ function isAuthEndpointPath(path) {
 
 /**
  * Refresh silencieux (cookie httpOnly). Utilisé au bootstrap et sur 401.
- * @returns {Promise<string>} nouvel access token
+ * Une seule requête à la fois (mutex) — évite la rotation double (StrictMode / multi-onglets).
+ * @returns {Promise<{ accessToken: string, expiresIn?: number, user?: object }>}
  */
 export async function refreshAccessToken() {
   if (refreshPromise) return refreshPromise
@@ -140,7 +141,7 @@ export async function refreshAccessToken() {
       }
 
       setToken(body.data.accessToken)
-      return body.data.accessToken
+      return body.data
     } finally {
       clearTimeout(timer)
       refreshPromise = null

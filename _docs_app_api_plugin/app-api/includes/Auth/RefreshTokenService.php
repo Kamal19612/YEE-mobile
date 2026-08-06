@@ -19,20 +19,49 @@ if ( ! defined( 'ABSPATH' ) ) {
  * hash (SHA-256), comme un mot de passe. Si la base fuite, les refresh
  * tokens ne sont pas directement réutilisables.
  *
- * Stratégie "remember me" : durée de vie 30 jours si remember_me=true,
- * sinon 1 jour (session courte, alignée sur une session de navigation
- * classique).
+ * SESSION TYPE "RÉSEAU SOCIAL" (fenêtre glissante) : contrairement à une
+ * session bancaire à durée fixe, la session ici ne s'éteint QUE sur :
+ *   1. une déconnexion explicite (POST /auth/logout),
+ *   2. une inactivité prolongée au-delà de SLIDING_TTL_DAYS (voir plus bas),
+ *   3. un changement de mot de passe ou une réutilisation de token détectée
+ *      (signal de compromission).
  *
- * Rotation à chaque refresh : un refresh token n'est utilisable qu'une seule
- * fois. À chaque appel à /auth/refresh, l'ancien est révoqué et un nouveau
- * est émis (+ nouvel access token). Cela permet de détecter le vol de token :
- * si un refresh token déjà utilisé est présenté à nouveau, c'est un signal
- * de compromission -> on révoque TOUTE la famille de tokens de l'utilisateur.
+ * Le mécanisme : à CHAQUE refresh réussi, un nouveau token est émis avec une
+ * expiration recalculée à partir de maintenant (voir rotate() -> issue()).
+ * Tant que l'utilisateur revient sur l'app au moins une fois tous les
+ * SLIDING_TTL_DAYS, la fenêtre glisse indéfiniment et il ne revoit jamais
+ * l'écran de connexion — exactement le comportement d'Instagram, LinkedIn
+ * ou Facebook, qui n'ont pas de case "se souvenir de moi" : on reste
+ * connecté par défaut, jusqu'à déconnexion explicite.
+ *
+ * Compromis assumé : plus une session est longue, plus la fenêtre
+ * d'exploitation d'un vol de refresh token (appareil volé/partagé) est
+ * large. C'est atténué par trois filets de sécurité déjà en place et
+ * INCHANGÉS par ce choix de durée :
+ *   - la rotation à chaque refresh (un token volé et déjà utilisé par le
+ *     propriétaire légitime déclenche la révocation de toute la famille,
+ *     cf. rotate() ci-dessous) ;
+ *   - la révocation de toutes les sessions au changement de mot de passe
+ *     (AuthController::change_password / reset_password) ;
+ *   - le cookie reste httpOnly + Secure ; SameSite=None si SPA cross-origin
+ *     (sinon Lax/Strict via APP_COOKIE_SAMESITE), donc inatteignable XSS.
+ *     CSRF atténué par path /auth + APP_ALLOWED_ORIGINS.
+ * Si le produit a besoin d'un contrôle plus fin (ex. "gérer mes appareils
+ * connectés"), la table existante permet déjà de lister/révoquer par ligne
+ * — c'est une évolution UI, pas une évolution de schéma.
  */
 final class RefreshTokenService {
 
-    private const SHORT_TTL_DAYS = 1;
-    private const LONG_TTL_DAYS  = 30;
+    /**
+     * Durée de la fenêtre glissante. 60 jours est un compromis courant côté
+     * réseaux sociaux (Facebook/Instagram vont souvent plus loin, mais sans
+     * documentation publique fiable sur leur valeur exacte) : assez long
+     * pour qu'un utilisateur actif au moins une fois par mois et demi ne
+     * soit jamais déconnecté, assez court pour limiter la fenêtre de risque
+     * d'un token volé et jamais utilisé par son propriétaire légitime (donc
+     * jamais détecté par la détection de réutilisation).
+     */
+    private const SLIDING_TTL_DAYS = 60;
 
     private static function table(): string {
         global $wpdb;
@@ -48,12 +77,17 @@ final class RefreshTokenService {
      * Retourne le token BRUT (à ne renvoyer qu'une seule fois au client,
      * dans un cookie httpOnly — jamais dans le corps JSON en clair côté
      * logs applicatifs).
+     *
+     * @param bool $remember_me Conservé pour compatibilité de signature et
+     *             pour une éventuelle option future "ne pas rester connecté
+     *             sur cet appareil" (ordinateur public, etc.), mais n'influe
+     *             plus sur la durée par défaut — cf. note de classe.
      */
     public static function issue( int $user_id, bool $remember_me, string $user_agent, string $ip ): string {
         global $wpdb;
 
         $raw_token = Sanitizer::generate_secure_token( 48 );
-        $ttl_days  = $remember_me ? self::LONG_TTL_DAYS : self::SHORT_TTL_DAYS;
+        $ttl_days  = self::SLIDING_TTL_DAYS;
 
         $wpdb->insert(
             self::table(),

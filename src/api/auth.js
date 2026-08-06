@@ -1,5 +1,5 @@
 import { ENDPOINTS } from '../config/api'
-import { appApiFetch, clearToken, getToken, setToken } from './client'
+import { appApiFetch, clearToken, getToken, refreshAccessToken, setToken } from './client'
 
 /**
  * AuthService — App API `/app/v1/auth/*`
@@ -112,7 +112,7 @@ export async function logout() {
 
 /**
  * Restaure la session via cookie refresh (F5 / nouvel onglet).
- * Le cookie `app_refresh_token` (path /wp-json/app/v1/auth) doit être présent.
+ * Passe par refreshAccessToken() (mutex) pour éviter double rotation StrictMode.
  * @returns {Promise<{ accessToken: string, user: object }|null>}
  */
 export async function restoreSession() {
@@ -123,18 +123,12 @@ export async function restoreSession() {
   }
 
   try {
-    // Un seul round-trip : refresh renvoie déjà accessToken + user
-    const data = await appApiFetch(ENDPOINTS.auth.refresh, {
-      method: 'POST',
-      skipAuth: true,
-      suppressUnauthorized: true,
-    })
+    const data = await refreshAccessToken()
     if (!data?.accessToken) {
       clearToken()
       clearSessionHint()
       return null
     }
-    setToken(data.accessToken)
     setSessionHint()
     const user = mapAppUser(data.user)
     if (!user) {

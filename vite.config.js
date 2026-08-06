@@ -16,7 +16,8 @@ function softenRefreshCookies(proxyRes) {
     cookie
       .replace(/;\s*Domain=[^;]*/gi, '')
       .replace(/;\s*Secure/gi, '')
-      .replace(/;\s*SameSite=Strict/gi, '; SameSite=Lax'),
+      // None exige Secure : en local HTTP on force Lax après strip Secure
+      .replace(/;\s*SameSite=(?:Strict|None)/gi, '; SameSite=Lax'),
   )
 }
 

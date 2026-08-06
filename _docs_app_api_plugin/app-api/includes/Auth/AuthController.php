@@ -6,7 +6,6 @@ use AppApi\Core\AbstractController;
 use AppApi\Core\ApiResponse;
 use AppApi\Core\RestNamespace;
 use AppApi\Core\Sanitizer;
-use AppApi\Users\UserTransformer;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -15,11 +14,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Endpoints d'authentification. Namespace : /wp-json/app/v1/auth/*
  *
- * Le refresh token est TOUJOURS transporté en cookie httpOnly/Secure/
- * SameSite=Strict, jamais dans le corps JSON — ce qui le rend inaccessible à
- * du JS malveillant (XSS) côté frontend. L'access token, lui, est renvoyé
- * dans le corps JSON : c'est au frontend de le garder en mémoire (store
- * Zustand), jamais en localStorage (cf. features/auth/store/authStore.ts).
+ * Le refresh token est TOUJOURS transporté en cookie httpOnly/Secure,
+ * jamais dans le corps JSON — inaccessible au JS (XSS). L'access token
+ * est renvoyé dans le JSON et doit rester en mémoire côté frontend.
+ *
+ * SameSite par défaut = None : requis pour une SPA cross-origin
+ * (ex. GitHub Pages → API Hostinger). Override via APP_COOKIE_SAMESITE
+ * (Lax/Strict) si front et API sont same-site. CSRF atténué par path
+ * scoped /auth + whitelist APP_ALLOWED_ORIGINS (credentials).
  */
 final class AuthController extends AbstractController {
 
@@ -212,6 +214,15 @@ final class AuthController extends AbstractController {
     /* -----------------------------------------------------------------
      * POST /auth/login
      * Body: { email, password, rememberMe? }
+     *
+     * Depuis le passage à une session "réseau social" (fenêtre glissante,
+     * cf. RefreshTokenService), TOUTE connexion reste ouverte jusqu'à
+     * déconnexion explicite — il n'y a plus de session "courte" par
+     * défaut. `rememberMe` n'influence donc plus la durée de vie du token
+     * ; le paramètre est conservé uniquement pour une évolution future
+     * (ex. case "Ordinateur public — ne pas rester connecté" avec une
+     * session délibérément plus courte). Le frontend peut continuer à
+     * envoyer ce champ sans effet, ou cesser de l'envoyer.
      * --------------------------------------------------------------- */
     public static function login( \WP_REST_Request $request ) {
         $ip    = RateLimiter::get_client_ip();
@@ -290,17 +301,38 @@ final class AuthController extends AbstractController {
         ] );
     }
 
-    private static function set_refresh_cookie( string $token, bool $remember_me ): void {
-        $ttl = ( $remember_me ? 30 : 1 ) * DAY_IN_SECONDS;
+    /**
+     * Attributs cookie refresh. SameSite=None par défaut (SPA cross-origin).
+     * define( 'APP_COOKIE_SAMESITE', 'Lax' ) si front et API sont same-site.
+     */
+    private static function refresh_cookie_options( int $expires ): array {
+        $samesite = 'None';
+        if ( defined( 'APP_COOKIE_SAMESITE' ) && is_string( APP_COOKIE_SAMESITE ) && APP_COOKIE_SAMESITE !== '' ) {
+            $samesite = APP_COOKIE_SAMESITE;
+        }
 
-        setcookie( self::REFRESH_COOKIE_NAME, $token, [
-            'expires'  => time() + $ttl,
-            'path'     => '/wp-json/' . RestNamespace::NAMESPACE . '/auth', // Cookie scoped, pas envoyé sur tout le site.
+        return [
+            'expires'  => $expires,
+            'path'     => '/wp-json/' . RestNamespace::NAMESPACE . '/auth',
             'domain'   => defined( 'APP_COOKIE_DOMAIN' ) ? APP_COOKIE_DOMAIN : '',
-            'secure'   => true,     // HTTPS uniquement — jamais false en production.
-            'httponly' => true,     // Inaccessible en JS : protection XSS.
-            'samesite' => 'Strict', // Protection CSRF de base.
-        ] );
+            'secure'   => true,
+            'httponly' => true,
+            'samesite' => $samesite,
+        ];
+    }
+
+    /**
+     * Durée du cookie navigateur, alignée sur la fenêtre glissante côté
+     * serveur (RefreshTokenService::SLIDING_TTL_DAYS). Les deux valeurs
+     * doivent rester synchronisées : si le cookie expire avant le token en
+     * base, le navigateur cesse d'envoyer un token pourtant encore valide
+     * server-side, et l'utilisateur est déconnecté "trop tôt" sans raison
+     * de sécurité réelle.
+     */
+    private static function set_refresh_cookie( string $token, bool $remember_me ): void {
+        // $remember_me conservé pour signature ; TTL = fenêtre glissante 60j.
+        $ttl = 60 * DAY_IN_SECONDS;
+        setcookie( self::REFRESH_COOKIE_NAME, $token, self::refresh_cookie_options( time() + $ttl ) );
     }
 
     /* -----------------------------------------------------------------
@@ -346,14 +378,11 @@ final class AuthController extends AbstractController {
     }
 
     private static function clear_refresh_cookie(): void {
-        setcookie( self::REFRESH_COOKIE_NAME, '', [
-            'expires'  => time() - HOUR_IN_SECONDS,
-            'path'     => '/wp-json/' . RestNamespace::NAMESPACE . '/auth',
-            'domain'   => defined( 'APP_COOKIE_DOMAIN' ) ? APP_COOKIE_DOMAIN : '',
-            'secure'   => true,
-            'httponly' => true,
-            'samesite' => 'Strict',
-        ] );
+        setcookie(
+            self::REFRESH_COOKIE_NAME,
+            '',
+            self::refresh_cookie_options( time() - HOUR_IN_SECONDS )
+        );
     }
 
     /* -----------------------------------------------------------------
@@ -455,22 +484,17 @@ final class AuthController extends AbstractController {
     }
 
     /**
-     * Payload user renvoyé au login / refresh /auth/me.
-     * Délègue au UserTransformer pour inclure avatarUrl / coverUrl persistés
-     * (app_avatar_attachment_id / app_cover_attachment_id).
+     * Transforme un utilisateur WP en payload public. C'est ICI que se
+     * matérialise le principe "React ne voit jamais un objet WP brut" —
+     * même pour un simple utilisateur. À enrichir au sprint Profil avec
+     * avatar, cover, bio, etc. (données BuddyPress).
      */
     private static function public_user_payload( int $user_id ): array {
-        $profile = UserTransformer::to_public_profile( $user_id, true );
-        if ( empty( $profile ) ) {
-            return [];
-        }
+        $user = get_userdata( $user_id );
         return [
-            'id'          => $profile['id'],
-            'displayName' => $profile['displayName'],
-            'mentionName' => $profile['mentionName'] ?? '',
-            'email'       => $profile['email'] ?? '',
-            'avatarUrl'   => $profile['avatarUrl'] ?? null,
-            'coverUrl'    => $profile['coverUrl'] ?? null,
+            'id'          => (string) $user->ID,
+            'displayName' => $user->display_name,
+            'email'       => $user->user_email, // Uniquement sur /me, jamais sur un profil tiers.
         ];
     }
 }
