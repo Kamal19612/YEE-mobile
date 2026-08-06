@@ -34,9 +34,11 @@ export function MemberCard({ member, view = 'grid', onFriendToggle }) {
             {langLabel && <Chip>{langLabel}</Chip>}
             {member.thematic && <Chip>{member.thematic}</Chip>}
           </div>
-          <div className="mt-1 text-bb-xs text-bb-muted">
-            {t('members.active', { time: formatTimeSince(member.lastActive) })}
-          </div>
+          {formatTimeSince(member.lastActive) ? (
+            <div className="mt-1 text-bb-xs text-bb-muted">
+              {t('members.active', { time: formatTimeSince(member.lastActive) })}
+            </div>
+          ) : null}
         </div>
         <div className="action w-full shrink-0 sm:w-auto">
           <FriendButton member={member} onFriendToggle={onFriendToggle} />

@@ -40,9 +40,9 @@ export const MEMBER_THEMATICS = [
 ]
 
 export const memberSortOptions = [
-  { id: 'active', labelKey: 'members.sort.active' },
-  { id: 'newest', labelKey: 'members.sort.newest' },
   { id: 'alphabetical', labelKey: 'members.sort.alphabetical' },
+  { id: 'newest', labelKey: 'members.sort.newest' },
+  { id: 'active', labelKey: 'members.sort.active' },
 ]
 
 export const memberTypeFilters = [

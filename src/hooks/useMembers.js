@@ -14,15 +14,26 @@ import {
 import { mapWithSessionMedia, sameUserId, withSessionMedia } from '../utils/sessionMedia'
 import { useAuth } from './useAuth'
 
+function activityTimestamp(value) {
+  if (!value) return 0
+  const time = new Date(value).getTime()
+  return Number.isFinite(time) ? time : 0
+}
+
 function sortMembers(list, sort) {
   const copy = [...list]
   if (sort === 'newest') {
-    return copy.sort((a, b) => new Date(b.joined) - new Date(a.joined))
+    return copy.sort((a, b) => activityTimestamp(b.joined) - activityTimestamp(a.joined))
   }
   if (sort === 'alphabetical') {
-    return copy.sort((a, b) => a.displayName.localeCompare(b.displayName))
+    return copy.sort((a, b) => a.displayName.localeCompare(b.displayName, undefined, { sensitivity: 'base' }))
   }
-  return copy.sort((a, b) => new Date(b.lastActive) - new Date(a.lastActive))
+  // Activité récente : plus récents d'abord ; sans date → en bas
+  return copy.sort((a, b) => {
+    const diff = activityTimestamp(b.lastActive) - activityTimestamp(a.lastActive)
+    if (diff !== 0) return diff
+    return a.displayName.localeCompare(b.displayName, undefined, { sensitivity: 'base' })
+  })
 }
 
 function filterMembers(list, { search, typeFilter, country, region, language, thematic }) {
@@ -66,7 +77,7 @@ function applyFollowState(member, followingIds, currentUserId) {
 }
 
 export function useMembers({
-  sort = 'active',
+  sort = 'alphabetical',
   typeFilter = 'all',
   search = '',
   country = '',

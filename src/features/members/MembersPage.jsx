@@ -9,21 +9,13 @@ import { MembersFilters } from './MembersFilters'
 export function MembersPage() {
   const { t } = useTranslation()
   const [search, setSearch] = useState('')
-  const [sort, setSort] = useState('active')
-  const [typeFilter, setTypeFilter] = useState('all')
+  const [sort, setSort] = useState('alphabetical')
   const [country, setCountry] = useState('')
-  const [region, setRegion] = useState('')
-  const [language, setLanguage] = useState('')
-  const [thematic, setThematic] = useState('')
   const [view, setView] = useState('grid')
   const { members, total, loading, error, toggleFriend } = useMembers({
     sort,
-    typeFilter,
     search,
     country,
-    region,
-    language,
-    thematic,
   })
 
   return (
@@ -39,16 +31,8 @@ export function MembersPage() {
           onSearchChange={setSearch}
           sort={sort}
           onSortChange={setSort}
-          typeFilter={typeFilter}
-          onTypeFilterChange={setTypeFilter}
           country={country}
           onCountryChange={setCountry}
-          region={region}
-          onRegionChange={setRegion}
-          language={language}
-          onLanguageChange={setLanguage}
-          thematic={thematic}
-          onThematicChange={setThematic}
           view={view}
           onViewChange={setView}
           total={total}

@@ -303,7 +303,7 @@
     },
     "online": "Online",
     "joined": "Joined {{date}}",
-    "active": "Active {{time}}",
+    "active": "Seen {{time}}",
     "stats": {
       "peers": "Peers",
       "cohorts": "Groups",
@@ -317,7 +317,8 @@
       "all": "All"
     },
     "sort": {
-      "active": "Recently active",
+      "label": "Sort by",
+      "active": "Recent activity",
       "newest": "Newest registered",
       "alphabetical": "Alphabetical"
     },
@@ -376,7 +377,7 @@
       "invite": "Invite"
     },
     "sort": {
-      "active": "Recently active",
+      "active": "Recent activity",
       "popular": "Most members",
       "newest": "Newly created",
       "alphabetical": "Alphabetical"

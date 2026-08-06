@@ -303,7 +303,7 @@
     },
     "online": "En ligne",
     "joined": "Inscrit·e le {{date}}",
-    "active": "Actif·ve {{time}}",
+    "active": "Vu {{time}}",
     "stats": {
       "peers": "Pairs",
       "cohorts": "Groupes",
@@ -317,7 +317,8 @@
       "all": "Tous"
     },
     "sort": {
-      "active": "Récemment actif·ves",
+      "label": "Trier par",
+      "active": "Activité récente",
       "newest": "Inscriptions récentes",
       "alphabetical": "Alphabétique"
     },
@@ -376,7 +377,7 @@
       "invite": "Inviter"
     },
     "sort": {
-      "active": "Récemment actifs",
+      "active": "Activité récente",
       "popular": "Plus de membres",
       "newest": "Créés récemment",
       "alphabetical": "Alphabétique"

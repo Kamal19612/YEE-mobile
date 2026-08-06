@@ -44,8 +44,8 @@ export function ProfileHeader({
       data-bp-item-component="members"
       className="users-header single-headers mb-5 overflow-hidden rounded-bb border border-bb-border bg-bb-content"
     >
-      {/* z-20 au-dessus de l’avatar (-mt-12) pour que le bouton couverture reste cliquable sur mobile */}
-      <div className="relative z-20">
+      {/* Couverture en arrière-plan ; bouton en haut à droite (hors zone avatar) */}
+      <div className="relative z-0">
         <div
           id="header-cover-image"
           className="h-44 bg-bb-cover bg-cover bg-center sm:h-48 bb:h-52"
@@ -67,7 +67,7 @@ export function ProfileHeader({
             <label
               htmlFor={coverInputId}
               className={[
-                'absolute right-2 top-2 z-20 inline-flex max-w-[min(100%-1rem,11rem)] cursor-pointer items-center justify-center gap-1.5 rounded-bb-btn border px-2.5 py-1.5 text-bb-sm font-medium shadow-sm transition-colors duration-150 touch-manipulation sm:right-3 sm:top-3 sm:max-w-none sm:px-3',
+                'absolute right-2 top-2 z-30 inline-flex max-w-[min(100%-1rem,11rem)] cursor-pointer items-center justify-center gap-1.5 rounded-bb-btn border px-2.5 py-1.5 text-bb-sm font-medium shadow-sm transition-colors duration-150 touch-manipulation sm:right-3 sm:top-3 sm:max-w-none sm:px-3',
                 'border-[var(--bb-secondary-button-border-regular)] bg-[var(--bb-secondary-button-background-regular)] text-[var(--bb-secondary-button-text-regular)]',
                 'hover:border-[var(--bb-secondary-button-border-hover)] hover:bg-[var(--bb-secondary-button-background-hover)] hover:text-[var(--bb-secondary-button-text-hover)]',
                 mediaBusy === 'cover' ? 'pointer-events-none opacity-60' : '',
@@ -83,9 +83,10 @@ export function ProfileHeader({
         )}
       </div>
 
-      <div id="item-header-cover-image" className="relative z-10 px-3 pb-4 pt-0 sm:px-4 bb:px-6">
+      {/* Avatar au-dessus de la couverture */}
+      <div id="item-header-cover-image" className="relative z-20 px-3 pb-4 pt-0 sm:px-4 bb:px-6">
         <div className="flex flex-col gap-4 bb:flex-row bb:items-end">
-          <div className="item-header-avatar relative -mt-12 w-fit shrink-0 self-start">
+          <div className="item-header-avatar relative z-20 -mt-12 w-fit shrink-0 self-start">
             <Avatar
               name={member.displayName}
               src={member.avatar}
@@ -134,13 +135,11 @@ export function ProfileHeader({
                   date: new Date(member.joined).toLocaleDateString(),
                 })}
               </span>
-              <span>
-                {member.online ? (
-                  <span className="text-bb-success">{t('members.online')}</span>
-                ) : (
-                  t('members.active', { time: formatTimeSince(member.lastActive) })
-                )}
-              </span>
+              {member.online ? (
+                <span className="text-bb-success">{t('members.online')}</span>
+              ) : formatTimeSince(member.lastActive) ? (
+                <span>{t('members.active', { time: formatTimeSince(member.lastActive) })}</span>
+              ) : null}
             </div>
             {isOwn && mediaError && (
               <p className="m-0 mt-2 text-bb-sm text-bb-danger" role="alert">

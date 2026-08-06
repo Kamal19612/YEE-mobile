@@ -1,9 +1,13 @@
 import i18n from '../../i18n'
 
 export function formatTimeSince(dateInput) {
+  if (dateInput == null || dateInput === '') return ''
   const date = new Date(dateInput)
-  const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
-  if (Number.isNaN(seconds) || seconds < 45) return i18n.t('timeSince.justNow')
+  const time = date.getTime()
+  if (!Number.isFinite(time)) return ''
+
+  const seconds = Math.floor((Date.now() - time) / 1000)
+  if (seconds < 45) return i18n.t('timeSince.justNow')
 
   const minutes = Math.floor(seconds / 60)
   if (minutes < 60) {
