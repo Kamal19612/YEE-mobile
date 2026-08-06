@@ -3,6 +3,8 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { resetPassword } from '../../api/auth'
 import { Button } from '../../components/ui/Button'
+import { PasswordInput } from '../../components/ui/PasswordInput'
+import { AuthShell } from './AuthShell'
 
 /**
  * Réinitialisation — POST /app/v1/auth/reset-password
@@ -59,22 +61,23 @@ export function ResetPasswordPage() {
 
   if (!token) {
     return (
-      <div className="mx-auto flex min-h-[60vh] w-full max-w-md flex-col justify-center py-10">
-        <h1 className="m-0 mb-2 text-bb-xl font-semibold text-bb-heading">{t('auth.resetTitle')}</h1>
-        <p className="mb-6 rounded-bb-inner border border-red-200 bg-red-50 px-3 py-2 text-bb-sm text-red-700" role="alert">
+      <AuthShell title={t('auth.resetTitle')}>
+        <p
+          className="mb-6 rounded-bb-inner border border-red-200 bg-red-50 px-3 py-2 text-bb-sm text-red-700"
+          role="alert"
+        >
           {t('auth.resetMissingToken')}
         </p>
         <Button as={Link} to="/forgot-password" variant="primary" className="w-full">
           {t('auth.forgotTitle')}
         </Button>
-      </div>
+      </AuthShell>
     )
   }
 
   if (successMessage) {
     return (
-      <div className="mx-auto flex min-h-[60vh] w-full max-w-md flex-col justify-center py-10">
-        <h1 className="m-0 mb-2 text-bb-xl font-semibold text-bb-heading">{t('auth.resetTitle')}</h1>
+      <AuthShell title={t('auth.resetTitle')}>
         <p
           className="mb-6 rounded-bb-inner border border-green-200 bg-green-50 px-3 py-3 text-bb-sm text-green-800"
           role="status"
@@ -84,15 +87,22 @@ export function ResetPasswordPage() {
         <Button as={Link} to="/login" variant="primary" className="w-full">
           {t('auth.signin')}
         </Button>
-      </div>
+      </AuthShell>
     )
   }
 
   return (
-    <div className="mx-auto flex min-h-[60vh] w-full max-w-md flex-col justify-center py-10">
-      <h1 className="m-0 mb-2 text-bb-xl font-semibold text-bb-heading">{t('auth.resetTitle')}</h1>
-      <p className="m-0 mb-6 text-bb-sm text-bb-muted">{t('auth.resetHint')}</p>
-
+    <AuthShell
+      title={t('auth.resetTitle')}
+      hint={t('auth.resetHint')}
+      footer={
+        <p className="m-0 text-center text-bb-sm text-bb-muted">
+          <Link to="/login" className="font-medium text-bb-primary hover:underline">
+            {t('auth.backToSignin')}
+          </Link>
+        </p>
+      }
+    >
       {localError && (
         <p
           className="mb-4 whitespace-pre-line rounded-bb-inner border border-red-200 bg-red-50 px-3 py-2 text-bb-sm text-red-700"
@@ -104,31 +114,31 @@ export function ResetPasswordPage() {
 
       <form onSubmit={onSubmit} className="space-y-4" noValidate>
         <label className="block">
-          <span className="mb-1 block text-bb-sm font-medium text-bb-heading">{t('auth.newPassword')}</span>
-          <input
-            type="password"
+          <span className="mb-1.5 block text-bb-sm font-medium text-bb-heading">
+            {t('auth.newPassword')}
+          </span>
+          <PasswordInput
             required
             minLength={10}
             maxLength={256}
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="h-11 w-full rounded-bb-input border border-bb-border bg-bb-content px-3 text-bb-base outline-none focus:border-bb-primary"
           />
-          <span className="mt-1 block text-bb-xs text-bb-muted">{t('auth.passwordHint')}</span>
+          <span className="mt-1.5 block text-bb-xs text-bb-muted">{t('auth.passwordHint')}</span>
         </label>
 
         <label className="block">
-          <span className="mb-1 block text-bb-sm font-medium text-bb-heading">{t('auth.confirmPassword')}</span>
-          <input
-            type="password"
+          <span className="mb-1.5 block text-bb-sm font-medium text-bb-heading">
+            {t('auth.confirmPassword')}
+          </span>
+          <PasswordInput
             required
             minLength={10}
             maxLength={256}
             autoComplete="new-password"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
-            className="h-11 w-full rounded-bb-input border border-bb-border bg-bb-content px-3 text-bb-base outline-none focus:border-bb-primary"
           />
         </label>
 
@@ -136,12 +146,6 @@ export function ResetPasswordPage() {
           {submitting ? t('auth.resetting') : t('auth.resetSubmit')}
         </Button>
       </form>
-
-      <p className="mt-6 text-center text-bb-sm text-bb-muted">
-        <Link to="/login" className="text-bb-primary hover:underline">
-          {t('auth.backToSignin')}
-        </Link>
-      </p>
-    </div>
+    </AuthShell>
   )
 }

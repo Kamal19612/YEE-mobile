@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '../../components/ui/Button'
 
 /** Référence: members/single/profile/profile-loop.php */
 export function ProfileAbout({ member, isOwn, onSaveField }) {
+  const { t } = useTranslation()
   const [editingGroup, setEditingGroup] = useState(null)
   const [draft, setDraft] = useState({})
 
@@ -24,7 +26,7 @@ export function ProfileAbout({ member, isOwn, onSaveField }) {
 
   if (!member.xprofile?.length) {
     return (
-      <div className="bb-card p-6 text-bb-sm text-bb-muted">This member has no profile fields yet.</div>
+      <div className="bb-card p-6 text-bb-sm text-bb-muted">{t('members.noProfileFields')}</div>
     )
   }
 
@@ -40,15 +42,15 @@ export function ProfileAbout({ member, isOwn, onSaveField }) {
               (editingGroup === group.id ? (
                 <div className="flex gap-2">
                   <Button type="button" size="sm" variant="outline" onClick={() => setEditingGroup(null)}>
-                    Cancel
+                    {t('common.cancel')}
                   </Button>
                   <Button type="button" size="sm" onClick={() => saveGroup(group)}>
-                    Save
+                    {t('common.save')}
                   </Button>
                 </div>
               ) : (
                 <Button type="button" size="sm" variant="outline" onClick={() => startEdit(group)}>
-                  Edit
+                  {t('common.edit')}
                 </Button>
               ))}
           </header>

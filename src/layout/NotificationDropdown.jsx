@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { IconAngleRight, IconBell } from '../components/icons'
 import { Badge } from '../components/ui/Badge'
 import { Dropdown, DropdownFooter, DropdownHeader } from '../components/ui/Dropdown'
@@ -9,6 +10,7 @@ import { formatTimeSince } from '../features/activity/utils'
 import clsx from 'clsx'
 
 export function NotificationDropdown() {
+  const { t } = useTranslation()
   const { closeDropdowns } = useLayout()
   const { notifications, unreadCount, markRead, markAllRead } = useNotifications()
   const preview = notifications.slice(0, 5)
@@ -17,15 +19,19 @@ export function NotificationDropdown() {
     <Dropdown
       id="notifications"
       trigger={
-        <span data-balloon-pos="down" data-balloon="Notifications" className="relative inline-flex">
+        <span
+          data-balloon-pos="down"
+          data-balloon={t('notifications.title')}
+          className="relative inline-flex"
+        >
           <IconBell />
           <Badge count={unreadCount} />
-          <span className="screen-reader-text">Notifications</span>
+          <span className="screen-reader-text">{t('notifications.title')}</span>
         </span>
       }
     >
       <DropdownHeader
-        title="Notifications"
+        title={t('notifications.title')}
         action={
           unreadCount > 0 ? (
             <button
@@ -33,7 +39,7 @@ export function NotificationDropdown() {
               className="mark-read-all text-bb-sm text-bb-primary hover:underline"
               onClick={() => markAllRead()}
             >
-              Mark all as read
+              {t('notifications.markAllRead')}
             </button>
           ) : null
         }
@@ -62,7 +68,7 @@ export function NotificationDropdown() {
         ))}
       </ul>
       <DropdownFooter href="/notifications" onClick={closeDropdowns}>
-        View Notifications
+        {t('notifications.viewAll')}
         <IconAngleRight />
       </DropdownFooter>
     </Dropdown>

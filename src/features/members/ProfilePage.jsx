@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes, Link, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../hooks/useAuth'
 import { useMember } from '../../hooks/useMembers'
 import { ProfileAbout } from './ProfileAbout'
@@ -13,6 +14,7 @@ import { ProfileTimeline } from './ProfileTimeline'
 
 /** Référence: members/single/home.php */
 export function ProfilePage() {
+  const { t } = useTranslation()
   const { memberId } = useParams()
   const { user } = useAuth()
   const { member, loading, error, updateXprofileField, toggleFriend, changeAvatar, changeCover, mediaBusy, mediaError } =
@@ -32,10 +34,10 @@ export function ProfilePage() {
   if (error || !member) {
     return (
       <div className="bb-card w-full p-8 text-center">
-        <h1 className="m-0 mb-2 text-bb-lg text-bb-heading">Member not found</h1>
-        <p className="m-0 text-bb-sm text-bb-muted">{error || 'This profile does not exist.'}</p>
+        <h1 className="m-0 mb-2 text-bb-lg text-bb-heading">{t('members.notFound')}</h1>
+        <p className="m-0 text-bb-sm text-bb-muted">{error || t('members.notFoundHint')}</p>
         <Link to="/members" className="mt-4 inline-block text-bb-primary hover:underline">
-          Retour à l’annuaire
+          {t('members.backToDirectory')}
         </Link>
       </div>
     )

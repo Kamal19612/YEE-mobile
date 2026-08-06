@@ -1,9 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 /**
- * Tokens extraits de buddyboss-theme v2.21.0
- * - inc/admin/options/custom-css.php
- * - inc/admin/options-init.php (presets default)
- * - assets/css/theme.css
+ * AfrEA-YEE — BuddyBoss structure + identity tokens
  */
 export default {
   content: ['./index.html', './src/**/*.{js,jsx,ts,tsx}'],
@@ -13,6 +10,7 @@ export default {
         bb: {
           primary: 'var(--bb-primary-color)',
           'primary-hover': 'var(--bb-primary-button-background-hover)',
+          accent: 'var(--bb-accent-color)',
           body: 'var(--bb-body-background-color)',
           content: 'var(--bb-content-background-color)',
           alt: 'var(--bb-content-alternate-background-color)',
@@ -40,16 +38,13 @@ export default {
       },
       fontFamily: {
         sans: [
+          'Manrope',
           '-apple-system',
           'BlinkMacSystemFont',
           '"Segoe UI"',
-          'Roboto',
-          'Oxygen-Sans',
-          'Ubuntu',
-          'Cantarell',
-          '"Helvetica Neue"',
           'sans-serif',
         ],
+        display: ['Fraunces', 'Georgia', 'Cambria', '"Times New Roman"', 'serif'],
       },
       fontSize: {
         'bb-xs': ['0.75rem', { lineHeight: '1.4' }],
@@ -58,6 +53,7 @@ export default {
         'bb-md': ['1rem', { lineHeight: '1.5' }],
         'bb-lg': ['1.125rem', { lineHeight: '1.4' }],
         'bb-xl': ['1.5rem', { lineHeight: '1.3' }],
+        'bb-2xl': ['1.875rem', { lineHeight: '1.2' }],
       },
       spacing: {
         'bb-1': '0.25rem',
@@ -84,10 +80,11 @@ export default {
         'bb-option': 'var(--bb-option-radius)',
       },
       boxShadow: {
-        header: 'inset 0 -1px 0 0 #dcdfe3',
-        panel: '0 3px 13px 0 rgba(18, 43, 70, 0.1)',
-        dropdown: '0 2px 8px rgba(18, 43, 70, 0.12)',
-        card: '0 1px 2px rgba(18, 43, 70, 0.06)',
+        header: 'inset 0 -1px 0 0 rgba(221, 226, 235, 0.9)',
+        panel: '0 8px 28px rgba(18, 26, 43, 0.1)',
+        dropdown: '0 8px 24px rgba(18, 26, 43, 0.12)',
+        card: '0 1px 2px rgba(18, 26, 43, 0.04), 0 8px 24px rgba(18, 26, 43, 0.04)',
+        'card-hover': '0 4px 8px rgba(18, 26, 43, 0.05), 0 16px 32px rgba(47, 91, 255, 0.08)',
       },
       height: {
         header: 'var(--bb-header-height)',
@@ -109,6 +106,9 @@ export default {
       },
       transitionDuration: {
         panel: '200ms',
+      },
+      transitionTimingFunction: {
+        bb: 'cubic-bezier(0.22, 1, 0.36, 1)',
       },
     },
   },

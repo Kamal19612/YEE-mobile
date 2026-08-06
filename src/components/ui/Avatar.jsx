@@ -20,7 +20,11 @@ export function Avatar({ src, alt = '', name, size = 'md', className }) {
       <img
         src={src}
         alt={alt || name || ''}
-        className={clsx('rounded-full object-cover', sizes[size], className)}
+        className={clsx(
+          'rounded-full object-cover ring-2 ring-white/80 shadow-[0_2px_8px_rgba(18,26,43,0.08)]',
+          sizes[size],
+          className,
+        )}
       />
     )
   }
@@ -28,7 +32,7 @@ export function Avatar({ src, alt = '', name, size = 'md', className }) {
   return (
     <span
       className={clsx(
-        'inline-flex items-center justify-center rounded-full bg-bb-alt text-bb-sm font-semibold text-bb-heading',
+        'inline-flex items-center justify-center rounded-full bg-gradient-to-br from-[#e4ebff] to-[#f7efd9] text-bb-sm font-semibold text-bb-heading ring-2 ring-white/80',
         sizes[size],
         className,
       )}

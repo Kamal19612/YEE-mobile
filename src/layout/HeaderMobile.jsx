@@ -13,20 +13,20 @@ export function HeaderMobile() {
   const { toggleMobilePanel, toggleSearch } = useLayout()
 
   return (
-    <div className="bb-mobile-header-wrapper sticky top-0 z-header border-b border-bb-border bg-bb-header bb:hidden">
+    <div className="bb-mobile-header-wrapper sticky top-0 z-header border-b border-bb-border bb-surface-glass bb:hidden">
       <div className="flex h-header items-center gap-1 px-2 sm:px-3">
         <button
           type="button"
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-bb-inner text-bb-header-link hover:bg-bb-alt"
           onClick={toggleMobilePanel}
-          aria-label="Ouvrir le menu"
+          aria-label={t('common.openMenu')}
           aria-expanded={false}
         >
           <IconBars />
         </button>
 
         <div className="min-w-0 flex-1 px-1">
-          <span className="block truncate text-bb-sm font-semibold text-bb-heading sm:text-bb-md">
+          <span className="font-display block truncate text-bb-sm font-semibold tracking-tight text-bb-heading sm:text-bb-md">
             {t('app.name')}
           </span>
         </div>

@@ -7,7 +7,7 @@ const LANGS = [
 ]
 
 export function LanguageSwitcher({ className = '' }) {
-  const { i18n } = useTranslation()
+  const { i18n, t } = useTranslation()
   const current = (i18n.language || 'fr').slice(0, 2)
 
   return (
@@ -17,7 +17,7 @@ export function LanguageSwitcher({ className = '' }) {
         className,
       )}
       role="group"
-      aria-label="Language"
+      aria-label={t('common.language')}
     >
       {LANGS.map((lang) => (
         <button

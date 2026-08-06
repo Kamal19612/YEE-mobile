@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useState } from 'react'
 import clsx from 'clsx'
+import { useTranslation } from 'react-i18next'
 import { Avatar } from '../../components/ui/Avatar'
 import { Button } from '../../components/ui/Button'
 import { useNotifications } from '../../hooks/useNotifications'
@@ -8,6 +9,7 @@ import { formatTimeSince } from '../activity/utils'
 
 /** Page notifications — pattern du dropdown en liste paginée */
 export function NotificationsPage() {
+  const { t } = useTranslation()
   const [filter, setFilter] = useState('all')
   const {
     notifications,
@@ -20,26 +22,28 @@ export function NotificationsPage() {
     total,
   } = useNotifications({ filter })
 
+  const filters = [
+    { id: 'all', labelKey: 'notifications.filters.all' },
+    { id: 'unread', labelKey: 'notifications.filters.unread' },
+    { id: 'read', labelKey: 'notifications.filters.read' },
+  ]
+
   return (
     <div className="w-full max-w-content">
       <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="m-0 text-bb-xl font-semibold text-bb-heading">Notifications</h1>
+          <h1 className="m-0 text-bb-xl font-semibold text-bb-heading">{t('notifications.title')}</h1>
           <p className="m-0 mt-1 text-bb-sm text-bb-text">
-            {unreadCount} non lues · {total} affichées
+            {t('notifications.subtitle', { unread: unreadCount, total })}
           </p>
         </div>
         <Button type="button" size="sm" variant="outline" onClick={markAllRead} disabled={!unreadCount}>
-          Tout marquer comme lu
+          {t('notifications.markAllRead')}
         </Button>
       </header>
 
       <div className="mb-4 flex gap-1">
-        {[
-          { id: 'all', label: 'Toutes' },
-          { id: 'unread', label: 'Non lues' },
-          { id: 'read', label: 'Lues' },
-        ].map((f) => (
+        {filters.map((f) => (
           <button
             key={f.id}
             type="button"
@@ -49,7 +53,7 @@ export function NotificationsPage() {
               filter === f.id ? 'bg-bb-primary text-white' : 'bg-bb-alt text-bb-text',
             )}
           >
-            {f.label}
+            {t(f.labelKey)}
           </button>
         ))}
       </div>
@@ -64,9 +68,7 @@ export function NotificationsPage() {
         )}
 
         {!loading && notifications.length === 0 && (
-          <div className="p-8 text-center text-bb-sm text-bb-muted">
-            You have no notifications right now.
-          </div>
+          <div className="p-8 text-center text-bb-sm text-bb-muted">{t('notifications.empty')}</div>
         )}
 
         {!loading && (
@@ -101,7 +103,7 @@ export function NotificationsPage() {
                     className="text-bb-xs font-medium text-bb-primary hover:underline"
                     onClick={() => markRead(n.id)}
                   >
-                    Mark read
+                    {t('notifications.markRead')}
                   </button>
                 )}
               </li>
@@ -113,7 +115,7 @@ export function NotificationsPage() {
       {!loading && hasMore && (
         <div className="mt-4 flex justify-center">
           <Button type="button" variant="secondary" size="sm" onClick={loadMore}>
-            Load More
+            {t('common.loadMore')}
           </Button>
         </div>
       )}

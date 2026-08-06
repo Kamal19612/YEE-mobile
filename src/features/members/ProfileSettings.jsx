@@ -119,7 +119,7 @@ export function ProfileSettings({ member }) {
         </Link>
       </header>
 
-      <nav id="subnav" className="mb-4" aria-label="Settings sub menu">
+      <nav id="subnav" className="mb-4" aria-label={t('members.settingsMenu')}>
         <ul className="subnav bb-scroll-tabs m-0 list-none gap-1 p-0">
           {SETTINGS_TABS.map((item) => (
             <li key={item.id} className="shrink-0">

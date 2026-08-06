@@ -33,7 +33,7 @@ export function GroupsPage() {
           <p className="m-0 mt-1 text-bb-sm text-bb-text">{t('groups.subtitle')}</p>
         </div>
         <Button type="button" size="sm" onClick={() => setCreateOpen((v) => !v)}>
-          Créer une cohorte
+          {t('groups.create')}
         </Button>
       </header>
 
@@ -50,27 +50,27 @@ export function GroupsPage() {
             navigate(`/groups/${g.id}`)
           }}
         >
-          <h2 className="m-0 text-bb-md font-semibold text-bb-heading">Nouvelle cohorte</h2>
+          <h2 className="m-0 text-bb-md font-semibold text-bb-heading">{t('groups.createTitle')}</h2>
           <input
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            placeholder="Nom de la cohorte"
+            placeholder={t('groups.namePlaceholder')}
             required
             className="h-10 w-full rounded-bb-input border border-bb-border px-3 text-bb-sm outline-none focus:border-bb-primary"
           />
           <textarea
             value={newDesc}
             onChange={(e) => setNewDesc(e.target.value)}
-            placeholder="Description"
+            placeholder={t('groups.descriptionPlaceholder')}
             rows={3}
             className="w-full rounded-bb-input border border-bb-border px-3 py-2 text-bb-sm outline-none focus:border-bb-primary"
           />
           <div className="flex gap-2">
             <Button type="submit" size="sm">
-              Créer
+              {t('common.create')}
             </Button>
             <Button type="button" size="sm" variant="outline" onClick={() => setCreateOpen(false)}>
-              Annuler
+              {t('common.cancel')}
             </Button>
           </div>
         </form>

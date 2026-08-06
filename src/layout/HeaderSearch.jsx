@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { IconClose, IconSearch } from '../components/icons'
 import { useLayout } from '../context/LayoutProvider'
 
 /** Référence: template-parts/header-search.php + common/search/search-form.php */
 export function HeaderSearch() {
+  const { t } = useTranslation()
   const { searchOpen, closeSearch } = useLayout()
   const [value, setValue] = useState('')
   const navigate = useNavigate()
@@ -34,7 +36,7 @@ export function HeaderSearch() {
       <button
         type="button"
         className="absolute inset-0 bg-black/40"
-        aria-label="Close search overlay"
+        aria-label={t('search.close')}
         onClick={closeSearch}
       />
       <div
@@ -48,20 +50,20 @@ export function HeaderSearch() {
             autoFocus
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            placeholder="Search members, groups, forums..."
+            placeholder={t('search.placeholder')}
             className="h-10 min-w-0 w-full rounded-bb-input border border-bb-border bg-bb-content px-3 text-bb-base text-bb-heading outline-none focus:border-bb-primary"
           />
           <button
             type="submit"
             className="inline-flex shrink-0 rounded-bb-btn bg-bb-primary px-3 py-2 text-bb-sm font-medium text-white"
           >
-            Search
+            {t('nav.search')}
           </button>
           <button
             type="button"
             onClick={closeSearch}
             className="flex h-10 w-10 shrink-0 items-center justify-center text-bb-header-link hover:text-bb-primary"
-            aria-label="Close search"
+            aria-label={t('search.close')}
           >
             <IconClose />
           </button>

@@ -12,30 +12,39 @@ export function ActivityPage() {
       </main>
 
       <aside className="widget-area hidden w-[280px] shrink-0 space-y-4 bb:block">
-        <section className="bb-card p-4">
-          <h3 className="m-0 mb-3 text-bb-sm font-semibold uppercase tracking-wide text-bb-heading">
-            {t('stories.sidebar.community')}
-          </h3>
-          <ul className="m-0 list-none space-y-2 p-0 text-bb-sm text-bb-text">
-            <li className="flex justify-between">
+        <section className="bb-card overflow-hidden p-0">
+          <div className="border-b border-bb-border bg-gradient-to-br from-[#eef2ff] to-[#faf6eb] px-4 py-3">
+            <h3 className="font-display m-0 text-bb-sm font-semibold tracking-wide text-bb-heading">
+              {t('stories.sidebar.community')}
+            </h3>
+          </div>
+          <ul className="m-0 list-none space-y-0 p-2 text-bb-sm text-bb-text">
+            <li className="flex items-center justify-between rounded-bb-inner px-2 py-2.5">
               <span>{t('stories.sidebar.members')}</span>
-              <strong className="text-bb-heading">248</strong>
+              <strong className="font-display text-bb-lg text-bb-heading">248</strong>
             </li>
-            <li className="flex justify-between">
+            <li className="flex items-center justify-between rounded-bb-inner px-2 py-2.5">
               <span>{t('stories.sidebar.cohorts')}</span>
-              <strong className="text-bb-heading">12</strong>
+              <strong className="font-display text-bb-lg text-bb-heading">12</strong>
             </li>
-            <li className="flex justify-between">
-              <span>{t('stories.sidebar.online')}</span>
-              <strong className="text-bb-heading">31</strong>
+            <li className="flex items-center justify-between rounded-bb-inner px-2 py-2.5">
+              <span className="flex items-center gap-2">
+                <span
+                  className="inline-block h-2 w-2 rounded-full bg-bb-success"
+                  style={{ animation: 'bb-soft-pulse 2.4s ease-in-out infinite' }}
+                  aria-hidden="true"
+                />
+                {t('stories.sidebar.online')}
+              </span>
+              <strong className="font-display text-bb-lg text-bb-heading">31</strong>
             </li>
           </ul>
         </section>
         <section className="bb-card p-4">
-          <h3 className="m-0 mb-2 text-bb-sm font-semibold uppercase tracking-wide text-bb-heading">
+          <h3 className="font-display m-0 mb-2 text-bb-sm font-semibold tracking-wide text-bb-heading">
             {t('stories.sidebar.tips')}
           </h3>
-          <p className="m-0 text-bb-sm text-bb-text">{t('stories.sidebar.tipsBody')}</p>
+          <p className="m-0 text-bb-sm leading-relaxed text-bb-text">{t('stories.sidebar.tipsBody')}</p>
         </section>
       </aside>
     </div>

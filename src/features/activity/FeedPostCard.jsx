@@ -95,7 +95,7 @@ export function FeedPostCard({
   return (
     <li
       id={`activity-${post.id}`}
-      className="activity-item mb-5 list-none rounded-bb border border-bb-border bg-bb-content p-3 pb-2.5 text-[0.875rem] leading-normal sm:p-[15px]"
+      className="activity-item bb-fade-in mb-5 list-none rounded-bb border border-bb-border bg-bb-content p-3 pb-2.5 text-[0.875rem] leading-normal shadow-card transition-shadow duration-200 ease-bb hover:shadow-card-hover sm:p-[15px]"
     >
       <div className="bp-activity-head mb-3 flex gap-3">
         <div className="activity-avatar item-avatar shrink-0">
@@ -127,7 +127,7 @@ export function FeedPostCard({
             disabled={deleting}
             onClick={handleDelete}
           >
-            {t('common.delete', { defaultValue: 'Delete' })}
+            {t('common.delete')}
           </Button>
         ) : null}
       </div>
@@ -297,9 +297,7 @@ function FeedCommentForm({ onSubmit }) {
           type="text"
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder={t('stories.feed.commentPlaceholder', {
-            defaultValue: 'Write a comment…',
-          })}
+          placeholder={t('stories.feed.commentPlaceholder')}
           className="ac-input h-9 w-full rounded-bb-input border border-bb-border bg-bb-content px-3 text-bb-sm outline-none focus:border-bb-primary"
         />
         <Button type="submit" size="sm" disabled={!value.trim() || busy}>

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Avatar } from '../../components/ui/Avatar'
 import { useTopic } from '../../hooks/useForums'
 import { formatTimeSince, stripHtml } from '../activity/utils'
@@ -7,6 +8,7 @@ import { ReplyForm } from './ReplyForm'
 
 /** Référence: content-single-topic.php + loop-single-reply + form-reply */
 export function TopicPage() {
+  const { t } = useTranslation()
   const { forumId, topicId } = useParams()
   const { topic, forum, replies, loading, addReply } = useTopic(topicId)
   const [replyParent, setReplyParent] = useState(0)
@@ -16,9 +18,9 @@ export function TopicPage() {
   if (!loading && !topic) {
     return (
       <div className="bb-card w-full p-8 text-center">
-        <h1 className="m-0 mb-2 text-bb-lg text-bb-heading">Discussion not found</h1>
+        <h1 className="m-0 mb-2 text-bb-lg text-bb-heading">{t('forums.topicNotFound')}</h1>
         <Link to={`/forums/${forumId}`} className="text-bb-sm text-bb-primary hover:underline">
-          Back to forum
+          {t('forums.backToForum')}
         </Link>
       </div>
     )
@@ -28,11 +30,11 @@ export function TopicPage() {
     <div id="bbpress-forums" className="bb-content-area bs-replies-wrapper w-full max-w-content">
       <nav className="bbp-breadcrumb mb-3 text-bb-sm text-bb-muted">
         <Link to="/forums" className="hover:text-bb-primary">
-          Forums
+          {t('forums.title')}
         </Link>
         <span className="mx-2">/</span>
         <Link to={`/forums/${forumId}`} className="hover:text-bb-primary">
-          {forum?.title || 'Forum'}
+          {forum?.title || t('forums.title')}
         </Link>
         <span className="mx-2">/</span>
         <span className="text-bb-heading">{topic?.title || '…'}</span>
@@ -48,9 +50,9 @@ export function TopicPage() {
               <div className="min-w-0 flex-1">
                 <h1 className="m-0 text-bb-xl font-semibold text-bb-heading">{topic.title}</h1>
                 <div className="mt-1 text-bb-sm text-bb-muted">
-                  By <span className="font-medium text-bb-heading">{topic.authorName}</span> ·{' '}
+                  {t('common.by')} <span className="font-medium text-bb-heading">{topic.authorName}</span> ·{' '}
                   {formatTimeSince(topic.date)}
-                  {topic.closed && ' · Closed'}
+                  {topic.closed && ` · ${t('forums.closed')}`}
                 </div>
               </div>
             </header>
@@ -58,19 +60,24 @@ export function TopicPage() {
               {stripHtml(topic.content)}
             </div>
             <div className="mt-4 flex gap-4 border-t border-bb-border pt-3 text-bb-xs text-bb-muted">
-              <span>{topic.replyCount} replies</span>
-              <span>{topic.voiceCount} voices</span>
+              <span>
+                {t(
+                  topic.replyCount === 1 ? 'forums.replies_one' : 'forums.replies_other',
+                  { count: topic.replyCount },
+                )}
+              </span>
+              <span>{t('forums.voices', { count: topic.voiceCount })}</span>
             </div>
           </article>
 
           <div className="replies-content">
             <h2 className="mb-3 text-bb-md font-semibold text-bb-heading">
-              Replies ({replies.length})
+              {t('forums.repliesTitle', { count: replies.length })}
             </h2>
 
             {!replies.length && (
               <div className="bb-card mb-4 p-6 text-center text-bb-sm text-bb-muted">
-                No replies yet. Be the first to respond.
+                {t('forums.noRepliesFirst')}
               </div>
             )}
 
@@ -86,13 +93,13 @@ export function TopicPage() {
 
             {replyParent > 0 && (
               <div className="mb-2 text-bb-sm text-bb-muted">
-                Replying to nested comment.{' '}
+                {t('forums.replyingNested')}{' '}
                 <button
                   type="button"
                   className="text-bb-primary hover:underline"
                   onClick={() => setReplyParent(0)}
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
               </div>
             )}
@@ -113,6 +120,8 @@ export function TopicPage() {
 }
 
 function ReplyItem({ reply, onReply, depth = 0 }) {
+  const { t } = useTranslation()
+
   return (
     <li
       id={`post-${reply.id}`}
@@ -135,7 +144,7 @@ function ReplyItem({ reply, onReply, depth = 0 }) {
               className="mt-2 text-bb-xs font-medium text-bb-primary hover:underline"
               onClick={() => onReply(reply.id)}
             >
-              Reply
+              {t('forums.reply')}
             </button>
           )}
           {reply.children?.length > 0 && (

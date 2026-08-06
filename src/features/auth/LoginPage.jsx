@@ -3,6 +3,8 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../hooks/useAuth'
 import { Button } from '../../components/ui/Button'
+import { PasswordInput } from '../../components/ui/PasswordInput'
+import { AuthShell } from './AuthShell'
 
 export function LoginPage() {
   const { t } = useTranslation()
@@ -44,12 +46,30 @@ export function LoginPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[60vh] w-full max-w-md flex-col justify-center py-10">
-      <h1 className="m-0 mb-2 text-bb-xl font-semibold text-bb-heading">{t('auth.signin')}</h1>
-      <p className="m-0 mb-6 text-bb-sm text-bb-muted">{t('auth.loginHint')}</p>
-
+    <AuthShell
+      title={t('auth.signin')}
+      hint={t('auth.loginHint')}
+      footer={
+        <>
+          <p className="m-0 text-center text-bb-sm text-bb-muted">
+            {t('auth.noAccount')}{' '}
+            <Link to="/register" className="font-medium text-bb-primary hover:underline">
+              {t('auth.signup')}
+            </Link>
+          </p>
+          <p className="mt-2 text-center text-bb-sm text-bb-muted">
+            <Link to="/" className="text-bb-primary hover:underline">
+              {t('auth.backHome')}
+            </Link>
+          </p>
+        </>
+      }
+    >
       {(expired || deactivated || passwordChanged || authError || localError) && (
-        <p className="mb-4 rounded-bb-inner border border-red-200 bg-red-50 px-3 py-2 text-bb-sm text-red-700" role="alert">
+        <p
+          className="mb-4 rounded-bb-inner border border-red-200 bg-red-50 px-3 py-2 text-bb-sm text-red-700"
+          role="alert"
+        >
           {localError ||
             authError ||
             (deactivated
@@ -62,25 +82,25 @@ export function LoginPage() {
 
       <form onSubmit={onSubmit} className="space-y-4">
         <label className="block">
-          <span className="mb-1 block text-bb-sm font-medium text-bb-heading">{t('auth.email')}</span>
+          <span className="mb-1.5 block text-bb-sm font-medium text-bb-heading">{t('auth.email')}</span>
           <input
             type="email"
             required
             autoComplete="username"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="h-11 w-full rounded-bb-input border border-bb-border bg-bb-content px-3 text-bb-base outline-none focus:border-bb-primary"
+            className="bb-input"
           />
         </label>
         <label className="block">
-          <span className="mb-1 block text-bb-sm font-medium text-bb-heading">{t('auth.password')}</span>
-          <input
-            type="password"
+          <span className="mb-1.5 block text-bb-sm font-medium text-bb-heading">
+            {t('auth.password')}
+          </span>
+          <PasswordInput
             required
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="h-11 w-full rounded-bb-input border border-bb-border bg-bb-content px-3 text-bb-base outline-none focus:border-bb-primary"
           />
         </label>
 
@@ -94,7 +114,7 @@ export function LoginPage() {
             />
             {t('auth.rememberMe')}
           </label>
-          <Link to="/forgot-password" className="shrink-0 text-bb-sm text-bb-primary hover:underline">
+          <Link to="/forgot-password" className="shrink-0 text-bb-sm font-medium text-bb-primary hover:underline">
             {t('auth.forgotLink')}
           </Link>
         </div>
@@ -103,18 +123,6 @@ export function LoginPage() {
           {submitting ? t('auth.signingIn') : t('auth.signin')}
         </Button>
       </form>
-
-      <p className="mt-6 text-center text-bb-sm text-bb-muted">
-        {t('auth.noAccount')}{' '}
-        <Link to="/register" className="text-bb-primary hover:underline">
-          {t('auth.signup')}
-        </Link>
-      </p>
-      <p className="mt-2 text-center text-bb-sm text-bb-muted">
-        <Link to="/" className="text-bb-primary hover:underline">
-          {t('auth.backHome')}
-        </Link>
-      </p>
-    </div>
+    </AuthShell>
   )
 }

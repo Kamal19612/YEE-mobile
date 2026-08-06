@@ -213,15 +213,46 @@ export async function uploadCover(file) {
   return { url: normalizeMediaUrl(data?.url) }
 }
 
-/** Validation client (UX) — la sécurité réelle est côté UploadValidator WP. */
-export const PROFILE_IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp'
+/** Validation client (UX) — la sécurité réelle est côté UploadValidator WP.
+ *  Sur mobile, `file.type` est souvent vide : on tombe alors sur l’extension.
+ *  Le picker accepte `image/*` pour ouvrir la galerie ; formats serveur = JPEG/PNG/WebP.
+ */
+export const PROFILE_IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp,image/*'
 export const PROFILE_IMAGE_MAX_BYTES = 5 * 1024 * 1024
+
+const PROFILE_IMAGE_MIMES = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp'])
+const PROFILE_IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp'])
+const HEIC_MIMES = new Set(['image/heic', 'image/heif'])
+const HEIC_EXTS = new Set(['.heic', '.heif'])
+
+function fileExtension(name = '') {
+  const match = String(name).toLowerCase().match(/\.[^.]+$/)
+  return match ? match[0] : ''
+}
 
 export function validateProfileImage(file) {
   if (!file) return 'Fichier manquant.'
-  const allowed = ['image/jpeg', 'image/png', 'image/webp']
-  if (!allowed.includes(file.type)) return 'Formats acceptés : JPEG, PNG, WebP.'
   if (file.size > PROFILE_IMAGE_MAX_BYTES) return 'L’image ne doit pas dépasser 5 Mo.'
+
+  const mime = String(file.type || '').toLowerCase()
+  const ext = fileExtension(file.name)
+
+  if (HEIC_MIMES.has(mime) || HEIC_EXTS.has(ext)) {
+    return 'Format HEIC non supporté. Choisissez JPEG, PNG ou WebP.'
+  }
+
+  if (mime) {
+    if (!PROFILE_IMAGE_MIMES.has(mime)) {
+      return 'Formats acceptés : JPEG, PNG, WebP.'
+    }
+    return null
+  }
+
+  // MIME vide (fréquent iOS/Android) : autoriser si extension connue, sinon laisser le serveur trancher.
+  if (ext && !PROFILE_IMAGE_EXTS.has(ext)) {
+    return 'Formats acceptés : JPEG, PNG, WebP.'
+  }
+
   return null
 }
 

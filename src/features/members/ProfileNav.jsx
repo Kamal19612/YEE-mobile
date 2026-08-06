@@ -1,19 +1,21 @@
 import { NavLink } from 'react-router-dom'
 import clsx from 'clsx'
+import { useTranslation } from 'react-i18next'
 
 export function ProfileNav({ memberId, isOwn }) {
+  const { t } = useTranslation()
   const tabs = [
-    { id: 'activity', label: 'Timeline', to: `/members/${memberId}` },
-    { id: 'profile', label: 'About', to: `/members/${memberId}/profile` },
-    { id: 'friends', label: 'Followers', to: `/members/${memberId}/friends` },
-    { id: 'groups', label: 'Groups', to: `/members/${memberId}/groups` },
+    { id: 'activity', label: t('members.tabs.timeline'), to: `/members/${memberId}` },
+    { id: 'profile', label: t('members.tabs.about'), to: `/members/${memberId}/profile` },
+    { id: 'friends', label: t('members.tabs.followers'), to: `/members/${memberId}/friends` },
+    { id: 'groups', label: t('members.tabs.groups'), to: `/members/${memberId}/groups` },
   ]
 
   if (isOwn) {
     tabs.push(
-      { id: 'notifications', label: 'Notifications', to: `/members/${memberId}/notifications` },
-      { id: 'invites', label: 'Invites', to: `/members/${memberId}/invites` },
-      { id: 'settings', label: 'Settings', to: `/members/${memberId}/settings` },
+      { id: 'notifications', label: t('members.tabs.notifications'), to: `/members/${memberId}/notifications` },
+      { id: 'invites', label: t('members.tabs.invites'), to: `/members/${memberId}/invites` },
+      { id: 'settings', label: t('members.tabs.settings'), to: `/members/${memberId}/settings` },
     )
   }
 
@@ -21,7 +23,7 @@ export function ProfileNav({ memberId, isOwn }) {
     <nav
       className="main-navs bp-navs no-ajax bp-single-vertical-nav mb-5 rounded-bb border border-bb-border bg-bb-content"
       role="navigation"
-      aria-label="Profile menu"
+      aria-label={t('members.menu')}
     >
       <ul className="bb-scroll-tabs m-0 list-none gap-0 p-0">
         {tabs.map((tab) => (

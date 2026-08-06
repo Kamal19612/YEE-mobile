@@ -1,15 +1,25 @@
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Avatar } from '../../components/ui/Avatar'
 import { Button } from '../../components/ui/Button'
 import { formatTimeSince } from '../activity/utils'
 
 export function GroupCard({ group, view = 'grid', onToggleMembership }) {
+  const { t } = useTranslation()
   const statusLabel =
-    group.status === 'public' ? 'Public' : group.status === 'private' ? 'Private' : 'Hidden'
+    group.status === 'public'
+      ? t('groups.status.public')
+      : group.status === 'private'
+        ? t('groups.status.private')
+        : t('groups.status.hidden')
+  const membersLabel = t(
+    group.membersCount === 1 ? 'groups.membersCount_one' : 'groups.membersCount_other',
+    { count: group.membersCount },
+  )
 
   if (view === 'list') {
     return (
-      <li className="flex list-none items-center gap-4 rounded-bb border border-bb-border bg-bb-content p-4">
+      <li className="flex list-none items-center gap-4 rounded-bb border border-bb-border bg-bb-content p-4 shadow-card transition-shadow duration-200 ease-bb hover:shadow-card-hover">
         <Link to={`/groups/${group.id}`}>
           <Avatar name={group.name} src={group.avatar} size="xl" />
         </Link>
@@ -20,8 +30,8 @@ export function GroupCard({ group, view = 'grid', onToggleMembership }) {
           <p className="m-0 mt-1 line-clamp-2 text-bb-sm text-bb-text">{group.description}</p>
           <div className="mt-1 flex flex-wrap gap-3 text-bb-xs text-bb-muted">
             <span>{statusLabel}</span>
-            <span>{group.membersCount} members</span>
-            <span>Active {formatTimeSince(group.lastActive)}</span>
+            <span>{membersLabel}</span>
+            <span>{t('common.active', { time: formatTimeSince(group.lastActive) })}</span>
           </div>
         </div>
         <MembershipButton group={group} onToggle={onToggleMembership} />
@@ -30,13 +40,16 @@ export function GroupCard({ group, view = 'grid', onToggleMembership }) {
   }
 
   return (
-    <li className="list-none overflow-hidden rounded-bb border border-bb-border bg-bb-content shadow-card">
+    <li className="list-none overflow-hidden rounded-bb border border-bb-border bg-bb-content shadow-card transition-shadow duration-200 ease-bb hover:shadow-card-hover">
       <div
         className="h-24 bg-cover bg-center"
         style={
           group.cover
             ? { backgroundImage: `url(${group.cover})` }
-            : { backgroundColor: 'var(--bb-cover-image-background-color)' }
+            : {
+                backgroundImage:
+                  'linear-gradient(135deg, #2f5bff 0%, #3d4f6a 48%, #c8922a 120%)',
+              }
         }
       />
       <div className="-mt-8 px-4 pb-4 text-center">
@@ -49,7 +62,7 @@ export function GroupCard({ group, view = 'grid', onToggleMembership }) {
           </Link>
         </div>
         <div className="mt-1 text-bb-xs text-bb-muted">
-          {statusLabel} · {group.membersCount} members
+          {statusLabel} · {membersLabel}
         </div>
         <p className="m-0 mt-2 line-clamp-2 text-bb-sm text-bb-text">{group.description}</p>
         <div className="mt-4">
@@ -61,21 +74,22 @@ export function GroupCard({ group, view = 'grid', onToggleMembership }) {
 }
 
 function MembershipButton({ group, onToggle }) {
+  const { t } = useTranslation()
   if (group.isMember) {
     return (
       <div className="flex justify-center gap-2">
         <Button as={Link} to={`/groups/${group.id}`} size="sm" variant="outline">
-          Visit
+          {t('groups.visit')}
         </Button>
         <Button type="button" size="sm" variant="secondary" onClick={() => onToggle?.(group.id)}>
-          Leave
+          {t('groups.leave')}
         </Button>
       </div>
     )
   }
   return (
     <Button type="button" size="sm" onClick={() => onToggle?.(group.id)}>
-      {group.status === 'private' ? 'Request Join' : 'Join Group'}
+      {group.status === 'private' ? t('groups.requestJoin') : t('groups.join')}
     </Button>
   )
 }

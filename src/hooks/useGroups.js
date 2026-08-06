@@ -84,7 +84,7 @@ export function useGroups({ search = '', typeFilter = 'all', sort = 'active' } =
         id: Date.now(),
         name: name.trim(),
         slug: name.trim().toLowerCase().replace(/\s+/g, '-'),
-        description: description.trim() || 'Nouvelle cohorte AfrEA-YEE',
+        description: description.trim() || 'Nouveau groupe AfrEA-YEE',
         status,
         cohortType: 'thematic',
         avatar: null,

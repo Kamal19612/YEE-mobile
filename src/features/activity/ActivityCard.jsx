@@ -243,7 +243,7 @@ export function ActivityCard({
                 await navigator.share({ title: activity.title || displayName, text, url })
               } else if (navigator.clipboard?.writeText) {
                 await navigator.clipboard.writeText(`${text}\n${url}`)
-                setShareHint(t('stories.copied', { defaultValue: 'Lien copié' }))
+                setShareHint(t('stories.copied'))
                 setTimeout(() => setShareHint(''), 2000)
               }
             } catch {
@@ -296,15 +296,16 @@ function TagChip({ children }) {
 }
 
 function PrivacyIcon({ privacy }) {
+  const { t } = useTranslation()
   if (privacy === 'loggedin') {
     return (
-      <span title="Members only" className="inline-flex items-center">
+      <span title={t('stories.visibility.membersOnly')} className="inline-flex items-center">
         <IconUsersLock className="h-3.5 w-3.5" />
       </span>
     )
   }
   return (
-    <span title="Public" className="inline-flex items-center">
+    <span title={t('stories.visibility.public')} className="inline-flex items-center">
       <IconGlobe className="h-3.5 w-3.5" />
     </span>
   )

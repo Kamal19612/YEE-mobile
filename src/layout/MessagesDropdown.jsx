@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { IconAngleRight, IconInbox } from '../components/icons'
 import { Badge } from '../components/ui/Badge'
 import { Dropdown, DropdownFooter, DropdownHeader } from '../components/ui/Dropdown'
@@ -10,6 +11,7 @@ import { formatTimeSince } from '../features/activity/utils'
 import clsx from 'clsx'
 
 export function MessagesDropdown() {
+  const { t } = useTranslation()
   const { closeDropdowns } = useLayout()
   const { threads, unreadCount } = useMessages()
   const items = threads.slice(0, 5).map(threadPreview)
@@ -18,14 +20,14 @@ export function MessagesDropdown() {
     <Dropdown
       id="messages"
       trigger={
-        <span data-balloon-pos="down" data-balloon="Messages" className="relative inline-flex">
+        <span data-balloon-pos="down" data-balloon={t('messages.title')} className="relative inline-flex">
           <IconInbox />
           <Badge count={unreadCount} />
-          <span className="screen-reader-text">Messages</span>
+          <span className="screen-reader-text">{t('messages.title')}</span>
         </span>
       }
     >
-      <DropdownHeader title="Messages" />
+      <DropdownHeader title={t('messages.title')} />
       <ul className="notification-list m-0 max-h-[360px] list-none overflow-y-auto p-0">
         {items.map((msg) => (
           <li key={msg.id} className="list-none border-b border-bb-border last:border-b-0">
@@ -48,7 +50,7 @@ export function MessagesDropdown() {
         ))}
       </ul>
       <DropdownFooter href="/messages" onClick={closeDropdowns}>
-        View Messages
+        {t('messages.viewAll')}
         <IconAngleRight />
       </DropdownFooter>
     </Dropdown>

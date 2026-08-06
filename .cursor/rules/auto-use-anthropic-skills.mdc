@@ -1,0 +1,18 @@
+---
+description: Auto-invoke Anthropic skills for matching tasks without waiting for the user to name them
+alwaysApply: true
+---
+
+# Auto-use Anthropic skills
+
+Before implementing, if a skill in `C:\Users\DEV\.cursor\skills\` matches the task, **Read its SKILL.md first** and follow it. Do not wait to be asked.
+
+Quick map for this repo:
+
+- New UI / visual redesign / landing / layout polish → `frontend-design`
+- Browser / Playwright verification of the app → `webapp-testing`
+- PDF / DOCX / XLSX / PPTX deliverables → matching `pdf` / `docx` / `xlsx` / `pptx`
+- MCP servers → `mcp-builder`
+- Structured docs / specs → `doc-coauthoring`
+
+When editing existing BuddyBoss UI, respect the current design system; still load `frontend-design` for net-new pages or intentional visual redesigns.

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
+import { useTranslation } from 'react-i18next'
 import { Avatar } from '../../components/ui/Avatar'
 import { Button } from '../../components/ui/Button'
 import { IconAngleLeft } from '../../components/icons'
@@ -12,16 +13,18 @@ const DESKTOP_MQ = '(min-width: 800px)'
 
 /** Page messagerie — patterns de messages-dropdown.php étendus */
 export function MessagesPage() {
+  const { t } = useTranslation()
   const { threadId } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
   const currentUser = user || { id: 0, displayName: 'Guest' }
-  const { threads, activeThread, loading, error, sendMessage, createThread } = useMessages(threadId)
+  const { threads, activeThread, loading, sendMessage, createThread } = useMessages(threadId)
   const [draft, setDraft] = useState('')
   const [composeOpen, setComposeOpen] = useState(false)
   const [composeName, setComposeName] = useState('')
   const [composeBody, setComposeBody] = useState('')
   const bottomRef = useRef(null)
+  const unreadCount = threads.filter((th) => th.unread).length
 
   useEffect(() => {
     if (!threadId && threads.length && !loading && window.matchMedia(DESKTOP_MQ).matches) {
@@ -52,13 +55,15 @@ export function MessagesPage() {
       >
         <header className="flex items-center justify-between gap-2 border-b border-bb-border px-4 py-3">
           <div>
-            <h1 className="m-0 text-bb-md font-semibold text-bb-heading">Messages</h1>
+            <h1 className="m-0 text-bb-md font-semibold text-bb-heading">{t('messages.title')}</h1>
             <span className="text-bb-xs text-bb-muted">
-              {threads.filter((t) => t.unread).length} non lus
+              {t(unreadCount === 1 ? 'messages.unread_one' : 'messages.unread_other', {
+                count: unreadCount,
+              })}
             </span>
           </div>
           <Button type="button" size="sm" variant="secondary" onClick={() => setComposeOpen(true)}>
-            Nouveau
+            {t('messages.new')}
           </Button>
         </header>
         {composeOpen && (
@@ -69,7 +74,7 @@ export function MessagesPage() {
               if (!composeName.trim()) return
               const thread = await createThread({
                 participantName: composeName.trim(),
-                firstMessage: composeBody.trim() || 'Bonjour !',
+                firstMessage: composeBody.trim() || t('messages.defaultGreeting'),
               })
               setComposeOpen(false)
               setComposeName('')
@@ -80,23 +85,23 @@ export function MessagesPage() {
             <input
               value={composeName}
               onChange={(e) => setComposeName(e.target.value)}
-              placeholder="Nom du destinataire"
+              placeholder={t('messages.recipientPlaceholder')}
               className="h-9 w-full rounded-bb-input border border-bb-border bg-bb-content px-3 text-bb-sm outline-none focus:border-bb-primary"
               required
             />
             <textarea
               value={composeBody}
               onChange={(e) => setComposeBody(e.target.value)}
-              placeholder="Premier message (optionnel)"
+              placeholder={t('messages.firstMessagePlaceholder')}
               rows={2}
               className="w-full rounded-bb-input border border-bb-border bg-bb-content px-3 py-2 text-bb-sm outline-none focus:border-bb-primary"
             />
             <div className="flex gap-2">
               <Button type="submit" size="sm">
-                Créer
+                {t('common.create')}
               </Button>
               <Button type="button" size="sm" variant="outline" onClick={() => setComposeOpen(false)}>
-                Annuler
+                {t('common.cancel')}
               </Button>
             </div>
           </form>
@@ -158,7 +163,7 @@ export function MessagesPage() {
       >
         {!activeThread ? (
           <div className="flex flex-1 items-center justify-center px-4 text-center text-bb-sm text-bb-muted">
-            Select a conversation
+            {t('messages.selectThread')}
           </div>
         ) : (
           <>
@@ -166,7 +171,7 @@ export function MessagesPage() {
               <Link
                 to="/messages"
                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-bb-inner text-bb-heading hover:bg-bb-alt bb:hidden"
-                aria-label="Back to conversations"
+                aria-label={t('messages.backToList')}
               >
                 <IconAngleLeft />
               </Link>
@@ -185,7 +190,7 @@ export function MessagesPage() {
                     : activeThread.participants.map((p) => p.displayName).join(', ')}
                 </div>
                 <div className="text-bb-xs text-bb-muted">
-                  {activeThread.participants.length + 1} participants
+                  {t('messages.participants', { count: activeThread.participants.length + 1 })}
                 </div>
               </div>
             </header>
@@ -232,11 +237,11 @@ export function MessagesPage() {
               <input
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
-                placeholder="Write a message..."
+                placeholder={t('messages.composePlaceholder')}
                 className="h-10 min-w-0 flex-1 rounded-bb-input border border-bb-border px-3 text-bb-sm outline-none focus:border-bb-primary"
               />
               <Button type="submit" size="sm" disabled={!draft.trim()}>
-                Send
+                {t('messages.send')}
               </Button>
             </form>
           </>

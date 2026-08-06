@@ -1,20 +1,21 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 
 const defaultTokens = {
-  '--bb-primary-color': '#385DFF',
-  '--bb-body-background-color': '#FAFBFD',
+  '--bb-primary-color': '#2F5BFF',
+  '--bb-accent-color': '#C8922A',
+  '--bb-body-background-color': '#EEF1F7',
   '--bb-content-background-color': '#FFFFFF',
-  '--bb-content-alternate-background-color': '#F2F4F5',
-  '--bb-content-border-color': '#D6D9DD',
-  '--bb-headings-color': '#1E2132',
-  '--bb-body-text-color': '#5A5A5A',
-  '--bb-alternate-text-color': '#9B9C9F',
-  '--bb-header-background': '#ffffff',
-  '--bb-header-links': '#1E2132',
-  '--bb-header-links-hover': '#385DFF',
+  '--bb-content-alternate-background-color': '#F4F6FA',
+  '--bb-content-border-color': '#DDE2EB',
+  '--bb-headings-color': '#121A2B',
+  '--bb-body-text-color': '#4A5568',
+  '--bb-alternate-text-color': '#8B93A7',
+  '--bb-header-background': 'rgba(255, 255, 255, 0.86)',
+  '--bb-header-links': '#121A2B',
+  '--bb-header-links-hover': '#2F5BFF',
   '--bb-header-height': '76px',
-  '--bb-sidenav-background': '#ffffff',
-  '--bb-button-radius': '6px',
+  '--bb-sidenav-background': 'rgba(255, 255, 255, 0.94)',
+  '--bb-button-radius': '8px',
 }
 
 const ThemeContext = createContext(null)

@@ -142,7 +142,7 @@ export function FeedComposer({ onSubmit }) {
       setError(
         msgByCode[code] ||
           err.message ||
-          t('stories.feed.publishFailed', { defaultValue: 'Could not publish' }),
+          t('stories.feed.publishFailed'),
       )
     } finally {
       setSubmitting(false)
@@ -152,7 +152,7 @@ export function FeedComposer({ onSubmit }) {
   return (
     <form
       onSubmit={submit}
-      className="mb-5 rounded-bb border border-bb-border bg-bb-content p-4 shadow-card"
+      className="mb-5 rounded-bb border border-bb-border bg-bb-content p-4 shadow-card transition-shadow duration-200 ease-bb focus-within:shadow-card-hover"
     >
       <div className="flex gap-3">
         <Avatar name={displayName} src={user?.avatar} size="md" />
@@ -164,7 +164,7 @@ export function FeedComposer({ onSubmit }) {
             placeholder={t('stories.composer.placeholder', {
               name: displayName.split(' ')[0],
             })}
-            className="mb-3 w-full resize-none rounded-bb-input border border-bb-border bg-bb-content px-3 py-2.5 text-bb-base text-bb-heading outline-none placeholder:text-bb-muted focus:border-bb-primary"
+            className="mb-3 w-full resize-none rounded-bb-input border border-bb-border bg-bb-alt/60 px-3 py-2.5 text-bb-base text-bb-heading outline-none transition-[border-color,box-shadow,background-color] placeholder:text-bb-muted focus:border-bb-primary focus:bg-bb-content focus:shadow-[0_0_0_3px_rgba(47,91,255,0.12)]"
           />
 
           {previews.length > 0 && (

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Button } from '../../components/ui/Button'
 import { useForum } from '../../hooks/useForums'
 import { formatTimeSince } from '../activity/utils'
@@ -7,6 +8,7 @@ import { TopicForm } from './TopicForm'
 
 /** Référence: bbpress/content-single-forum.php + loop-topics */
 export function ForumPage() {
+  const { t } = useTranslation()
   const { forumId } = useParams()
   const navigate = useNavigate()
   const { forum, topics, loading, createTopic } = useForum(forumId)
@@ -15,9 +17,9 @@ export function ForumPage() {
   if (!loading && !forum) {
     return (
       <div className="bb-card w-full p-8 text-center">
-        <h1 className="m-0 mb-2 text-bb-lg text-bb-heading">Forum not found</h1>
+        <h1 className="m-0 mb-2 text-bb-lg text-bb-heading">{t('forums.notFound')}</h1>
         <Link to="/forums" className="text-bb-sm text-bb-primary hover:underline">
-          Back to forums
+          {t('forums.back')}
         </Link>
       </div>
     )
@@ -27,7 +29,7 @@ export function ForumPage() {
     <div id="bbpress-forums" className="bb-content-area w-full max-w-content">
       <nav className="bbp-breadcrumb mb-3 text-bb-sm text-bb-muted">
         <Link to="/forums" className="hover:text-bb-primary">
-          Forums
+          {t('forums.title')}
         </Link>
         <span className="mx-2">/</span>
         <span className="text-bb-heading">{forum?.title || '…'}</span>
@@ -39,7 +41,7 @@ export function ForumPage() {
           <p className="m-0 mt-1 text-bb-sm text-bb-text">{forum?.description}</p>
         </div>
         <Button type="button" size="sm" onClick={() => setShowForm((v) => !v)}>
-          {showForm ? 'Close' : 'New Discussion'}
+          {showForm ? t('common.close') : t('forums.newDiscussion')}
         </Button>
       </header>
 
@@ -63,9 +65,7 @@ export function ForumPage() {
       )}
 
       {!loading && topics.length === 0 && (
-        <div className="bb-card p-8 text-center text-bb-sm text-bb-muted">
-          No discussions yet. Start the first one!
-        </div>
+        <div className="bb-card p-8 text-center text-bb-sm text-bb-muted">{t('forums.topicsEmpty')}</div>
       )}
 
       {!loading && topics.length > 0 && (
@@ -77,12 +77,12 @@ export function ForumPage() {
                   <div className="mb-1 flex flex-wrap items-center gap-2">
                     {topic.sticky && (
                       <span className="rounded-bb-option bg-bb-label px-2 py-0.5 text-[10px] font-semibold uppercase text-bb-label-text">
-                        Sticky
+                        {t('forums.sticky')}
                       </span>
                     )}
                     {topic.closed && (
                       <span className="rounded-bb-option bg-bb-alt px-2 py-0.5 text-[10px] font-semibold uppercase text-bb-muted">
-                        Closed
+                        {t('forums.closed')}
                       </span>
                     )}
                     <Link
@@ -93,15 +93,16 @@ export function ForumPage() {
                     </Link>
                   </div>
                   <div className="text-bb-xs text-bb-muted">
-                    Started by {topic.authorName} · {formatTimeSince(topic.date)}
+                    {t('forums.startedBy', { name: topic.authorName })} · {formatTimeSince(topic.date)}
                   </div>
                 </div>
                 <div className="text-right text-bb-xs text-bb-muted">
                   <div>
-                    <strong className="text-bb-heading">{topic.replyCount}</strong> replies
+                    <strong className="text-bb-heading">{topic.replyCount}</strong> {t('forums.repliesLabel')}
                   </div>
                   <div>
-                    Last: {topic.lastReplyAuthor} · {formatTimeSince(topic.lastReplyAt)}
+                    {t('forums.lastReply', { name: topic.lastReplyAuthor })} ·{' '}
+                    {formatTimeSince(topic.lastReplyAt)}
                   </div>
                 </div>
               </div>

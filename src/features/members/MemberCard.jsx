@@ -13,8 +13,8 @@ export function MemberCard({ member, view = 'grid', onFriendToggle }) {
 
   if (view === 'list') {
     return (
-      <li className="bs-item-wrap flex list-none items-center gap-4 rounded-bb border border-bb-border bg-bb-content p-4">
-        <Link to={`/members/${member.id}`} className="relative shrink-0">
+      <li className="bs-item-wrap flex list-none flex-col gap-3 rounded-bb border border-bb-border bg-bb-content p-3 shadow-card transition-shadow duration-200 ease-bb hover:shadow-card-hover sm:flex-row sm:items-center sm:gap-4 sm:p-4">
+        <Link to={`/members/${member.id}`} className="relative shrink-0 self-start">
           <Avatar name={member.displayName} src={member.avatar} size="xl" />
           {member.online && <OnlineDot />}
         </Link>
@@ -22,12 +22,12 @@ export function MemberCard({ member, view = 'grid', onFriendToggle }) {
           <div className="item-title">
             <Link
               to={`/members/${member.id}`}
-              className="text-bb-lg font-medium text-bb-heading hover:text-bb-primary"
+              className="break-words text-bb-lg font-medium text-bb-heading hover:text-bb-primary"
             >
               {member.displayName}
             </Link>
           </div>
-          <div className="item-meta text-bb-sm text-bb-muted">@{member.mentionName}</div>
+          <div className="item-meta truncate text-bb-sm text-bb-muted">@{member.mentionName}</div>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {member.country && <Chip>{member.country}</Chip>}
             {member.region && <Chip>{member.region}</Chip>}
@@ -38,7 +38,7 @@ export function MemberCard({ member, view = 'grid', onFriendToggle }) {
             {t('members.active', { time: formatTimeSince(member.lastActive) })}
           </div>
         </div>
-        <div className="action shrink-0">
+        <div className="action w-full shrink-0 sm:w-auto">
           <FriendButton member={member} onFriendToggle={onFriendToggle} />
         </div>
       </li>
@@ -46,13 +46,16 @@ export function MemberCard({ member, view = 'grid', onFriendToggle }) {
   }
 
   return (
-    <li className="bs-item-wrap list-none overflow-hidden rounded-bb border border-bb-border bg-bb-content text-center shadow-card">
+    <li className="bs-item-wrap list-none overflow-hidden rounded-bb border border-bb-border bg-bb-content text-center shadow-card transition-shadow duration-200 ease-bb hover:shadow-card-hover">
       <div
-        className="h-20 bg-bb-cover bg-cover bg-center"
+        className="h-24 bg-cover bg-center"
         style={
           member.cover
             ? { backgroundImage: `url(${member.cover})` }
-            : { backgroundColor: 'var(--bb-cover-image-background-color)' }
+            : {
+                backgroundImage:
+                  'linear-gradient(135deg, #2f5bff 0%, #3d4f6a 48%, #c8922a 120%)',
+              }
         }
       />
       <div className="-mt-10 px-4 pb-4">
@@ -119,7 +122,7 @@ function FriendButton({ member, onFriendToggle }) {
   const { t } = useTranslation()
   if (member.friendshipStatus === 'self') {
     return (
-      <Button as={Link} to={`/members/${member.id}`} variant="outline" size="sm">
+      <Button as={Link} to={`/members/${member.id}`} variant="outline" size="sm" className="min-h-10 w-full touch-manipulation sm:w-auto">
         {t('members.viewProfile')}
       </Button>
     )
@@ -139,7 +142,7 @@ function FriendButton({ member, onFriendToggle }) {
       type="button"
       variant={variant}
       size="sm"
-      className={clsx(member.friendshipStatus === 'pending' && 'opacity-80')}
+      className={clsx('min-h-10 w-full touch-manipulation sm:w-auto', member.friendshipStatus === 'pending' && 'opacity-80')}
       onClick={() => onFriendToggle?.(member.id)}
     >
       {label}

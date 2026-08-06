@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Avatar } from '../../components/ui/Avatar'
 import { Button } from '../../components/ui/Button'
 import { useAuth } from '../../hooks/useAuth'
@@ -24,6 +25,7 @@ export function ActivityComments({ comments = [], onAddComment, depth = 0 }) {
 }
 
 function CommentItem({ comment, onAddComment, depth }) {
+  const { t } = useTranslation()
   const [replyOpen, setReplyOpen] = useState(false)
 
   return (
@@ -42,14 +44,14 @@ function CommentItem({ comment, onAddComment, depth }) {
               className="min-h-[32px] px-1 font-medium hover:text-bb-primary"
               onClick={() => setReplyOpen((v) => !v)}
             >
-              Reply
+              {t('stories.actions.reply')}
             </button>
           )}
         </div>
         {replyOpen && (
           <div className="mt-2">
             <CommentForm
-              placeholder={`Reply to ${comment.userName}...`}
+              placeholder={t('stories.actions.replyTo', { name: comment.userName })}
               autoFocus
               onSubmit={async (content) => {
                 await onAddComment({ content, parentId: comment.id })
@@ -70,7 +72,8 @@ function CommentItem({ comment, onAddComment, depth }) {
   )
 }
 
-function CommentForm({ onSubmit, placeholder = 'Write a comment...', autoFocus = false }) {
+function CommentForm({ onSubmit, placeholder, autoFocus = false }) {
+  const { t } = useTranslation()
   const { user } = useAuth()
   const currentUser = user || { displayName: 'Guest', avatar: null }
   const [value, setValue] = useState('')
@@ -97,11 +100,11 @@ function CommentForm({ onSubmit, placeholder = 'Write a comment...', autoFocus =
           value={value}
           autoFocus={autoFocus}
           onChange={(e) => setValue(e.target.value)}
-          placeholder={placeholder}
+          placeholder={placeholder || t('stories.feed.commentPlaceholder')}
           className="ac-input h-9 w-full rounded-bb-input border border-bb-border bg-bb-content px-3 text-bb-sm outline-none focus:border-bb-primary"
         />
         <Button type="submit" size="sm" disabled={!value.trim() || busy}>
-          Reply
+          {t('stories.actions.reply')}
         </Button>
       </div>
     </form>

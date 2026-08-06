@@ -41,8 +41,10 @@ export function ActivityFeed() {
           )}
 
           {!loading && !error && posts.length === 0 && (
-            <div className="bb-card mb-5 p-8 text-center text-bb-sm text-bb-muted">
-              {t('stories.empty')}
+            <div className="bb-card mb-5 px-6 py-12 text-center">
+              <p className="font-display m-0 text-bb-lg font-semibold text-bb-heading">
+                {t('stories.empty')}
+              </p>
             </div>
           )}
 

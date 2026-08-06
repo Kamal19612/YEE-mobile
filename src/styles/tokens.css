@@ -1,43 +1,44 @@
 /**
- * Design tokens BuddyBoss Theme v2.21.0 (preset default)
- * Source: inc/admin/options-init.php + custom-css.php
- * Style template 2.0 → rayons --bb-block-radius: 10px
+ * AfrEA-YEE design tokens — BuddyBoss structure, identity « horizon atelier »
+ * Cool Atlantic blue + warm ochre accents for the emerging evaluators network.
  */
 :root {
-  --bb-primary-color: #385dff;
-  --bb-primary-color-rgb: 56, 93, 255;
-  --bb-body-background-color: #fafbfd;
-  --bb-body-background-color-rgb: 250, 251, 253;
+  --bb-primary-color: #2f5bff;
+  --bb-primary-color-rgb: 47, 91, 255;
+  --bb-accent-color: #c8922a;
+  --bb-accent-color-rgb: 200, 146, 42;
+  --bb-body-background-color: #eef1f7;
+  --bb-body-background-color-rgb: 238, 241, 247;
   --bb-content-background-color: #ffffff;
-  --bb-content-alternate-background-color: #f2f4f5;
-  --bb-content-border-color: #d6d9dd;
-  --bb-content-border-color-rgb: 214, 217, 221;
-  --bb-cover-image-background-color: #647385;
-  --bb-headings-color: #1e2132;
-  --bb-headings-color-rgb: 30, 33, 50;
-  --bb-body-text-color: #5a5a5a;
-  --bb-body-text-color-rgb: 90, 90, 90;
-  --bb-alternate-text-color: #9b9c9f;
-  --bb-alternate-text-color-rgb: 155, 156, 159;
+  --bb-content-alternate-background-color: #f4f6fa;
+  --bb-content-border-color: #dde2eb;
+  --bb-content-border-color-rgb: 221, 226, 235;
+  --bb-cover-image-background-color: #3d4f6a;
+  --bb-headings-color: #121a2b;
+  --bb-headings-color-rgb: 18, 26, 43;
+  --bb-body-text-color: #4a5568;
+  --bb-body-text-color-rgb: 74, 85, 104;
+  --bb-alternate-text-color: #8b93a7;
+  --bb-alternate-text-color-rgb: 139, 147, 167;
 
-  --bb-primary-button-background-regular: #385dff;
-  --bb-primary-button-background-hover: #1e42dd;
-  --bb-primary-button-border-regular: #385dff;
-  --bb-primary-button-border-hover: #1e42dd;
+  --bb-primary-button-background-regular: #2f5bff;
+  --bb-primary-button-background-hover: #1a45e8;
+  --bb-primary-button-border-regular: #2f5bff;
+  --bb-primary-button-border-hover: #1a45e8;
   --bb-primary-button-text-regular: #ffffff;
   --bb-primary-button-text-hover: #ffffff;
 
-  --bb-secondary-button-background-regular: #f2f4f5;
-  --bb-secondary-button-background-hover: #385dff;
-  --bb-secondary-button-border-regular: #f2f4f5;
-  --bb-secondary-button-border-hover: #385dff;
-  --bb-secondary-button-text-regular: #1e2132;
+  --bb-secondary-button-background-regular: #f4f6fa;
+  --bb-secondary-button-background-hover: #2f5bff;
+  --bb-secondary-button-border-regular: #f4f6fa;
+  --bb-secondary-button-border-hover: #2f5bff;
+  --bb-secondary-button-text-regular: #121a2b;
   --bb-secondary-button-text-hover: #ffffff;
 
-  --bb-header-background: #ffffff;
-  --bb-header-alternate-background: #f2f4f5;
-  --bb-header-links: #1e2132;
-  --bb-header-links-hover: #385dff;
+  --bb-header-background: rgba(255, 255, 255, 0.86);
+  --bb-header-alternate-background: #f4f6fa;
+  --bb-header-links: #121a2b;
+  --bb-header-links-hover: #2f5bff;
   --bb-header-height: 76px;
   --bb-header-mobile-logo-size: 40px;
   --bb-panel-width: 68px;
@@ -49,42 +50,47 @@
   --bb-z-search: 630;
   --bb-z-dropdown: 1002;
 
-  --bb-sidenav-background: #ffffff;
-  --bb-sidenav-text-regular: #1e2132;
-  --bb-sidenav-text-hover: #1e2132;
+  --bb-sidenav-background: rgba(255, 255, 255, 0.94);
+  --bb-sidenav-text-regular: #121a2b;
+  --bb-sidenav-text-hover: #121a2b;
   --bb-sidenav-text-active: #ffffff;
-  --bb-sidenav-menu-background-color-regular: #ffffff;
-  --bb-sidenav-menu-background-color-hover: #f2f4f5;
-  --bb-sidenav-menu-background-color-active: #385dff;
-  --bb-sidenav-count-text-color-regular: #1e2132;
+  --bb-sidenav-menu-background-color-regular: transparent;
+  --bb-sidenav-menu-background-color-hover: #f4f6fa;
+  --bb-sidenav-menu-background-color-active: #2f5bff;
+  --bb-sidenav-count-text-color-regular: #121a2b;
   --bb-sidenav-count-text-color-hover: #ffffff;
-  --bb-sidenav-count-text-color-active: #385dff;
-  --bb-sidenav-count-background-color-regular: #f2f4f5;
-  --bb-sidenav-count-background-color-hover: #385dff;
+  --bb-sidenav-count-text-color-active: #2f5bff;
+  --bb-sidenav-count-background-color-regular: #f4f6fa;
+  --bb-sidenav-count-background-color-hover: #2f5bff;
   --bb-sidenav-count-background-color-active: #ffffff;
 
-  --bb-footer-background: #fafbfd;
-  --bb-footer-widget-background: #fafbfd;
-  --bb-footer-text-color: #5a5a5a;
-  --bb-footer-menu-link-color-regular: #5a5a5a;
-  --bb-footer-menu-link-color-hover: #385dff;
-  --bb-footer-menu-link-color-active: #1e2132;
+  --bb-footer-background: transparent;
+  --bb-footer-widget-background: transparent;
+  --bb-footer-text-color: #4a5568;
+  --bb-footer-menu-link-color-regular: #4a5568;
+  --bb-footer-menu-link-color-hover: #2f5bff;
+  --bb-footer-menu-link-color-active: #121a2b;
 
-  --bb-label-background-color: #d7dfff;
-  --bb-label-text-color: #385dff;
-  --bb-tooltip-background: #1e2132;
+  --bb-label-background-color: #e4ebff;
+  --bb-label-text-color: #2f5bff;
+  --bb-tooltip-background: #121a2b;
   --bb-tooltip-color: #ffffff;
-  --bb-default-notice-color: #385dff;
-  --bb-success-color: #14b550;
-  --bb-warning-color: #ed9615;
-  --bb-danger-color: #db222a;
+  --bb-default-notice-color: #2f5bff;
+  --bb-success-color: #0f9f57;
+  --bb-warning-color: #d4890f;
+  --bb-danger-color: #d12129;
 
-  /* Theme style 2.0 */
-  --bb-button-radius: 6px;
-  --bb-block-radius: 10px;
-  --bb-option-radius: 5px;
-  --bb-block-radius-inner: 6px;
-  --bb-input-radius: 6px;
+  /* Theme style 2.0 — slightly softer radii */
+  --bb-button-radius: 8px;
+  --bb-block-radius: 14px;
+  --bb-option-radius: 6px;
+  --bb-block-radius-inner: 10px;
+  --bb-input-radius: 8px;
   --bb-checkbox-radius: 5.4px;
   --bb-label-type-radius: 6px;
+
+  /* Motion */
+  --bb-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --bb-duration-fast: 150ms;
+  --bb-duration: 220ms;
 }

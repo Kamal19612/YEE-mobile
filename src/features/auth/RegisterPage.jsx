@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next'
 import { register as registerRequest } from '../../api/auth'
 import { useAuth } from '../../hooks/useAuth'
 import { Button } from '../../components/ui/Button'
+import { PasswordInput } from '../../components/ui/PasswordInput'
+import { AuthShell } from './AuthShell'
 
 /**
  * Inscription App API — POST /app/v1/auth/register
@@ -63,8 +65,16 @@ export function RegisterPage() {
 
   if (successMessage) {
     return (
-      <div className="mx-auto flex min-h-[60vh] w-full max-w-md flex-col justify-center py-10">
-        <h1 className="m-0 mb-2 text-bb-xl font-semibold text-bb-heading">{t('auth.signup')}</h1>
+      <AuthShell
+        title={t('auth.signup')}
+        footer={
+          <p className="m-0 text-center text-bb-sm text-bb-muted">
+            <Link to="/" className="text-bb-primary hover:underline">
+              {t('auth.backHome')}
+            </Link>
+          </p>
+        }
+      >
         <p
           className="mb-6 rounded-bb-inner border border-green-200 bg-green-50 px-3 py-3 text-bb-sm text-green-800"
           role="status"
@@ -75,15 +85,30 @@ export function RegisterPage() {
         <Button as={Link} to="/login" variant="primary" className="w-full">
           {t('auth.signin')}
         </Button>
-      </div>
+      </AuthShell>
     )
   }
 
   return (
-    <div className="mx-auto flex min-h-[60vh] w-full max-w-md flex-col justify-center py-10">
-      <h1 className="m-0 mb-2 text-bb-xl font-semibold text-bb-heading">{t('auth.signup')}</h1>
-      <p className="m-0 mb-6 text-bb-sm text-bb-muted">{t('auth.registerHint')}</p>
-
+    <AuthShell
+      title={t('auth.signup')}
+      hint={t('auth.registerHint')}
+      footer={
+        <>
+          <p className="m-0 text-center text-bb-sm text-bb-muted">
+            {t('auth.haveAccount')}{' '}
+            <Link to="/login" className="font-medium text-bb-primary hover:underline">
+              {t('auth.signin')}
+            </Link>
+          </p>
+          <p className="mt-2 text-center text-bb-sm text-bb-muted">
+            <Link to="/" className="text-bb-primary hover:underline">
+              {t('auth.backHome')}
+            </Link>
+          </p>
+        </>
+      }
+    >
       {localError && (
         <p
           className="mb-4 whitespace-pre-line rounded-bb-inner border border-red-200 bg-red-50 px-3 py-2 text-bb-sm text-red-700"
@@ -95,7 +120,7 @@ export function RegisterPage() {
 
       <form onSubmit={onSubmit} className="space-y-4" noValidate>
         <label className="block">
-          <span className="mb-1 block text-bb-sm font-medium text-bb-heading">
+          <span className="mb-1.5 block text-bb-sm font-medium text-bb-heading">
             {t('auth.displayName')}
           </span>
           <input
@@ -106,53 +131,41 @@ export function RegisterPage() {
             autoComplete="name"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            className="h-11 w-full rounded-bb-input border border-bb-border bg-bb-content px-3 text-bb-base outline-none focus:border-bb-primary"
+            className="bb-input"
           />
         </label>
 
         <label className="block">
-          <span className="mb-1 block text-bb-sm font-medium text-bb-heading">{t('auth.email')}</span>
+          <span className="mb-1.5 block text-bb-sm font-medium text-bb-heading">{t('auth.email')}</span>
           <input
             type="email"
             required
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="h-11 w-full rounded-bb-input border border-bb-border bg-bb-content px-3 text-bb-base outline-none focus:border-bb-primary"
+            className="bb-input"
           />
         </label>
 
         <label className="block">
-          <span className="mb-1 block text-bb-sm font-medium text-bb-heading">{t('auth.password')}</span>
-          <input
-            type="password"
+          <span className="mb-1.5 block text-bb-sm font-medium text-bb-heading">
+            {t('auth.password')}
+          </span>
+          <PasswordInput
             required
             minLength={10}
             maxLength={256}
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="h-11 w-full rounded-bb-input border border-bb-border bg-bb-content px-3 text-bb-base outline-none focus:border-bb-primary"
           />
-          <span className="mt-1 block text-bb-xs text-bb-muted">{t('auth.passwordHint')}</span>
+          <span className="mt-1.5 block text-bb-xs text-bb-muted">{t('auth.passwordHint')}</span>
         </label>
 
         <Button type="submit" variant="primary" className="w-full" disabled={submitting}>
           {submitting ? t('auth.registering') : t('auth.createAccount')}
         </Button>
       </form>
-
-      <p className="mt-6 text-center text-bb-sm text-bb-muted">
-        {t('auth.haveAccount')}{' '}
-        <Link to="/login" className="text-bb-primary hover:underline">
-          {t('auth.signin')}
-        </Link>
-      </p>
-      <p className="mt-2 text-center text-bb-sm text-bb-muted">
-        <Link to="/" className="text-bb-primary hover:underline">
-          {t('auth.backHome')}
-        </Link>
-      </p>
-    </div>
+    </AuthShell>
   )
 }
