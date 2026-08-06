@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { inviteToGroup } from '../../api/groups'
 import { Avatar } from '../../components/ui/Avatar'
 import { Button } from '../../components/ui/Button'
+import { UserPicker } from '../../components/ui/UserPicker'
 import { groupRoleOptions } from '../../data/groupsData'
 import { useAuth } from '../../hooks/useAuth'
 import { useFeed } from '../../hooks/useFeed'
@@ -231,6 +232,7 @@ function GroupNav({ groupId, isActive, canModerate }) {
 
 function GroupFeed({ group, canPost }) {
   const { t } = useTranslation()
+  const canViewFeed = group.visibility === 'public' || group.viewerStatus === 'active'
   const {
     posts,
     loading,
@@ -244,7 +246,15 @@ function GroupFeed({ group, canPost }) {
     loadComments,
     addComment,
     removeComment,
-  } = useFeed({ perPage: 10, groupId: group.id })
+  } = useFeed({ perPage: 10, groupId: group.id, enabled: canViewFeed })
+
+  if (!canViewFeed) {
+    return (
+      <div className="bb-card p-8 text-center text-bb-sm text-bb-muted">
+        {t('groups.membersOnlyContent')}
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-content">
@@ -297,8 +307,20 @@ function GroupFeed({ group, canPost }) {
 function GroupMembersTab({ group }) {
   const { t } = useTranslation()
   const { user } = useAuth()
-  const { members, loading, error } = useGroupMembers(group.id, 'active')
+  const canViewMembers = group.visibility === 'public' || group.viewerStatus === 'active'
   const canModerate = isModerator(group.viewerRole)
+  const { members, loading, error } = useGroupMembers(
+    canViewMembers ? group.id : null,
+    'active',
+  )
+
+  if (!canViewMembers) {
+    return (
+      <div className="bb-card p-8 text-center text-bb-sm text-bb-muted">
+        {t('groups.membersOnlyContent')}
+      </div>
+    )
+  }
 
   if (loading) {
     return (
@@ -403,7 +425,12 @@ function GroupModeration({ group }) {
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => wrap(() => pending.approve(m.user.id))}
+                  onClick={() =>
+                    wrap(async () => {
+                      await pending.approve(m.user.id)
+                      await active.reload()
+                    })
+                  }
                 >
                   {t('groups.approve')}
                 </Button>
@@ -477,7 +504,8 @@ function GroupModeration({ group }) {
 
 function GroupInvite({ group }) {
   const { t } = useTranslation()
-  const [userId, setUserId] = useState('')
+  const [selectedUser, setSelectedUser] = useState(null)
+  const [pickerKey, setPickerKey] = useState(0)
   const [sending, setSending] = useState(false)
   const [message, setMessage] = useState(null)
   const [error, setError] = useState(null)
@@ -485,19 +513,20 @@ function GroupInvite({ group }) {
   return (
     <div className="bb-card max-w-lg p-4">
       <h2 className="m-0 mb-2 text-bb-md font-semibold text-bb-heading">{t('groups.invite')}</h2>
-      <p className="m-0 mb-3 text-bb-sm text-bb-muted">{t('groups.inviteByUserIdHint')}</p>
+      <p className="m-0 mb-3 text-bb-sm text-bb-muted">{t('groups.inviteHint')}</p>
       <form
         className="flex flex-wrap gap-2"
         onSubmit={async (e) => {
           e.preventDefault()
-          if (!userId.trim()) return
+          if (!selectedUser?.id) return
           setSending(true)
           setError(null)
           setMessage(null)
           try {
-            await inviteToGroup(group.id, userId.trim())
+            await inviteToGroup(group.id, selectedUser.id)
             setMessage(t('groups.invitesSent'))
-            setUserId('')
+            setSelectedUser(null)
+            setPickerKey((k) => k + 1)
           } catch (err) {
             setError(err.message || t('groups.inviteFailed'))
           } finally {
@@ -505,14 +534,14 @@ function GroupInvite({ group }) {
           }
         }}
       >
-        <input
-          type="text"
-          value={userId}
-          onChange={(e) => setUserId(e.target.value)}
-          placeholder={t('groups.inviteUserIdPlaceholder')}
-          className="h-10 min-w-[180px] flex-1 rounded-bb-input border border-bb-border px-3 text-bb-sm outline-none focus:border-bb-primary"
+        <UserPicker
+          key={pickerKey}
+          value={selectedUser}
+          onChange={setSelectedUser}
+          disabled={sending}
+          placeholder={t('groups.inviteUserSearchPlaceholder')}
         />
-        <Button type="submit" size="sm" disabled={sending || !userId.trim()}>
+        <Button type="submit" size="sm" disabled={sending || !selectedUser?.id}>
           {sending ? t('common.loading') : t('groups.sendInvites')}
         </Button>
       </form>

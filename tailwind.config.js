@@ -44,7 +44,12 @@ export default {
           '"Segoe UI"',
           'sans-serif',
         ],
-        display: ['Fraunces', 'Georgia', 'Cambria', '"Times New Roman"', 'serif'],
+        display: [
+          'Helvetica Neue',
+          'Helvetica',
+          'Arial',
+          'sans-serif',
+        ],
       },
       fontSize: {
         'bb-xs': ['0.75rem', { lineHeight: '1.4' }],

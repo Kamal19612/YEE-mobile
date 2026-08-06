@@ -61,7 +61,12 @@ export function useGroups({ search = '', mine = false } = {}) {
       setGroups((prev) => [created, ...prev.filter((g) => String(g.id) !== String(created.id))])
       return created
     } catch (err) {
-      setActionError(err.message || 'Impossible de créer le groupe')
+      const code = err.code || err.body?.error?.code
+      const message =
+        code === 'forbidden'
+          ? 'Réservé aux référents d’institution'
+          : err.message || 'Impossible de créer le groupe'
+      setActionError(message)
       throw err
     }
   }, [])

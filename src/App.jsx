@@ -8,6 +8,8 @@ import { MembersPage } from './features/members/MembersPage'
 import { ProfilePage } from './features/members/ProfilePage'
 import { GroupsPage } from './features/groups/GroupsPage'
 import { GroupPage } from './features/groups/GroupPage'
+import { InstitutionsPage } from './features/institutions/InstitutionsPage'
+import { InstitutionPage } from './features/institutions/InstitutionPage'
 import { MessagesPage } from './features/messages/MessagesPage'
 import { NotificationsPage } from './features/notifications/NotificationsPage'
 import { ForumsPage } from './features/forums/ForumsPage'
@@ -46,6 +48,8 @@ export default function App() {
                 <Route path="/members/:memberId/*" element={<ProfilePage />} />
                 <Route path="/groups" element={<GroupsPage />} />
                 <Route path="/groups/:groupId/*" element={<GroupPage />} />
+                <Route path="/institutions" element={<InstitutionsPage />} />
+                <Route path="/institutions/:institutionId/*" element={<InstitutionPage />} />
                 <Route path="/messages" element={<MessagesPage />} />
                 <Route path="/messages/:threadId" element={<MessagesPage />} />
                 <Route path="/notifications" element={<NotificationsPage />} />

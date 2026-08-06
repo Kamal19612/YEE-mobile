@@ -6,8 +6,23 @@ import { Button } from '../../components/ui/Button'
 import { MEMBER_LANGUAGES } from '../../data/membersData'
 import { formatTimeSince } from '../activity/utils'
 
-export function MemberCard({ member, view = 'grid', onFriendToggle }) {
+/**
+ * Carte membre.
+ * `variant="directory"` — annuaire App API (avatar, nom, profession).
+ * `variant="full"` — profil riche (cover, stats, follow) utilisé ailleurs.
+ */
+export function MemberCard({
+  member,
+  view = 'grid',
+  onFriendToggle,
+  variant = 'full',
+}) {
   const { t } = useTranslation()
+
+  if (variant === 'directory') {
+    return <DirectoryMemberCard member={member} view={view} />
+  }
+
   const langLabel =
     MEMBER_LANGUAGES.find((l) => l.code === member.language)?.label || member.language
 
@@ -101,6 +116,74 @@ export function MemberCard({ member, view = 'grid', onFriendToggle }) {
         <div className="action mt-4">
           <FriendButton member={member} onFriendToggle={onFriendToggle} />
         </div>
+      </div>
+    </li>
+  )
+}
+
+function DirectoryMemberCard({ member, view }) {
+  const { t } = useTranslation()
+  const avatarSrc = member.avatarUrl || member.avatar
+  const profession = member.profession || ''
+
+  if (view === 'list') {
+    return (
+      <li className="flex list-none flex-col gap-3 rounded-bb border border-bb-border bg-bb-content p-3 shadow-card transition-shadow duration-200 ease-bb hover:shadow-card-hover sm:flex-row sm:items-center sm:gap-4 sm:p-4">
+        <Link to={`/members/${member.id}`} className="shrink-0 self-start">
+          <Avatar name={member.displayName} src={avatarSrc} size="xl" />
+        </Link>
+        <div className="min-w-0 flex-1">
+          <Link
+            to={`/members/${member.id}`}
+            className="break-words text-bb-lg font-medium text-bb-heading hover:text-bb-primary"
+          >
+            {member.displayName}
+          </Link>
+          {profession ? (
+            <p className="m-0 mt-1 line-clamp-2 text-bb-sm text-bb-text">{profession}</p>
+          ) : (
+            <p className="m-0 mt-1 text-bb-sm text-bb-muted">{t('members.noProfession')}</p>
+          )}
+        </div>
+        <Button
+          as={Link}
+          to={`/members/${member.id}`}
+          variant="outline"
+          size="sm"
+          className="min-h-10 w-full touch-manipulation sm:w-auto"
+        >
+          {t('members.viewProfile')}
+        </Button>
+      </li>
+    )
+  }
+
+  return (
+    <li className="list-none overflow-hidden rounded-bb border border-bb-border bg-bb-content text-center shadow-card transition-shadow duration-200 ease-bb hover:shadow-card-hover">
+      <div className="flex flex-col items-center px-4 py-6">
+        <Link to={`/members/${member.id}`} className="inline-block">
+          <Avatar name={member.displayName} src={avatarSrc} size="xl" className="ring-2 ring-bb-border/60" />
+        </Link>
+        <Link
+          to={`/members/${member.id}`}
+          className="mt-3 line-clamp-2 text-bb-md font-medium text-bb-heading hover:text-bb-primary"
+        >
+          {member.displayName}
+        </Link>
+        {profession ? (
+          <p className="m-0 mt-1.5 line-clamp-2 text-bb-sm text-bb-text">{profession}</p>
+        ) : (
+          <p className="m-0 mt-1.5 text-bb-sm text-bb-muted">{t('members.noProfession')}</p>
+        )}
+        <Button
+          as={Link}
+          to={`/members/${member.id}`}
+          variant="outline"
+          size="sm"
+          className="mt-4 min-h-10 w-full touch-manipulation"
+        >
+          {t('members.viewProfile')}
+        </Button>
       </div>
     </li>
   )

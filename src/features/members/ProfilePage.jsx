@@ -5,6 +5,7 @@ import { useMember } from '../../hooks/useMembers'
 import { ProfileAbout } from './ProfileAbout'
 import { ProfileFriends } from './ProfileFriends'
 import { ProfileGroups } from './ProfileGroups'
+import { ProfileInstitutions } from '../institutions/ProfileInstitutions'
 import { ProfileHeader } from './ProfileHeader'
 import { ProfileInvites } from './ProfileInvites'
 import { ProfileNav } from './ProfileNav'
@@ -77,6 +78,10 @@ export function ProfilePage() {
             />
             <Route path="friends" element={<ProfileFriends member={member} />} />
             <Route path="groups" element={<ProfileGroups member={member} />} />
+            <Route
+              path="institutions"
+              element={<ProfileInstitutions member={member} isOwn={isOwn} />}
+            />
             <Route
               path="notifications"
               element={isOwn ? <ProfileNotifications /> : <Navigate to=".." replace />}

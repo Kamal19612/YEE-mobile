@@ -312,3 +312,65 @@ export async function fetchFollowingIds(userId, { maxPages = 5 } = {}) {
   }
   return ids
 }
+
+function mapSearchUser(raw) {
+  if (!raw || typeof raw !== 'object') return null
+  if (raw.id == null || raw.id === '') return null
+  return {
+    id: String(raw.id),
+    displayName: raw.displayName || '',
+    avatarUrl: normalizeMediaUrl(raw.avatarUrl || raw.avatar),
+    profession: raw.profession || '',
+  }
+}
+
+/**
+ * GET /users?search=&institutionId=&page=&perPage=
+ * Public. `appApiFetch` ne préserve pas `meta` → pagination dérivée (même limite que le feed).
+ * @returns {{ users: Array<{id, displayName, avatarUrl, profession}>, meta: object }}
+ */
+export async function fetchUsersDirectory({
+  search = '',
+  institutionId,
+  page = 1,
+  perPage = 12,
+} = {}) {
+  const params = new URLSearchParams({
+    page: String(page),
+    perPage: String(perPage),
+  })
+  if (search) params.set('search', String(search))
+  if (institutionId != null && institutionId !== '') {
+    params.set('institutionId', String(institutionId))
+  }
+
+  const data = await appApiFetch(`${ENDPOINTS.users.list}?${params.toString()}`, {
+    skipAuth: true,
+  })
+  const list = Array.isArray(data) ? data : []
+  const users = list.map(mapSearchUser).filter(Boolean)
+  const hasNext = users.length >= perPage
+  const knownTotal = hasNext ? null : (page - 1) * perPage + users.length
+
+  return {
+    users,
+    meta: {
+      page,
+      perPage,
+      total: knownTotal,
+      totalPages: hasNext ? null : Math.max(1, page),
+      hasNext,
+      hasPrev: page > 1,
+    },
+  }
+}
+
+/** GET /users/search?q= — auth obligatoire. Min. 2 caractères. */
+export async function searchUsers(query) {
+  const params = new URLSearchParams({ q: query })
+  const data = await appApiFetch(`${ENDPOINTS.users.search}?${params.toString()}`, {
+    auth: true,
+  })
+  const list = Array.isArray(data) ? data : []
+  return list.map(mapSearchUser).filter(Boolean)
+}

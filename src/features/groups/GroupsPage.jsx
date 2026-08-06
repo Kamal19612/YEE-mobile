@@ -1,17 +1,20 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { IconSearch } from '../../components/icons'
 import { Button } from '../../components/ui/Button'
 import { groupTypeFilters, groupVisibilityOptions } from '../../data/groupsData'
+import { useAuth } from '../../hooks/useAuth'
 import { useGroups } from '../../hooks/useGroups'
+import { useMyInstitutions } from '../../hooks/useInstitutions'
 import { GroupCard } from './GroupCard'
 
 /** Annuaire des groupes — App API `/groups` */
 export function GroupsPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
   const [view, setView] = useState('grid')
@@ -26,6 +29,8 @@ export function GroupsPage() {
   const mine = typeFilter === 'mine'
   const { groups, total, loading, error, actionError, createGroup, join, leave, respondToInvitation } =
     useGroups({ search, mine })
+  const { isReferentSomewhere, loading: referentLoading } = useMyInstitutions(user?.id)
+  const canCreateGroup = Boolean(user && isReferentSomewhere)
 
   const runAction = async (id, fn) => {
     setBusyId(id)
@@ -45,12 +50,22 @@ export function GroupsPage() {
           <h1 className="m-0 text-bb-xl font-semibold text-bb-heading">{t('groups.title')}</h1>
           <p className="m-0 mt-1 text-bb-sm text-bb-text">{t('groups.subtitle')}</p>
         </div>
-        <Button type="button" size="sm" onClick={() => setCreateOpen((v) => !v)}>
-          {t('groups.create')}
-        </Button>
+        {user && !referentLoading && canCreateGroup && (
+          <Button type="button" size="sm" onClick={() => setCreateOpen((v) => !v)}>
+            {t('groups.create')}
+          </Button>
+        )}
+        {user && !referentLoading && !canCreateGroup && (
+          <p className="m-0 max-w-xs text-right text-bb-sm text-bb-muted">
+            {t('groups.createReferentOnly')}{' '}
+            <Link to={user?.id ? `/members/${user.id}/institutions` : '/members'} className="text-bb-primary hover:underline">
+              {t('groups.createReferentLink')}
+            </Link>
+          </p>
+        )}
       </header>
 
-      {createOpen && (
+      {createOpen && canCreateGroup && (
         <form
           className="bb-card mb-5 space-y-3 p-4"
           onSubmit={async (e) => {
@@ -70,7 +85,12 @@ export function GroupsPage() {
               setNewVisibility('public')
               navigate(`/groups/${g.id}`)
             } catch (err) {
-              setFormError(err.message || t('groups.createFailed'))
+              const code = err.code || err.body?.error?.code
+              setFormError(
+                code === 'forbidden'
+                  ? t('groups.createReferentOnly')
+                  : err.message || t('groups.createFailed'),
+              )
             } finally {
               setCreating(false)
             }

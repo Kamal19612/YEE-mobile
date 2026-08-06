@@ -28,6 +28,8 @@ export function mapAppUser(raw) {
     role: raw.role || (Array.isArray(raw.roles) && raw.roles[0]) || 'yee',
     roles: Array.isArray(raw.roles) ? raw.roles : [],
     link: `/members/${safeId}`,
+    // Indicateur d’affichage uniquement — le backend reste la source d’autorisation
+    isSiteAdmin: Boolean(raw.isSiteAdmin),
   }
 }
 

@@ -138,9 +138,56 @@ final class FollowController extends AbstractController {
         if ( $inserted > 0 ) {
             self::adjust_counter( $follower_id, 'app_following_count', 1 );
             self::adjust_counter( $followee_id, 'app_followers_count', 1 );
+
+            /**
+             * Sprint 6 — notifie le followee qu’il a un nouveau follower.
+             * Le module Notifications (s’il est déployé) écoute cette action
+             * ou expose NotificationService::notify / ::create.
+             *
+             * @param int $followee_id Destinataire de la notification.
+             * @param int $follower_id Acteur (celui qui suit).
+             */
+            do_action( 'app_api_user_followed', $followee_id, $follower_id );
+            self::emit_new_follower_notification( $followee_id, $follower_id );
         }
 
         return ApiResponse::success( [ 'following' => true ] );
+    }
+
+    /**
+     * Crée une notif `new_follower` si le module Notifications est disponible.
+     */
+    private static function emit_new_follower_notification( int $recipient_id, int $actor_id ): void {
+        if ( $recipient_id <= 0 || $actor_id <= 0 || $recipient_id === $actor_id ) {
+            return;
+        }
+
+        $service = '\AppApi\Notifications\NotificationService';
+        if ( ! class_exists( $service ) ) {
+            return;
+        }
+
+        try {
+            if ( method_exists( $service, 'notify' ) ) {
+                $service::notify( $recipient_id, 'new_follower', [
+                    'actorId' => $actor_id,
+                ] );
+                return;
+            }
+            if ( method_exists( $service, 'create' ) ) {
+                $service::create( [
+                    'userId'  => $recipient_id,
+                    'type'    => 'new_follower',
+                    'actorId' => $actor_id,
+                ] );
+                return;
+            }
+            if ( method_exists( $service, 'create_for_user' ) ) {
+                $service::create_for_user( $recipient_id, 'new_follower', $actor_id );
+            }
+        } catch ( \Throwable $e ) {
+            error_log( 'AppApi FollowController notification error: ' . $e->getMessage() );
+        }
     }
 
     public static function unfollow( \WP_REST_Request $request ) {

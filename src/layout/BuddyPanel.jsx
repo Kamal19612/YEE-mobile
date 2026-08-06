@@ -7,6 +7,7 @@ import {
   IconBook,
   IconClose,
   IconForum,
+  IconGlobe,
   IconGroup,
   IconInbox,
   IconShield,
@@ -14,6 +15,7 @@ import {
   IconUsers,
 } from '../components/icons'
 import { useLayout } from '../context/LayoutProvider'
+import { useUnreadCount } from '../hooks/useNotifications'
 import { panelItemDefs } from '../data/layoutData'
 import { SiteLogo } from './SiteLogo'
 
@@ -21,6 +23,7 @@ const iconMap = {
   activity: IconActivity,
   users: IconUsers,
   group: IconGroup,
+  globe: IconGlobe,
   forum: IconForum,
   inbox: IconInbox,
   bell: IconBell,
@@ -28,7 +31,7 @@ const iconMap = {
   shield: IconShield,
 }
 
-const PRIMARY_IDS = ['stories', 'members', 'groups', 'forums', 'resources']
+const PRIMARY_IDS = ['stories', 'members', 'groups', 'institutions', 'forums', 'resources']
 const SECONDARY_IDS = ['messages', 'notifications', 'moderation']
 
 function isItemActive(pathname, href) {
@@ -57,9 +60,13 @@ export function BuddyPanel({ items = panelItemDefs }) {
   const { t } = useTranslation()
   const { panelOpen, togglePanel, mobilePanelOpen, closeMobilePanel } = useLayout()
   const { pathname } = useLocation()
+  const { unreadCount } = useUnreadCount()
 
-  const primary = items.filter((i) => PRIMARY_IDS.includes(i.id))
-  const secondary = items.filter((i) => SECONDARY_IDS.includes(i.id))
+  const withCounts = items.map((item) =>
+    item.id === 'notifications' ? { ...item, count: unreadCount } : item,
+  )
+  const primary = withCounts.filter((i) => PRIMARY_IDS.includes(i.id))
+  const secondary = withCounts.filter((i) => SECONDARY_IDS.includes(i.id))
 
   const renderItem = (item, { onNavigate, forceExpanded = false } = {}) => {
     const Icon = iconMap[item.icon] || IconActivity

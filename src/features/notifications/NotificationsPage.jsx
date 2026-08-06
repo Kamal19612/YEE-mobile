@@ -6,14 +6,16 @@ import { Avatar } from '../../components/ui/Avatar'
 import { Button } from '../../components/ui/Button'
 import { useNotifications } from '../../hooks/useNotifications'
 import { formatTimeSince } from '../activity/utils'
+import { formatNotificationMessage, notificationHref } from './utils'
 
-/** Page notifications — pattern du dropdown en liste paginée */
+/** Page notifications — liste App API + i18n par type. */
 export function NotificationsPage() {
   const { t } = useTranslation()
   const [filter, setFilter] = useState('all')
   const {
     notifications,
     loading,
+    error,
     hasMore,
     loadMore,
     markRead,
@@ -37,7 +39,13 @@ export function NotificationsPage() {
             {t('notifications.subtitle', { unread: unreadCount, total })}
           </p>
         </div>
-        <Button type="button" size="sm" variant="outline" onClick={markAllRead} disabled={!unreadCount}>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() => markAllRead().catch(() => {})}
+          disabled={!unreadCount}
+        >
           {t('notifications.markAllRead')}
         </Button>
       </header>
@@ -67,47 +75,58 @@ export function NotificationsPage() {
           </div>
         )}
 
-        {!loading && notifications.length === 0 && (
+        {!loading && error && (
+          <div className="p-4 text-bb-sm text-bb-danger">{error}</div>
+        )}
+
+        {!loading && !error && notifications.length === 0 && (
           <div className="p-8 text-center text-bb-sm text-bb-muted">{t('notifications.empty')}</div>
         )}
 
-        {!loading && (
+        {!loading && !error && (
           <ul className="notification-list bb-nouveau-list m-0 list-none p-0">
-            {notifications.map((n) => (
-              <li
-                key={n.id}
-                className={clsx(
-                  'read-item flex items-start gap-3 border-b border-bb-border px-4 py-3 last:border-b-0',
-                  n.unread && 'unread bg-[rgba(var(--bb-primary-color-rgb),0.03)]',
-                )}
-              >
-                <Avatar name={n.text} size="md" />
-                <div className="min-w-0 flex-1">
-                  <Link
-                    to={n.href}
-                    onClick={() => markRead(n.id)}
-                    className="block text-bb-sm text-bb-heading hover:text-bb-primary"
-                  >
-                    {n.text}
-                  </Link>
-                  <div className="mt-0.5 flex flex-wrap items-center gap-2 text-bb-xs text-bb-muted">
-                    <span>{formatTimeSince(n.time)}</span>
-                    <span className="rounded-bb-option bg-bb-alt px-1.5 py-0.5 capitalize">
-                      {n.component}
-                    </span>
+            {notifications.map((n) => {
+              const text = formatNotificationMessage(t, n)
+              const href = notificationHref(n)
+              return (
+                <li
+                  key={n.id}
+                  className={clsx(
+                    'read-item flex items-start gap-3 border-b border-bb-border px-4 py-3 last:border-b-0',
+                    n.unread && 'unread bg-[rgba(var(--bb-primary-color-rgb),0.03)]',
+                  )}
+                >
+                  <Avatar
+                    name={n.actor?.displayName || text}
+                    src={n.actor?.avatarUrl}
+                    size="md"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <Link
+                      to={href}
+                      onClick={() => {
+                        if (n.unread) markRead(n.id).catch(() => {})
+                      }}
+                      className="block text-bb-sm text-bb-heading hover:text-bb-primary"
+                    >
+                      {text}
+                    </Link>
+                    <div className="mt-0.5 text-bb-xs text-bb-muted">
+                      {formatTimeSince(n.createdAt)}
+                    </div>
                   </div>
-                </div>
-                {n.unread && (
-                  <button
-                    type="button"
-                    className="text-bb-xs font-medium text-bb-primary hover:underline"
-                    onClick={() => markRead(n.id)}
-                  >
-                    {t('notifications.markRead')}
-                  </button>
-                )}
-              </li>
-            ))}
+                  {n.unread && (
+                    <button
+                      type="button"
+                      className="text-bb-xs font-medium text-bb-primary hover:underline"
+                      onClick={() => markRead(n.id).catch(() => {})}
+                    >
+                      {t('notifications.markRead')}
+                    </button>
+                  )}
+                </li>
+              )
+            })}
           </ul>
         )}
       </div>

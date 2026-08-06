@@ -9,6 +9,7 @@ export function ProfileNav({ memberId, isOwn }) {
     { id: 'profile', label: t('members.tabs.about'), to: `/members/${memberId}/profile` },
     { id: 'friends', label: t('members.tabs.followers'), to: `/members/${memberId}/friends` },
     { id: 'groups', label: t('members.tabs.groups'), to: `/members/${memberId}/groups` },
+    { id: 'institutions', label: t('members.tabs.institutions'), to: `/members/${memberId}/institutions` },
   ]
 
   if (isOwn) {
