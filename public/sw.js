@@ -1,6 +1,6 @@
 /* AfrEA-YEE — service worker minimal (cache shell + sync hint) */
 const CACHE = 'afrea-yee-v1'
-const PRECACHE = ['/', '/index.html', '/manifest.webmanifest']
+const PRECACHE = ['./', './index.html', './manifest.webmanifest']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
