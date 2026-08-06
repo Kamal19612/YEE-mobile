@@ -10,9 +10,11 @@ permissions:
   pages: write
   id-token: write
 
+# Ne pas annuler un déploiement en cours : sinon Pages peut rester
+# verrouillé (« higher priority waiting request ») et le site en 404.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
