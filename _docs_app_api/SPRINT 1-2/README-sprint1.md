@@ -47,6 +47,8 @@ features/auth/components/RegisterForm.tsx
   define('APP_JWT_SECRET', getenv('APP_JWT_SECRET'));       // 64+ caractères aléatoires
   define('APP_ALLOWED_ORIGINS', ['https://app.example.com']);
   define('APP_FRONTEND_URL', 'https://app.example.com');
+  // Slash final optionnel — le plugin le normalise (évite Buddyboss//verify-email).
+  // Ex. GitHub Pages : define('APP_FRONTEND_URL', 'https://kamal19612.github.io/Buddyboss');
   define('APP_COOKIE_DOMAIN', '.example.com');
   ```
 - **Config requise côté React** (`.env`) :

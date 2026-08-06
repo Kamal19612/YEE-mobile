@@ -157,9 +157,7 @@ final class AuthController extends AbstractController {
         // transactionnel (SES/SendGrid/Mailgun) au sprint "Notifications" pour
         // la délivrabilité à l'échelle visée (wp_mail via SMTP local ne tient
         // pas la charge à plusieurs centaines de milliers d'utilisateurs).
-        $verify_url = defined( 'APP_FRONTEND_URL' )
-            ? APP_FRONTEND_URL . '/verify-email?token=' . rawurlencode( $token )
-            : '#';
+        $verify_url = self::frontend_url( '/verify-email', [ 'token' => $token ] );
 
         wp_mail(
             $email,
@@ -384,9 +382,7 @@ final class AuthController extends AbstractController {
         update_user_meta( $user->ID, 'app_password_reset_token_hash', hash( 'sha256', $reset_token ) );
         update_user_meta( $user->ID, 'app_password_reset_expires', time() + HOUR_IN_SECONDS );
 
-        $reset_url = defined( 'APP_FRONTEND_URL' )
-            ? APP_FRONTEND_URL . '/reset-password?token=' . rawurlencode( $reset_token )
-            : '#';
+        $reset_url = self::frontend_url( '/reset-password', [ 'token' => $reset_token ] );
 
         wp_mail(
             $email,
@@ -452,6 +448,30 @@ final class AuthController extends AbstractController {
     public static function me( \WP_REST_Request $request ) {
         $user_id = (int) $request->get_param( 'app_user_id' );
         return ApiResponse::success( self::public_user_payload( $user_id ) );
+    }
+
+    /**
+     * Construit une URL frontend sans double slash.
+     * Tolère APP_FRONTEND_URL avec ou sans slash final
+     * (ex. https://kamal19612.github.io/Buddyboss/).
+     *
+     * @param string $path  Chemin commençant par / (ex. /verify-email).
+     * @param array  $query Query string (valeurs encodées).
+     */
+    private static function frontend_url( string $path, array $query = [] ): string {
+        if ( ! defined( 'APP_FRONTEND_URL' ) || APP_FRONTEND_URL === '' ) {
+            return '#';
+        }
+
+        $base = rtrim( (string) APP_FRONTEND_URL, '/' );
+        $path = '/' . ltrim( $path, '/' );
+        $url  = $base . $path;
+
+        if ( ! empty( $query ) ) {
+            $url .= '?' . http_build_query( $query, '', '&', PHP_QUERY_RFC3986 );
+        }
+
+        return $url;
     }
 
     /**
