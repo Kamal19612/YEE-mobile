@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { resetPassword } from '../../api/auth'
-import { USE_MOCK } from '../../config/api'
 import { Button } from '../../components/ui/Button'
 
 /**
@@ -48,10 +47,6 @@ export function ResetPasswordPage() {
 
     setSubmitting(true)
     try {
-      if (USE_MOCK) {
-        setSuccessMessage(t('auth.resetSuccess'))
-        return
-      }
       const data = await resetPassword(token, password)
       setSuccessMessage(data?.message || t('auth.resetSuccess'))
     } catch (err) {

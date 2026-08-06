@@ -32,6 +32,36 @@ export function mapAppUser(raw) {
 }
 
 /**
+ * Indique qu’une session a déjà existé (cookie refresh httpOnly non lisible en JS).
+ * Évite un POST /auth/refresh 401 bruyant pour les visiteurs jamais connectés.
+ */
+const SESSION_HINT_KEY = 'app_had_session'
+
+function setSessionHint() {
+  try {
+    localStorage.setItem(SESSION_HINT_KEY, '1')
+  } catch {
+    /* private mode */
+  }
+}
+
+function clearSessionHint() {
+  try {
+    localStorage.removeItem(SESSION_HINT_KEY)
+  } catch {
+    /* private mode */
+  }
+}
+
+function hasSessionHint() {
+  try {
+    return localStorage.getItem(SESSION_HINT_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+/**
  * @returns {Promise<{ accessToken: string, expiresIn: number, user: object }>}
  */
 export async function login(email, password, { rememberMe = true } = {}) {
@@ -51,6 +81,7 @@ export async function login(email, password, { rememberMe = true } = {}) {
   }
 
   setToken(accessToken)
+  setSessionHint()
   return {
     accessToken,
     expiresIn: data.expiresIn ?? 900,
@@ -75,6 +106,7 @@ export async function logout() {
     /* session déjà invalide — on nettoie quand même */
   } finally {
     clearToken()
+    clearSessionHint()
   }
 }
 
@@ -84,6 +116,12 @@ export async function logout() {
  * @returns {Promise<{ accessToken: string, user: object }|null>}
  */
 export async function restoreSession() {
+  // Pas de hint = jamais connecté sur cet appareil → pas d’appel refresh (évite 401 console)
+  if (!hasSessionHint()) {
+    clearToken()
+    return null
+  }
+
   try {
     // Un seul round-trip : refresh renvoie déjà accessToken + user
     const data = await appApiFetch(ENDPOINTS.auth.refresh, {
@@ -93,17 +131,21 @@ export async function restoreSession() {
     })
     if (!data?.accessToken) {
       clearToken()
+      clearSessionHint()
       return null
     }
     setToken(data.accessToken)
+    setSessionHint()
     const user = mapAppUser(data.user)
     if (!user) {
       clearToken()
+      clearSessionHint()
       return null
     }
     return { accessToken: data.accessToken, user }
   } catch {
     clearToken()
+    clearSessionHint()
     return null
   }
 }

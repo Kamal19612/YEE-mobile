@@ -1,12 +1,12 @@
 import { Link, useParams } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
 import { useCart } from '../../context/CartProvider'
-import { demoProducts } from '../../data/integrationsData'
+import { products } from '../../data/integrationsData'
 
 export function ProductPage() {
   const { productId } = useParams()
   const { addItem } = useCart()
-  const product = demoProducts.find((p) => String(p.id) === String(productId))
+  const product = products.find((p) => String(p.id) === String(productId))
 
   if (!product) {
     return (

@@ -15,7 +15,8 @@ import { ProfileTimeline } from './ProfileTimeline'
 export function ProfilePage() {
   const { memberId } = useParams()
   const { user } = useAuth()
-  const { member, loading, error, updateXprofileField, toggleFriend } = useMember(memberId)
+  const { member, loading, error, updateXprofileField, toggleFriend, changeAvatar, changeCover, mediaBusy, mediaError } =
+    useMember(memberId)
   const isOwn = Boolean(member && user && String(member.id) === String(user.id))
 
   if (loading) {
@@ -42,7 +43,20 @@ export function ProfilePage() {
 
   return (
     <div className="bp-wrap w-full">
-      <ProfileHeader member={member} isOwn={isOwn} onFriendToggle={toggleFriend} />
+      <ProfileHeader
+        member={member}
+        isOwn={isOwn}
+        onFriendToggle={toggleFriend}
+        onAvatarChange={changeAvatar}
+        onCoverChange={changeCover}
+        mediaBusy={mediaBusy}
+        mediaError={mediaError}
+      />
+      {error && (
+        <div className="mb-4 rounded-bb border border-red-200 bg-red-50 px-3 py-2 text-bb-sm text-bb-danger" role="alert">
+          {error}
+        </div>
+      )}
       <ProfileNav memberId={member.id} isOwn={isOwn} />
 
       <div id="item-body" className="item-body">

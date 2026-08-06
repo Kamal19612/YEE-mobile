@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
-import { demoCourses } from '../../data/integrationsData'
+import { courses } from '../../data/integrationsData'
 
 /** Référence: learndash ld30 course_list_grid_template */
 export function CoursesPage() {
@@ -12,7 +12,7 @@ export function CoursesPage() {
       </header>
 
       <ul className="m-0 grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
-        {demoCourses.map((course) => (
+        {courses.map((course) => (
           <li key={course.id} className="bb-card overflow-hidden">
             <Link to={`/courses/${course.id}`} className="relative block">
               <img src={course.image} alt="" className="h-40 w-full object-cover" />

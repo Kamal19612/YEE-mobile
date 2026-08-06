@@ -1,3 +1,4 @@
+import { ENABLE_BUDDYPRESS } from '../config/api'
 import { apiFetch } from './client'
 
 const BASE = '/buddypress/v1/notifications'
@@ -13,15 +14,12 @@ export function mapNotification(item) {
   }
 }
 
-export async function fetchNotifications({ page = 1, perPage = 20, isNew, token } = {}) {
-  const params = new URLSearchParams({
-    page: String(page),
-    per_page: String(perPage),
-  })
-  if (typeof isNew === 'boolean') params.set('is_new', isNew ? 'true' : 'false')
+/** BuddyPress désactivé — pas d’appel réseau. */
+export async function fetchNotifications() {
+  if (!ENABLE_BUDDYPRESS) return []
+  const params = new URLSearchParams({ page: '1', per_page: '20' })
   try {
     const data = await apiFetch(`${BASE}?${params}`, {
-      token,
       auth: true,
       suppressUnauthorized: true,
     })
@@ -34,6 +32,7 @@ export async function fetchNotifications({ page = 1, perPage = 20, isNew, token 
 }
 
 export async function markNotificationRead(id, { token } = {}) {
+  if (!ENABLE_BUDDYPRESS) return null
   return apiFetch(`${BASE}/${id}`, {
     method: 'PUT',
     token,
@@ -42,6 +41,7 @@ export async function markNotificationRead(id, { token } = {}) {
 }
 
 export async function markAllNotificationsRead({ token } = {}) {
+  if (!ENABLE_BUDDYPRESS) return null
   return apiFetch(BASE, {
     method: 'PUT',
     token,

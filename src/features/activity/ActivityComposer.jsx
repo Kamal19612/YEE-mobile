@@ -14,7 +14,7 @@ import { useOffline } from '../../hooks/useOffline'
 import { useAuth } from '../../hooks/useAuth'
 
 /**
- * Composeur de récits AfrEA-YEE
+ * Composeur d’actualités AfrEA-YEE
  * Réf. visuelle: #whats-new-form + exigences TDR (consentement, anonymisation, tags, modération)
  */
 export function ActivityComposer({ onSubmit, user: userProp }) {
@@ -118,7 +118,7 @@ export function ActivityComposer({ onSubmit, user: userProp }) {
       )}
       {queuedMsg && online && (
         <p className="mb-3 rounded-bb-inner bg-[rgba(20,181,80,0.12)] px-3 py-2 text-bb-sm text-bb-success">
-          Récit ajouté à la file de synchronisation.
+          Actualité ajoutée à la file de synchronisation.
         </p>
       )}
       <div className="flex gap-3">

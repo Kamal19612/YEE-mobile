@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import clsx from 'clsx'
 import { Button } from '../../components/ui/Button'
-import { demoMemberships } from '../../data/integrationsData'
+import { memberships } from '../../data/integrationsData'
 
 /** Référence patterns MemberPress / PMPro pricing tables */
 export function MembershipsPage() {
@@ -17,7 +17,7 @@ export function MembershipsPage() {
       </header>
 
       <ul className="m-0 mx-auto grid max-w-4xl list-none grid-cols-1 gap-4 p-0 bb:grid-cols-3">
-        {demoMemberships.map((plan) => (
+        {memberships.map((plan) => (
           <li
             key={plan.id}
             className={clsx(

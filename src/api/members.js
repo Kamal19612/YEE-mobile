@@ -1,8 +1,9 @@
+import { ENABLE_BUDDYPRESS } from '../config/api'
 import { apiFetch } from './client'
 
 /**
  * BuddyPress REST — members / xprofile / friends
- * wp-json/buddypress/v1/members
+ * Désactivé via ENABLE_BUDDYPRESS — profils via App API (`users.js`).
  */
 
 const MEMBERS = '/buddypress/v1/members'
@@ -51,6 +52,7 @@ export async function fetchMembers({
   type = 'active',
   token,
 } = {}) {
+  if (!ENABLE_BUDDYPRESS) return []
   const params = new URLSearchParams({
     page: String(page),
     per_page: String(perPage),
@@ -59,7 +61,6 @@ export async function fetchMembers({
   if (search) params.set('search', search)
   const data = await apiFetch(`${MEMBERS}?${params}`, {
     token,
-    // Liste publique : sans JWT (middleware SJL casse les GET si la clé email est mal réglée)
     skipAuth: token == null,
   })
   const list = Array.isArray(data) ? data : data?.members || []
@@ -67,6 +68,7 @@ export async function fetchMembers({
 }
 
 export async function fetchMember(id, { token } = {}) {
+  if (!ENABLE_BUDDYPRESS) return null
   const data = await apiFetch(`${MEMBERS}/${id}`, {
     token,
     skipAuth: token == null,
@@ -75,10 +77,12 @@ export async function fetchMember(id, { token } = {}) {
 }
 
 export async function fetchXProfile(userId, { token } = {}) {
+  if (!ENABLE_BUDDYPRESS) return []
   return apiFetch(`${XPROFILE}/groups?user_id=${userId}`, { token })
 }
 
 export async function updateFriendship(friendId, { action = 'create', token } = {}) {
+  if (!ENABLE_BUDDYPRESS) return null
   if (action === 'create') {
     return apiFetch(FRIENDS, {
       method: 'POST',

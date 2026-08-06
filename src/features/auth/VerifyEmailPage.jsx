@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { verifyEmail } from '../../api/auth'
-import { USE_MOCK } from '../../config/api'
 import { Button } from '../../components/ui/Button'
 
 /**
@@ -23,13 +22,6 @@ export function VerifyEmailPage() {
     let alive = true
     async function run() {
       try {
-        if (USE_MOCK) {
-          if (alive) {
-            setStatus('ok')
-            setMessage(t('auth.verifySuccessMock'))
-          }
-          return
-        }
         const data = await verifyEmail(token)
         if (!alive) return
         setStatus('ok')

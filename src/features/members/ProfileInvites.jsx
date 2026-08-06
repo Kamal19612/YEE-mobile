@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import { Button } from '../../components/ui/Button'
-import { demoInvites } from '../../data/membersData'
 
 /** Référence: members/single/invites.php */
 export function ProfileInvites() {
-  const [invites, setInvites] = useState(demoInvites)
+  const [invites, setInvites] = useState([])
   const [email, setEmail] = useState('')
 
   const send = (e) => {
@@ -46,6 +45,9 @@ export function ProfileInvites() {
           <h2 className="m-0 text-bb-md font-semibold text-bb-heading">Sent Invites</h2>
         </header>
         <ul className="m-0 list-none divide-y divide-bb-border p-0">
+          {invites.length === 0 && (
+            <li className="px-4 py-6 text-center text-bb-sm text-bb-muted">No invites sent yet.</li>
+          )}
           {invites.map((invite) => (
             <li key={invite.id} className="flex items-center justify-between gap-3 px-4 py-3 text-bb-sm">
               <div>

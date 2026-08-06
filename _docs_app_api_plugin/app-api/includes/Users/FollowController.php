@@ -36,6 +36,13 @@ final class FollowController extends AbstractController {
             'permission_callback' => [ self::class, 'require_authenticated_user' ],
         ] );
 
+        // Statut follow pour le viewer authentifié (évite de recharger toute une liste).
+        register_rest_route( $ns, '/users/(?P<id>\d+)/follow', [
+            'methods'             => 'GET',
+            'callback'            => [ self::class, 'follow_status' ],
+            'permission_callback' => [ self::class, 'require_authenticated_user' ],
+        ] );
+
         register_rest_route( $ns, '/users/(?P<id>\d+)/followers', [
             'methods'             => 'GET',
             'callback'            => [ self::class, 'list_followers' ],
@@ -50,6 +57,40 @@ final class FollowController extends AbstractController {
     }
 
     /* ----------------------------------------------------------------- */
+
+    /**
+     * @return bool True si $follower_id suit déjà $followee_id.
+     */
+    public static function is_following( int $follower_id, int $followee_id ): bool {
+        global $wpdb;
+
+        if ( $follower_id <= 0 || $followee_id <= 0 || $follower_id === $followee_id ) {
+            return false;
+        }
+
+        $found = $wpdb->get_var(
+            $wpdb->prepare(
+                'SELECT 1 FROM ' . self::table() . ' WHERE follower_id = %d AND followee_id = %d LIMIT 1',
+                $follower_id,
+                $followee_id
+            )
+        );
+
+        return (bool) $found;
+    }
+
+    public static function follow_status( \WP_REST_Request $request ) {
+        $follower_id = (int) $request->get_param( 'app_user_id' );
+        $followee_id = (int) $request->get_param( 'id' );
+
+        if ( ! get_userdata( $followee_id ) ) {
+            return ApiResponse::error( 'user_not_found', 'Utilisateur introuvable.', 404 );
+        }
+
+        return ApiResponse::success( [
+            'following' => self::is_following( $follower_id, $followee_id ),
+        ] );
+    }
 
     public static function follow( \WP_REST_Request $request ) {
         global $wpdb;

@@ -1,3 +1,4 @@
+import { ENABLE_BUDDYPRESS } from '../config/api'
 import { apiFetch } from './client'
 
 const BASE = '/buddypress/v1/messages'
@@ -25,15 +26,12 @@ export function mapThread(item) {
   }
 }
 
-export async function fetchThreads({ page = 1, perPage = 20, box = 'inbox', token } = {}) {
-  const params = new URLSearchParams({
-    page: String(page),
-    per_page: String(perPage),
-    box,
-  })
+/** BuddyPress désactivé — pas d’appel réseau. */
+export async function fetchThreads() {
+  if (!ENABLE_BUDDYPRESS) return []
+  const params = new URLSearchParams({ page: '1', per_page: '20', box: 'inbox' })
   try {
     const data = await apiFetch(`${BASE}?${params}`, {
-      token,
       auth: true,
       suppressUnauthorized: true,
     })
@@ -46,11 +44,13 @@ export async function fetchThreads({ page = 1, perPage = 20, box = 'inbox', toke
 }
 
 export async function fetchThread(id, { token } = {}) {
+  if (!ENABLE_BUDDYPRESS) return null
   const data = await apiFetch(`${BASE}/${id}`, { token })
   return mapThread(data)
 }
 
 export async function sendMessage(threadId, content, { token } = {}) {
+  if (!ENABLE_BUDDYPRESS) return null
   return apiFetch(`${BASE}/${threadId}`, {
     method: 'PUT',
     token,
@@ -59,6 +59,16 @@ export async function sendMessage(threadId, content, { token } = {}) {
 }
 
 export async function createThread({ recipients, subject, content, token } = {}) {
+  if (!ENABLE_BUDDYPRESS) {
+    return {
+      id: Date.now(),
+      subject: subject || '',
+      participants: [],
+      unread: false,
+      updatedAt: new Date().toISOString(),
+      messages: [],
+    }
+  }
   return apiFetch(BASE, {
     method: 'POST',
     token,

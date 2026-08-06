@@ -1,8 +1,9 @@
+import { ENABLE_BUDDYPRESS } from '../config/api'
 import { apiFetch } from './client'
 
 /**
- * BuddyPress REST activity + champs custom AfrEA-YEE
- * (consentement, anonymisation, tags, statut de publication)
+ * BuddyPress REST activity — désactivé (ENABLE_BUDDYPRESS=false).
+ * Le fil live passe par App API `src/api/feed.js`.
  * @see https://developer.buddypress.org/bp-rest-api/
  */
 
@@ -78,6 +79,7 @@ export async function fetchActivities({
   search = '',
   token,
 } = {}) {
+  if (!ENABLE_BUDDYPRESS) return []
   const params = new URLSearchParams({
     page: String(page),
     per_page: String(perPage),
@@ -86,7 +88,6 @@ export async function fetchActivities({
   if (search) params.set('search', search)
 
   const data = await apiFetch(`${BASE}?${params}`, {
-    // GET public OK ; si session App API, envoie le Bearer (utile avec le bridge JWT)
     ...(token !== undefined ? { token } : { auth: true }),
   })
   const list = Array.isArray(data) ? data : data?.activities || []
@@ -104,6 +105,22 @@ export async function createActivity({
   media = [],
   token,
 } = {}) {
+  if (!ENABLE_BUDDYPRESS) {
+    return mapActivity({
+      id: Date.now(),
+      user_id: 0,
+      user_name: 'Member',
+      content: { rendered: content },
+      title,
+      privacy,
+      status,
+      consent,
+      anonymous,
+      tags,
+      media,
+      date: new Date().toISOString(),
+    })
+  }
   const data = await apiFetch(BASE, {
     method: 'POST',
     token,
@@ -130,10 +147,12 @@ export async function createActivity({
 }
 
 export async function deleteActivity(id, { token } = {}) {
+  if (!ENABLE_BUDDYPRESS) return null
   return apiFetch(`${BASE}/${id}`, { method: 'DELETE', token })
 }
 
 export async function favoriteActivity(id, { token, favorited } = {}) {
+  if (!ENABLE_BUDDYPRESS) return null
   return apiFetch(`${BASE}/${id}/favorite`, {
     method: favorited ? 'DELETE' : 'POST',
     token,
@@ -141,6 +160,17 @@ export async function favoriteActivity(id, { token, favorited } = {}) {
 }
 
 export async function postComment(activityId, { content, parentId = 0, token } = {}) {
+  if (!ENABLE_BUDDYPRESS) {
+    return {
+      id: Date.now(),
+      userId: 0,
+      userName: 'Member',
+      avatar: null,
+      content,
+      date: new Date().toISOString(),
+      children: [],
+    }
+  }
   const data = await apiFetch(`${BASE}/${activityId}/comment`, {
     method: 'POST',
     token,

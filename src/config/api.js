@@ -18,10 +18,10 @@ export const APP_API_BASE = rawApp || `${API_BASE}/app/v1`
 export const API_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT) || 15_000
 
 /**
- * Mock par défaut tant que VITE_USE_MOCK n’est pas explicitement "false".
- * En prod / contre WP réel : VITE_USE_MOCK=false dans .env
+ * BuddyPress / BuddyBoss REST désactivé — l’app passe par App API (`/app/v1`).
+ * Les modules `members`, `groups`, `messages`, `notifications`, `activity` ne font plus d’appels réseau BP.
  */
-export const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false'
+export const ENABLE_BUDDYPRESS = false
 
 /** Chemins relatifs à APP_API_BASE — jamais d’URL en dur dans les services. */
 export const ENDPOINTS = {
@@ -44,5 +44,12 @@ export const ENDPOINTS = {
     follow: (id) => `/users/${id}/follow`,
     followers: (id) => `/users/${id}/followers`,
     following: (id) => `/users/${id}/following`,
+  },
+  feed: {
+    list: '/feed',
+    detail: (id) => `/feed/${id}`,
+    like: (id) => `/feed/${id}/like`,
+    comments: (id) => `/feed/${id}/comments`,
+    deleteComment: (commentId) => `/feed/comments/${commentId}`,
   },
 }

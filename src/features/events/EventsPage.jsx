@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { demoEvents } from '../../data/integrationsData'
+import { events } from '../../data/integrationsData'
 
 /** Référence: tribe-events/list/single-event.php */
 export function EventsPage() {
@@ -11,7 +11,7 @@ export function EventsPage() {
       </header>
 
       <ul className="m-0 list-none space-y-3 p-0">
-        {demoEvents.map((event) => {
+        {events.map((event) => {
           const start = new Date(event.start)
           return (
             <li key={event.id} className="bb-card overflow-hidden">

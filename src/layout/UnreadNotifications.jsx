@@ -1,8 +1,7 @@
 import clsx from 'clsx'
 import { Avatar } from '../components/ui/Avatar'
-import { unreadNotifications } from '../data/demoData'
 
-export function UnreadNotifications({ items = unreadNotifications }) {
+export function UnreadNotifications({ items = [] }) {
   if (!items.length) {
     return (
       <li className="bs-item-wrap list-none px-4 py-6 text-center text-bb-sm text-bb-muted">

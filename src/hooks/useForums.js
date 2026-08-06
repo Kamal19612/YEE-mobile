@@ -7,9 +7,6 @@ import {
   fetchTopic,
   fetchTopics,
 } from '../api/forums'
-import { USE_MOCK } from '../config/api'
-import { demoForums, demoReplies, demoTopics } from '../data/forumsData'
-import { useAuth } from './useAuth'
 
 export function useForums(search = '') {
   const [forums, setForums] = useState([])
@@ -22,17 +19,9 @@ export function useForums(search = '') {
       setLoading(true)
       setError(null)
       try {
-        if (USE_MOCK) {
-          await new Promise((r) => setTimeout(r, 250))
-          if (alive) setForums(demoForums)
-        } else if (alive) {
-          setForums(await fetchForums())
-        }
+        if (alive) setForums(await fetchForums())
       } catch (err) {
-        if (alive) {
-          setError(err.message || 'Failed to load forums')
-          if (USE_MOCK) setForums(demoForums)
-        }
+        if (alive) setError(err.message || 'Failed to load forums')
       } finally {
         if (alive) setLoading(false)
       }
@@ -55,8 +44,6 @@ export function useForums(search = '') {
 }
 
 export function useForum(forumId) {
-  const { user } = useAuth()
-  const currentUser = user || { id: 0, displayName: 'Guest' }
   const [forum, setForum] = useState(null)
   const [topics, setTopics] = useState([])
   const [loading, setLoading] = useState(true)
@@ -68,25 +55,10 @@ export function useForum(forumId) {
       setLoading(true)
       setError(null)
       try {
-        if (USE_MOCK) {
-          await new Promise((r) => setTimeout(r, 200))
-          if (!alive) return
-          setForum(demoForums.find((f) => String(f.id) === String(forumId)) || null)
-          setTopics(
-            demoTopics
-              .filter((t) => String(t.forumId) === String(forumId))
-              .sort(
-                (a, b) =>
-                  Number(b.sticky) - Number(a.sticky) ||
-                  new Date(b.lastReplyAt) - new Date(a.lastReplyAt),
-              ),
-          )
-        } else {
-          const list = await fetchTopics(forumId)
-          if (!alive) return
-          setForum(demoForums.find((f) => String(f.id) === String(forumId)) || { id: forumId })
-          setTopics(list)
-        }
+        const list = await fetchTopics(forumId)
+        if (!alive) return
+        setForum({ id: forumId })
+        setTopics(list)
       } catch (err) {
         if (alive) setError(err.message || 'Failed to load forum')
       } finally {
@@ -101,35 +73,17 @@ export function useForum(forumId) {
 
   const createTopic = useCallback(
     async ({ title, content }) => {
-      const topic = USE_MOCK
-        ? {
-            id: Date.now(),
-            forumId: Number(forumId),
-            title,
-            content,
-            authorId: currentUser.id,
-            authorName: currentUser.displayName,
-            date: new Date().toISOString(),
-            replyCount: 0,
-            voiceCount: 1,
-            sticky: false,
-            closed: false,
-            lastReplyAt: new Date().toISOString(),
-            lastReplyAuthor: currentUser.displayName,
-          }
-        : await apiTopic({ forumId, title, content })
+      const topic = await apiTopic({ forumId, title, content })
       setTopics((prev) => [topic, ...prev])
       return topic
     },
-    [forumId, currentUser],
+    [forumId],
   )
 
   return { forum, topics, loading, error, createTopic }
 }
 
 export function useTopic(topicId) {
-  const { user } = useAuth()
-  const currentUser = user || { id: 0, displayName: 'Guest' }
   const [topic, setTopic] = useState(null)
   const [replies, setReplies] = useState([])
   const [loading, setLoading] = useState(true)
@@ -141,17 +95,10 @@ export function useTopic(topicId) {
       setLoading(true)
       setError(null)
       try {
-        if (USE_MOCK) {
-          await new Promise((r) => setTimeout(r, 200))
-          if (!alive) return
-          setTopic(demoTopics.find((t) => String(t.id) === String(topicId)) || null)
-          setReplies(demoReplies.filter((r) => String(r.topicId) === String(topicId)))
-        } else {
-          const [t, r] = await Promise.all([fetchTopic(topicId), fetchReplies(topicId)])
-          if (!alive) return
-          setTopic(t)
-          setReplies(r)
-        }
+        const [t, r] = await Promise.all([fetchTopic(topicId), fetchReplies(topicId)])
+        if (!alive) return
+        setTopic(t)
+        setReplies(r)
       } catch (err) {
         if (alive) setError(err.message || 'Failed to load topic')
       } finally {
@@ -166,17 +113,7 @@ export function useTopic(topicId) {
 
   const addReply = useCallback(
     async ({ content, parentId = 0 }) => {
-      const reply = USE_MOCK
-        ? {
-            id: Date.now(),
-            topicId: Number(topicId),
-            authorId: currentUser.id,
-            authorName: currentUser.displayName,
-            content,
-            date: new Date().toISOString(),
-            parentId,
-          }
-        : await apiReply({ topicId, content, parentId })
+      const reply = await apiReply({ topicId, content, parentId })
 
       setReplies((prev) => [...prev, reply])
       setTopic((prev) =>
@@ -191,12 +128,11 @@ export function useTopic(topicId) {
       )
       return reply
     },
-    [topicId, currentUser],
+    [topicId],
   )
 
   const forum = useMemo(() => {
     if (!topic) return null
-    if (USE_MOCK) return demoForums.find((f) => f.id === topic.forumId) || null
     return { id: topic.forumId }
   }, [topic])
 

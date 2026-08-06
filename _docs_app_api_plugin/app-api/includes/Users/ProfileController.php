@@ -64,7 +64,8 @@ final class ProfileController extends AbstractController {
         register_rest_route( $ns, '/users/(?P<id>\d+)', [
             'methods'             => 'GET',
             'callback'            => [ self::class, 'get_public_profile' ],
-            'permission_callback' => '__return_true',
+            // Auth optionnelle : permet d'inclure isFollowing si JWT présent.
+            'permission_callback' => [ self::class, 'maybe_authenticate' ],
             'args'                => [
                 'id' => [ 'validate_callback' => fn( $param ) => is_numeric( $param ) ],
             ],
@@ -75,22 +76,31 @@ final class ProfileController extends AbstractController {
 
     public static function get_me( \WP_REST_Request $request ) {
         $user_id = (int) $request->get_param( 'app_user_id' );
-        return ApiResponse::success( UserTransformer::to_public_profile( $user_id, true ) );
+        return ApiResponse::success( UserTransformer::to_public_profile( $user_id, true, $user_id ) );
     }
 
     public static function get_public_profile( \WP_REST_Request $request ) {
-        $user_id = (int) $request->get_param( 'id' );
+        $user_id   = (int) $request->get_param( 'id' );
+        $viewer_id = (int) $request->get_param( 'app_user_id' );
 
         if ( ! get_userdata( $user_id ) ) {
             return ApiResponse::error( 'user_not_found', 'Utilisateur introuvable.', 404 );
         }
+
+        $is_self = $viewer_id > 0 && $viewer_id === $user_id;
 
         // NOTE pour un sprint ultérieur (visibilité de profil) : c'est ICI
         // qu'il faudra vérifier un éventuel réglage "profil privé" avant de
         // renvoyer les données complètes. Pas implémenté dans ce sprint —
         // le cahier des charges ne mentionne pas cette exigence pour le
         // profil (contrairement aux groupes, où c'est déjà prévu).
-        return ApiResponse::success( UserTransformer::to_public_profile( $user_id, false ) );
+        return ApiResponse::success(
+            UserTransformer::to_public_profile(
+                $user_id,
+                $is_self,
+                $viewer_id > 0 ? $viewer_id : null
+            )
+        );
     }
 
     /* ----------------------------------------------------------------- */
@@ -164,11 +174,11 @@ final class ProfileController extends AbstractController {
     /* ----------------------------------------------------------------- */
 
     public static function upload_avatar( \WP_REST_Request $request ) {
-        return self::handle_image_upload( $request, 'app_avatar_attachment_id' );
+        return self::handle_image_upload( $request, UserTransformer::AVATAR_META );
     }
 
     public static function upload_cover( \WP_REST_Request $request ) {
-        return self::handle_image_upload( $request, 'app_cover_attachment_id' );
+        return self::handle_image_upload( $request, UserTransformer::COVER_META );
     }
 
     private static function handle_image_upload( \WP_REST_Request $request, string $meta_key ) {
@@ -246,6 +256,8 @@ final class ProfileController extends AbstractController {
         foreach ( array_keys( ProfileFields::editable_fields() ) as $meta_key ) {
             delete_user_meta( $user_id, $meta_key );
         }
+        delete_user_meta( $user_id, UserTransformer::AVATAR_META );
+        delete_user_meta( $user_id, UserTransformer::COVER_META );
 
         RefreshTokenService::revoke_all_for_user( $user_id );
 

@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:fresh": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/dev.ps1",
+    "dev:kill": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/dev.ps1 -KillOnly",
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview"

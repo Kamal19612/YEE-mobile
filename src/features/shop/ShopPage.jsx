@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
 import { useCart } from '../../context/CartProvider'
-import { demoProducts } from '../../data/integrationsData'
+import { products } from '../../data/integrationsData'
 
 /** Référence: WooCommerce archive + cart-dropdown patterns */
 export function ShopPage() {
@@ -20,7 +20,7 @@ export function ShopPage() {
       </header>
 
       <ul className="m-0 grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-2 lg:grid-cols-4">
-        {demoProducts.map((product) => (
+        {products.map((product) => (
           <li key={product.id} className="bb-card overflow-hidden">
             <Link to={`/shop/${product.id}`} className="block">
               <img src={product.image} alt={product.name} className="h-40 w-full object-cover" />

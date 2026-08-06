@@ -1,59 +1,31 @@
-import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useActivity } from '../../hooks/useActivity'
+import { useFeed } from '../../hooks/useFeed'
 import { Button } from '../../components/ui/Button'
-import { ActivityCard } from './ActivityCard'
-import { ActivityComposer } from './ActivityComposer'
-import { ActivityFilters } from './ActivityFilters'
+import { FeedComposer } from './FeedComposer'
+import { FeedPostCard } from './FeedPostCard'
 import { ActivityPlaceholder } from './ActivityPlaceholder'
-import { stripHtml } from './utils'
 
+/** Fil d’actualité — App API `/feed` (Sprint 3). */
 export function ActivityFeed() {
   const { t } = useTranslation()
-  const [scope, setScope] = useState('all')
-  const [search, setSearch] = useState('')
   const {
-    activities,
+    posts,
     loading,
     loadingMore,
     error,
     hasMore,
     loadMore,
     createPost,
-    toggleFavorite,
+    toggleLike,
+    deletePost,
+    loadComments,
     addComment,
-  } = useActivity({ scope, perPage: 3 })
-
-  const visible = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    if (!q) return activities
-    return activities.filter((a) => {
-      const hay = [
-        a.title,
-        stripHtml(a.content),
-        a.userName,
-        a.group?.name,
-        a.tags?.country,
-        a.tags?.thematic,
-        a.tags?.language,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-      return hay.includes(q)
-    })
-  }, [activities, search])
+    removeComment,
+  } = useFeed({ perPage: 10 })
 
   return (
     <div id="buddypress" className="buddypress-wrap w-full max-w-content">
-      <ActivityComposer onSubmit={createPost} />
-
-      <ActivityFilters
-        scope={scope}
-        onScopeChange={setScope}
-        search={search}
-        onSearchChange={setSearch}
-      />
+      <FeedComposer onSubmit={createPost} />
 
       <div className="screen-content">
         <div id="activity-stream" className="activity" data-bp-list="activity">
@@ -68,7 +40,7 @@ export function ActivityFeed() {
             <div className="bb-card mb-5 p-4 text-bb-sm text-bb-danger">{error}</div>
           )}
 
-          {!loading && !error && visible.length === 0 && (
+          {!loading && !error && posts.length === 0 && (
             <div className="bb-card mb-5 p-8 text-center text-bb-sm text-bb-muted">
               {t('stories.empty')}
             </div>
@@ -76,12 +48,15 @@ export function ActivityFeed() {
 
           {!loading && (
             <ul className="activity-list bp-list item-list m-0 list-none p-0">
-              {visible.map((activity) => (
-                <ActivityCard
-                  key={activity.id}
-                  activity={activity}
-                  onLike={toggleFavorite}
-                  onComment={addComment}
+              {posts.map((post) => (
+                <FeedPostCard
+                  key={post.id}
+                  post={post}
+                  onLike={toggleLike}
+                  onDelete={deletePost}
+                  onLoadComments={loadComments}
+                  onAddComment={addComment}
+                  onDeleteComment={removeComment}
                 />
               ))}
             </ul>

@@ -5,7 +5,7 @@
     "copyright": "© {{year}} AfrEA — Jeunes Évaluateurs Émergents"
   },
   "nav": {
-    "stories": "Récits",
+    "stories": "Actualités",
     "members": "Membres",
     "groups": "Groupes",
     "forums": "Forums",
@@ -17,7 +17,7 @@
     "more": "Plus d'options"
   },
   "panel": {
-    "stories": "Fil de récits",
+    "stories": "Fil d’actualités",
     "members": "Membres",
     "groups": "Cohortes",
     "forums": "Forums",
@@ -47,10 +47,11 @@
     "emailNotVerified": "Merci de vérifier votre email avant de vous connecter.",
     "registerFailed": "Impossible de créer le compte",
     "sessionExpired": "Session expirée — veuillez vous reconnecter",
+    "accountDeactivated": "Compte désactivé.",
+    "passwordChangedRelogin": "Mot de passe modifié — reconnectez-vous.",
     "loginHint": "Connectez-vous avec votre compte AfrEA-YEE",
     "registerHint": "Créez un compte. Un e-mail de vérification sera envoyé pour l’activer.",
     "registerSuccess": "Compte créé. Vérifiez votre boîte mail pour l’activer.",
-    "registerSuccessMock": "Compte démo créé. En mode live, un e-mail de vérification serait envoyé.",
     "verifyEmailHint": "Après confirmation du lien reçu par e-mail, vous pourrez vous connecter.",
     "passwordHint": "Au moins 10 caractères.",
     "rememberMe": "Se souvenir de moi",
@@ -77,10 +78,8 @@
     "verifyTitle": "Vérification de l’e-mail",
     "verifying": "Vérification en cours…",
     "verifySuccess": "Email vérifié avec succès.",
-    "verifySuccessMock": "E-mail vérifié (mode démo).",
     "verifyFailed": "Lien de vérification invalide ou expiré.",
     "verifyMissingToken": "Lien incomplet — token manquant.",
-    "mockMode": "Mode démo (VITE_USE_MOCK) : la connexion simule l’utilisateur de test",
     "backHome": "Retour à l’accueil",
     "logoutDone": "Déconnexion réussie",
     "fields": {
@@ -105,13 +104,14 @@
     "publish": "Publier",
     "draft": "Brouillon",
     "remove": "Retirer",
+    "delete": "Supprimer",
     "search": "Rechercher…"
   },
   "stories": {
-    "postedUpdate": "a publié un récit",
+    "postedUpdate": "a publié une actualité",
     "anonymousAuthor": "YEE anonyme",
     "edited": "modifié",
-    "empty": "Aucun récit trouvé. Essayez un autre filtre.",
+    "empty": "Aucune actualité trouvée. Essayez un autre filtre.",
     "copyText": "Copier le texte",
     "hide": "Masquer",
     "sidebar": {
@@ -120,11 +120,11 @@
       "cohorts": "Cohortes",
       "online": "En ligne",
       "tips": "Conseils",
-      "tipsBody": "Soumettez un récit multimédia avec tags (pays, thématique, langue). Le consentement est obligatoire ; la publication passe par une modération pré-mise en ligne."
+      "tipsBody": "Publiez une actualité multimédia avec tags (pays, thématique, langue). Le consentement est obligatoire ; la publication passe par une modération pré-mise en ligne."
     },
     "filters": {
       "all": "Publiés",
-      "mine": "Mes récits",
+      "mine": "Mes actualités",
       "pending": "En modération",
       "likes": "Favoris",
       "cohorts": "Cohortes"
@@ -136,8 +136,8 @@
       "rejected": "Rejeté"
     },
     "composer": {
-      "placeholder": "Partagez votre récit d’évaluation, {{name}}…",
-      "title": "Titre du récit",
+      "placeholder": "Partagez une actualité, {{name}}…",
+      "title": "Titre de l’actualité",
       "titlePlaceholder": "Ex. Évaluation participative au Sénégal",
       "country": "Pays",
       "thematic": "Thématique",
@@ -146,9 +146,9 @@
       "photo": "Photo",
       "audio": "Audio",
       "video": "Vidéo",
-      "consent": "Je confirme disposer du consentement des personnes concernées et autorise la publication de ce récit sur la plateforme AfrEA-YEE.",
+      "consent": "Je confirme disposer du consentement des personnes concernées et autorise la publication de cette actualité sur la plateforme AfrEA-YEE.",
       "consentRequired": "Le consentement est obligatoire pour soumettre à la modération.",
-      "anonymize": "Anonymiser mon nom sur ce récit",
+      "anonymize": "Anonymiser mon nom sur cette actualité",
       "saveDraft": "Enregistrer brouillon",
       "submitModeration": "Soumettre à la modération",
       "submitting": "Envoi…"
@@ -157,6 +157,18 @@
       "country": "Pays",
       "thematic": "Thématique",
       "language": "Langue"
+    },
+    "feed": {
+      "addPhoto": "Ajouter des photos",
+      "addAudio": "Ajouter un audio",
+      "commentPlaceholder": "Écrire un commentaire…",
+      "publishFailed": "Impossible de publier",
+      "mixedMedia": "Images et audio ne peuvent pas être combinés dans le même post.",
+      "tooManyImages": "Maximum 4 images par post.",
+      "tooManyAudio": "Un seul fichier audio par post.",
+      "invalidType": "Format de fichier non accepté.",
+      "fileTooLarge": "Fichier trop volumineux (5 Mo max par image, 20 Mo max pour l’audio).",
+      "uploadFailed": "Échec de l’upload des médias. Réessayez."
     }
   },
   "members": {
@@ -169,19 +181,63 @@
     "grid": "Grille",
     "list": "Liste",
     "viewProfile": "Voir le profil",
-    "connect": "Se connecter",
-    "disconnect": "Se déconnecter",
-    "cancelRequest": "Annuler la demande",
+    "connect": "Suivre",
+    "disconnect": "Ne plus suivre",
+    "cancelRequest": "Annuler",
+    "followers": "Abonnés",
+    "following": "Abonnements",
+    "noFollowers": "Aucun abonné pour le moment.",
+    "noFollowing": "Aucun abonnement pour le moment.",
+    "loadingFollows": "Chargement…",
+    "followListError": "Impossible de charger la liste.",
     "message": "Message",
     "editProfile": "Modifier le profil",
     "settings": "Réglages du compte",
+    "changeAvatar": "Photo",
+    "changeCover": "Changer la couverture",
+    "uploading": "Envoi…",
+    "saving": "Enregistrement…",
+    "deleting": "Suppression…",
+    "settingsSaved": "Réglages enregistrés.",
+    "saveChanges": "Enregistrer",
+    "changePassword": "Changer le mot de passe",
+    "currentPassword": "Mot de passe actuel",
+    "passwordChangeHint": "Après un changement de mot de passe, vous serez déconnecté·e et devrez vous reconnecter.",
+    "passwordChanged": "Mot de passe modifié. Reconnexion…",
+    "passwordChangeFailed": "Impossible de changer le mot de passe.",
+    "deleteAccountTitle": "Désactiver le compte",
+    "deleteAccountHint": "Votre profil public sera anonymisé. Cette action nécessite votre mot de passe.",
+    "deleteAccountConfirm": "Je comprends que mon compte sera désactivé.",
+    "deleteAccount": "Désactiver mon compte",
+    "deleteConfirmRequired": "Cochez la case de confirmation.",
+    "deletePasswordRequired": "Indiquez votre mot de passe.",
+    "deleteFailed": "Impossible de désactiver le compte.",
+    "settingsTabs": {
+      "general": "Sécurité",
+      "privacy": "Confidentialité",
+      "email": "E-mail",
+      "danger": "Compte"
+    },
+    "privacy": {
+      "whoCanSee": "Qui peut voir votre profil ?",
+      "whoCanMessage": "Qui peut vous écrire ?",
+      "everyone": "Tout le monde",
+      "members": "Membres uniquement",
+      "friends": "Mes pairs",
+      "nobody": "Personne"
+    },
+    "emailPrefs": {
+      "activity": "M’envoyer un e-mail pour l’activité",
+      "messages": "M’envoyer un e-mail pour les messages",
+      "friends": "M’envoyer un e-mail pour les connexions"
+    },
     "online": "En ligne",
     "joined": "Inscrit·e le {{date}}",
     "active": "Actif·ve {{time}}",
     "stats": {
       "peers": "Pairs",
       "cohorts": "Cohortes",
-      "stories": "Récits"
+      "stories": "Actualités"
     },
     "filters": {
       "country": "Pays",
@@ -229,8 +285,8 @@
   },
   "moderation": {
     "title": "Modération",
-    "subtitle": "{{count}} récit(s) en attente d’approbation.",
-    "empty": "Aucun récit en attente. La file est à jour.",
+    "subtitle": "{{count}} actualité(s) en attente d’approbation.",
+    "empty": "Aucune actualité en attente. La file est à jour.",
     "forbidden": "Accès réservé aux YEE sélectionnés et au Secrétariat AfrEA.",
     "refresh": "Actualiser",
     "submitted": "Soumis {{time}}",
@@ -258,14 +314,14 @@
   },
   "search": {
     "prompt": "Recherche globale",
-    "placeholder": "Récits, membres, cohortes, forums, ressources…",
+    "placeholder": "Actualités, membres, cohortes, forums, ressources…",
     "showing": "{{count}} résultat(s) pour « {{query}} »",
     "none": "Aucun résultat pour « {{query}} »",
     "empty": "Aucun résultat pour ces critères.",
     "hint": "Saisissez un mot-clé et/ou filtrez par pays, langue, thématique.",
     "tabs": {
       "all": "Tout",
-      "stories": "Récits",
+      "stories": "Actualités",
       "members": "Membres",
       "cohorts": "Cohortes",
       "forums": "Forums",

@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { fetchMembers, updateFriendship } from '../api/members'
+import { fetchMembers } from '../api/members'
 import {
+  fetchFollowingIds,
   fetchMyProfile,
   fetchPublicProfile,
   followUser,
   unfollowUser,
   updateProfileField,
+  uploadAvatar,
+  uploadCover,
+  validateProfileImage,
 } from '../api/users'
-import { USE_MOCK } from '../config/api'
-import { demoMembers } from '../data/membersData'
+import { mapWithSessionMedia, sameUserId, withSessionMedia } from '../utils/sessionMedia'
 import { useAuth } from './useAuth'
 
 function sortMembers(list, sort) {
@@ -26,7 +29,9 @@ function filterMembers(list, { search, typeFilter, country, region, language, th
   let result = list
   if (typeFilter === 'online') result = result.filter((m) => m.online)
   if (typeFilter === 'friends') {
-    result = result.filter((m) => m.friendshipStatus === 'is_friend' || m.friendshipStatus === 'self')
+    result = result.filter(
+      (m) => m.friendshipStatus === 'is_friend' || m.isFollowing || m.friendshipStatus === 'self',
+    )
   }
   if (country) result = result.filter((m) => m.country === country)
   if (region) result = result.filter((m) => m.region === region)
@@ -46,6 +51,20 @@ function filterMembers(list, { search, typeFilter, country, region, language, th
   return result
 }
 
+/** Applique le statut follow App API (pas BuddyPress friends). */
+function applyFollowState(member, followingIds, currentUserId) {
+  if (!member) return member
+  if (sameUserId(member.id, currentUserId)) {
+    return { ...member, friendshipStatus: 'self', isFollowing: false }
+  }
+  const following = followingIds?.has(String(member.id))
+  return {
+    ...member,
+    isFollowing: Boolean(following),
+    friendshipStatus: following ? 'is_friend' : 'not_friends',
+  }
+}
+
 export function useMembers({
   sort = 'active',
   typeFilter = 'all',
@@ -55,28 +74,32 @@ export function useMembers({
   language = '',
   thematic = '',
 } = {}) {
+  const { user } = useAuth()
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [followError, setFollowError] = useState(null)
 
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      if (USE_MOCK) {
-        await new Promise((r) => setTimeout(r, 350))
-        setMembers(demoMembers)
-      } else {
-        const list = await fetchMembers({ type: sort, search })
-        setMembers(list)
+      let list = mapWithSessionMedia(await fetchMembers({ type: sort, search }), user)
+      if (user?.id) {
+        try {
+          const followingIds = await fetchFollowingIds(user.id)
+          list = list.map((m) => applyFollowState(m, followingIds, user.id))
+        } catch {
+          /* liste utilisable même si follow status indisponible */
+        }
       }
+      setMembers(list)
     } catch (err) {
-      if (USE_MOCK) setMembers(demoMembers)
-      else setError(err.message || 'Failed to load members')
+      setError(err.message || 'Failed to load members')
     } finally {
       setLoading(false)
     }
-  }, [sort, search])
+  }, [sort, search, user])
 
   useEffect(() => {
     load()
@@ -93,49 +116,70 @@ export function useMembers({
 
   const toggleFriend = useCallback(
     async (id) => {
-      const target = members.find((m) => m.id === id)
-      const wasFriend = target?.friendshipStatus === 'is_friend'
+      setFollowError(null)
+      const target = members.find((m) => sameUserId(m.id, id))
+      if (!target || target.friendshipStatus === 'self') return
+
+      const wasFollowing = Boolean(target.isFollowing || target.friendshipStatus === 'is_friend')
+      const snapshot = members
+
       setMembers((prev) =>
         prev.map((m) => {
-          if (m.id !== id) return m
-          if (wasFriend) {
+          if (!sameUserId(m.id, id)) return m
+          if (wasFollowing) {
             return {
               ...m,
+              isFollowing: false,
               friendshipStatus: 'not_friends',
-              stats: { ...m.stats, friends: Math.max(0, m.stats.friends - 1) },
+              stats: {
+                ...m.stats,
+                friends: Math.max(0, (m.stats?.friends || 0) - 1),
+                followers: Math.max(0, (m.stats?.followers || 0) - 1),
+              },
             }
           }
           return {
             ...m,
+            isFollowing: true,
             friendshipStatus: 'is_friend',
-            stats: { ...m.stats, friends: (m.stats.friends || 0) + 1 },
+            stats: {
+              ...m.stats,
+              friends: (m.stats?.friends || 0) + 1,
+              followers: (m.stats?.followers || 0) + 1,
+            },
           }
         }),
       )
-      if (!USE_MOCK) {
-        try {
-          if (wasFriend) await unfollowUser(id)
-          else await followUser(id)
-        } catch {
-          try {
-            await updateFriendship(id, { action: 'create' })
-          } catch {
-            load()
-          }
-        }
+
+      try {
+        if (wasFollowing) await unfollowUser(id)
+        else await followUser(id)
+      } catch (err) {
+        setMembers(snapshot)
+        setFollowError(err.message || 'Impossible de mettre à jour le suivi')
       }
     },
-    [load, members],
+    [members],
   )
 
-  return { members: visible, total: visible.length, loading, error, toggleFriend, reload: load }
+  return {
+    members: visible,
+    total: visible.length,
+    loading,
+    error: error || followError,
+    toggleFriend,
+    reload: load,
+  }
 }
 
 export function useMember(id) {
-  const { user } = useAuth()
+  const { user, patchUser } = useAuth()
   const [member, setMember] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [followError, setFollowError] = useState(null)
+  const [mediaBusy, setMediaBusy] = useState(null)
+  const [mediaError, setMediaError] = useState(null)
 
   useEffect(() => {
     let alive = true
@@ -143,25 +187,41 @@ export function useMember(id) {
       setLoading(true)
       setError(null)
       try {
-        if (USE_MOCK) {
-          await new Promise((r) => setTimeout(r, 250))
-          const found = demoMembers.find((m) => String(m.id) === String(id)) || null
-          if (alive) setMember(found)
-        } else {
-          const isSelf = Boolean(user && String(user.id) === String(id))
-          const data = isSelf ? await fetchMyProfile() : await fetchPublicProfile(id)
-          if (alive) setMember(data)
+        const isSelf = Boolean(user && sameUserId(user.id, id))
+        let data = isSelf ? await fetchMyProfile() : await fetchPublicProfile(id)
+        if (!isSelf && user?.id && typeof data?.isFollowing !== 'boolean') {
+          try {
+            const followingIds = await fetchFollowingIds(user.id)
+            data = applyFollowState(data, followingIds, user.id)
+          } catch {
+            /* ignore */
+          }
+        } else if (!isSelf && data) {
+          data = {
+            ...data,
+            friendshipStatus: data.isFollowing ? 'is_friend' : 'not_friends',
+          }
         }
+        if (alive) setMember(withSessionMedia(data, user))
       } catch (err) {
         if (alive) {
           try {
             const { fetchMember } = await import('../api/members')
             const data = await fetchMember(id)
-            if (alive) setMember(data)
+            if (alive) {
+              let m = withSessionMedia(data, user)
+              if (user?.id && !sameUserId(user.id, id)) {
+                try {
+                  const followingIds = await fetchFollowingIds(user.id)
+                  m = applyFollowState(m, followingIds, user.id)
+                } catch {
+                  /* ignore */
+                }
+              }
+              setMember(m)
+            }
           } catch {
-            const found = demoMembers.find((m) => String(m.id) === String(id)) || null
-            if (found) setMember(found)
-            else setError(err.message || 'Member not found')
+            setError(err.message || 'Member not found')
           }
         }
       } finally {
@@ -197,42 +257,105 @@ export function useMember(id) {
         ),
       }
     })
-    if (!USE_MOCK) {
-      try {
-        const updated = await updateProfileField(fieldId, value)
-        setMember(updated)
-      } catch {
-        /* garde l’UI optimiste */
-      }
+    try {
+      const updated = await updateProfileField(fieldId, value)
+      setMember(updated)
+    } catch {
+      /* garde l’UI optimiste */
     }
   }, [])
 
   const toggleFriend = useCallback(async () => {
+    setFollowError(null)
     let snapshot = null
+    let wasFollowing = false
+
     setMember((prev) => {
       if (!prev || prev.friendshipStatus === 'self') return prev
       snapshot = prev
-      const isFriend = prev.friendshipStatus === 'is_friend'
-      const friendsDelta = isFriend ? -1 : 1
+      wasFollowing = Boolean(prev.isFollowing || prev.friendshipStatus === 'is_friend')
+      const delta = wasFollowing ? -1 : 1
       return {
         ...prev,
-        friendshipStatus: isFriend ? 'not_friends' : 'is_friend',
+        isFollowing: !wasFollowing,
+        friendshipStatus: wasFollowing ? 'not_friends' : 'is_friend',
         stats: {
           ...prev.stats,
-          friends: Math.max(0, (prev.stats?.friends || 0) + friendsDelta),
-          followers: Math.max(0, (prev.stats?.followers || 0) + friendsDelta),
+          friends: Math.max(0, (prev.stats?.friends || 0) + delta),
+          followers: Math.max(0, (prev.stats?.followers || 0) + delta),
         },
       }
     })
-    if (!USE_MOCK && snapshot) {
-      try {
-        if (snapshot.friendshipStatus === 'is_friend') await unfollowUser(id)
-        else await followUser(id)
-      } catch {
-        /* keep optimistic UI */
-      }
+
+    if (!snapshot) return
+
+    try {
+      if (wasFollowing) await unfollowUser(id)
+      else await followUser(id)
+    } catch (err) {
+      setMember(snapshot)
+      setFollowError(err.message || 'Impossible de mettre à jour le suivi')
     }
   }, [id])
 
-  return { member, loading, error, updateProfile, updateXprofileField, toggleFriend }
+  const changeAvatar = useCallback(
+    async (file) => {
+      const clientErr = validateProfileImage(file)
+      if (clientErr) {
+        setMediaError(clientErr)
+        throw new Error(clientErr)
+      }
+      setMediaError(null)
+      setMediaBusy('avatar')
+      try {
+        const { url } = await uploadAvatar(file)
+        setMember((prev) => (prev ? { ...prev, avatar: url } : prev))
+        patchUser?.({ avatar: url })
+        return { url }
+      } catch (err) {
+        setMediaError(err.message || 'Échec de l’upload avatar')
+        throw err
+      } finally {
+        setMediaBusy(null)
+      }
+    },
+    [patchUser],
+  )
+
+  const changeCover = useCallback(
+    async (file) => {
+      const clientErr = validateProfileImage(file)
+      if (clientErr) {
+        setMediaError(clientErr)
+        throw new Error(clientErr)
+      }
+      setMediaError(null)
+      setMediaBusy('cover')
+      try {
+        const { url } = await uploadCover(file)
+        setMember((prev) => (prev ? { ...prev, cover: url } : prev))
+        patchUser?.({ cover: url })
+        return { url }
+      } catch (err) {
+        setMediaError(err.message || 'Échec de l’upload couverture')
+        throw err
+      } finally {
+        setMediaBusy(null)
+      }
+    },
+    [patchUser],
+  )
+
+  return {
+    member,
+    loading,
+    error: error || followError,
+    mediaBusy,
+    mediaError,
+    updateProfile,
+    updateXprofileField,
+    toggleFriend,
+    changeAvatar,
+    changeCover,
+  }
 }

@@ -5,7 +5,7 @@ export function ProfileNav({ memberId, isOwn }) {
   const tabs = [
     { id: 'activity', label: 'Timeline', to: `/members/${memberId}` },
     { id: 'profile', label: 'About', to: `/members/${memberId}/profile` },
-    { id: 'friends', label: 'Friends', to: `/members/${memberId}/friends` },
+    { id: 'friends', label: 'Followers', to: `/members/${memberId}/friends` },
     { id: 'groups', label: 'Groups', to: `/members/${memberId}/groups` },
   ]
 

@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../hooks/useAuth'
-import { USE_MOCK } from '../../config/api'
 import { Button } from '../../components/ui/Button'
 
 export function LoginPage() {
@@ -18,6 +17,8 @@ export function LoginPage() {
 
   const from = location.state?.from?.pathname || '/'
   const expired = location.state?.reason === 'session_expired'
+  const deactivated = location.state?.reason === 'account_deactivated'
+  const passwordChanged = location.state?.reason === 'password_changed'
 
   if (!isBootstrapping && isAuthenticated) {
     return <Navigate to={from} replace />
@@ -47,15 +48,15 @@ export function LoginPage() {
       <h1 className="m-0 mb-2 text-bb-xl font-semibold text-bb-heading">{t('auth.signin')}</h1>
       <p className="m-0 mb-6 text-bb-sm text-bb-muted">{t('auth.loginHint')}</p>
 
-      {USE_MOCK && (
-        <p className="mb-4 rounded-bb-inner border border-bb-border bg-bb-alt px-3 py-2 text-bb-sm text-bb-muted">
-          {t('auth.mockMode')}
-        </p>
-      )}
-
-      {(expired || authError || localError) && (
+      {(expired || deactivated || passwordChanged || authError || localError) && (
         <p className="mb-4 rounded-bb-inner border border-red-200 bg-red-50 px-3 py-2 text-bb-sm text-red-700" role="alert">
-          {localError || authError || t('auth.sessionExpired')}
+          {localError ||
+            authError ||
+            (deactivated
+              ? t('auth.accountDeactivated')
+              : passwordChanged
+                ? t('auth.passwordChangedRelogin')
+                : t('auth.sessionExpired'))}
         </p>
       )}
 

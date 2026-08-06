@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { ActivityFeed } from './ActivityFeed'
 
-/** Page fil de récits — buddypress/activity/index.php adapté AfrEA-YEE */
+/** Page fil d’actualités — buddypress/activity/index.php adapté AfrEA-YEE */
 export function ActivityPage() {
   const { t } = useTranslation()
 

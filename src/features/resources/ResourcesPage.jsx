@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { demoResources, RESOURCE_TYPES } from '../../data/resourcesData'
+import { RESOURCE_TYPES } from '../../data/resourcesData'
 import { MEMBER_LANGUAGES } from '../../data/membersData'
 import { useTranslation } from 'react-i18next'
 import { IconBook } from '../../components/icons'
@@ -13,8 +13,9 @@ export function ResourcesPage() {
   const [search, setSearch] = useState('')
 
   const items = useMemo(() => {
+    const resources = []
     const q = search.trim().toLowerCase()
-    return demoResources.filter((r) => {
+    return resources.filter((r) => {
       if (type !== 'all' && r.type !== type) return false
       if (language && r.language !== language) return false
       if (!q) return true

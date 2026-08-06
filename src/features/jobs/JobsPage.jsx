@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { demoJobs } from '../../data/integrationsData'
+import { jobs } from '../../data/integrationsData'
 import { formatTimeSince } from '../activity/utils'
 
 /** Référence: template-parts/content-job.php */
@@ -12,7 +12,7 @@ export function JobsPage() {
       </header>
 
       <ul className="m-0 list-none space-y-3 p-0">
-        {demoJobs.map((job) => (
+        {jobs.map((job) => (
           <li key={job.id} className="bb-card p-4">
             <article>
               <h2 className="entry-title m-0 text-bb-md font-semibold">

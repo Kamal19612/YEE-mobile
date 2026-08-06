@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { footerLinkDefs } from '../data/demoData'
+import { footerLinkDefs } from '../data/layoutData'
 
 /** Référence: template-parts/footer.php */
 export function Footer({ links = footerLinkDefs }) {

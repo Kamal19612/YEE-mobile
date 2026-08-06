@@ -1,3 +1,4 @@
+import { ENABLE_BUDDYPRESS } from '../config/api'
 import { apiFetch } from './client'
 
 const BASE = '/buddypress/v1/groups'
@@ -23,6 +24,7 @@ export function mapGroup(item) {
 }
 
 export async function fetchGroups({ page = 1, perPage = 12, search = '', type = 'active', token } = {}) {
+  if (!ENABLE_BUDDYPRESS) return []
   const params = new URLSearchParams({
     page: String(page),
     per_page: String(perPage),
@@ -35,19 +37,23 @@ export async function fetchGroups({ page = 1, perPage = 12, search = '', type = 
 }
 
 export async function fetchGroup(id, { token } = {}) {
+  if (!ENABLE_BUDDYPRESS) return null
   const data = await apiFetch(`${BASE}/${id}`, { token })
   return mapGroup(data)
 }
 
 export async function joinGroup(id, { token } = {}) {
+  if (!ENABLE_BUDDYPRESS) return null
   return apiFetch(`${BASE}/${id}/members`, { method: 'POST', token })
 }
 
 export async function leaveGroup(id, { token, userId } = {}) {
+  if (!ENABLE_BUDDYPRESS) return null
   return apiFetch(`${BASE}/${id}/members/${userId}`, { method: 'DELETE', token })
 }
 
 export async function inviteToGroup(groupId, userIds, { token } = {}) {
+  if (!ENABLE_BUDDYPRESS) return null
   return apiFetch(`${BASE}/${groupId}/invites`, {
     method: 'POST',
     token,

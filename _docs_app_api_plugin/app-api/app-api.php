@@ -77,6 +77,76 @@ add_action( 'rest_api_init', function () {
 } );
 
 /**
+ * Fait reconnaître l'avatar uploadé (app_avatar_attachment_id) partout où
+ * WordPress / BuddyPress demandent get_avatar_url (activité BP, annuaire…).
+ * Sans ce filtre, l'upload App API est stocké mais le reste de la plateforme
+ * continue d'afficher le Gravatar.
+ */
+add_filter( 'get_avatar_url', function ( $url, $id_or_email, $args ) {
+    $user_id = 0;
+    if ( is_numeric( $id_or_email ) ) {
+        $user_id = (int) $id_or_email;
+    } elseif ( is_object( $id_or_email ) && ! empty( $id_or_email->user_id ) ) {
+        $user_id = (int) $id_or_email->user_id;
+    } elseif ( is_object( $id_or_email ) && ! empty( $id_or_email->ID ) ) {
+        $user_id = (int) $id_or_email->ID;
+    } elseif ( is_string( $id_or_email ) && is_email( $id_or_email ) ) {
+        $user = get_user_by( 'email', $id_or_email );
+        $user_id = $user ? (int) $user->ID : 0;
+    }
+
+    if ( $user_id <= 0 || ! class_exists( \AppApi\Users\UserTransformer::class ) ) {
+        return $url;
+    }
+
+    $custom = \AppApi\Users\UserTransformer::custom_avatar_url( $user_id, 'large' );
+    return $custom ? $custom : $url;
+}, 20, 3 );
+
+add_filter( 'bp_core_fetch_avatar_url', function ( $avatar_url, $params ) {
+    if ( empty( $params['item_id'] ) ) {
+        return $avatar_url;
+    }
+    $object = $params['object'] ?? 'user';
+    if ( $object !== 'user' && $object !== 'members' ) {
+        return $avatar_url;
+    }
+    if ( ! class_exists( \AppApi\Users\UserTransformer::class ) ) {
+        return $avatar_url;
+    }
+    $custom = \AppApi\Users\UserTransformer::custom_avatar_url( (int) $params['item_id'], 'large' );
+    return $custom ? $custom : $avatar_url;
+}, 20, 2 );
+
+/**
+ * Couverture App API exposée aussi via le champ cover BuddyPress REST si possible.
+ */
+add_filter( 'bp_rest_members_prepare_value', function ( $response, $user, $request ) {
+    if ( ! class_exists( \AppApi\Users\UserTransformer::class ) || ! $user ) {
+        return $response;
+    }
+    $user_id = (int) ( is_object( $user ) ? ( $user->ID ?? $user->id ?? 0 ) : $user );
+    if ( $user_id <= 0 ) {
+        return $response;
+    }
+    $data = $response->get_data();
+    $cover = \AppApi\Users\UserTransformer::custom_cover_url( $user_id, 'large' );
+    $avatar = \AppApi\Users\UserTransformer::custom_avatar_url( $user_id, 'large' );
+    if ( $cover ) {
+        $data['cover_url'] = $cover;
+    }
+    if ( $avatar ) {
+        if ( ! isset( $data['avatar_urls'] ) || ! is_array( $data['avatar_urls'] ) ) {
+            $data['avatar_urls'] = [];
+        }
+        $data['avatar_urls']['full']  = $avatar;
+        $data['avatar_urls']['thumb'] = $avatar;
+    }
+    $response->set_data( $data );
+    return $response;
+}, 20, 3 );
+
+/**
  * CORS strict : whitelist explicite du domaine frontend (jamais de wildcard).
  * À adapter par environnement (dev/staging/prod) via une constante définie
  * dans wp-config.php, PAS en dur ici.

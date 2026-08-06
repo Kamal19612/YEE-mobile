@@ -16,7 +16,7 @@ function normalizeMediaUrl(url) {
 /**
  * Mappe le profil App API vers la forme `member` consommée par l’UI.
  * @param {object} raw
- * @param {{ isSelf?: boolean, friendshipStatus?: string }} [opts]
+ * @param {{ isSelf?: boolean, friendshipStatus?: string, isFollowing?: boolean }} [opts]
  */
 export function mapAppProfile(raw, opts = {}) {
   if (!raw || typeof raw !== 'object') return null
@@ -45,6 +45,21 @@ export function mapAppProfile(raw, opts = {}) {
   const following = raw.stats?.followingCount ?? 0
   const posts = raw.stats?.postsCount ?? 0
 
+  const hasFollowFlag =
+    typeof opts.isFollowing === 'boolean' || typeof raw.isFollowing === 'boolean'
+  const isFollowing = hasFollowFlag
+    ? typeof opts.isFollowing === 'boolean'
+      ? opts.isFollowing
+      : Boolean(raw.isFollowing)
+    : undefined
+
+  let friendshipStatus = opts.friendshipStatus
+  if (!friendshipStatus) {
+    if (opts.isSelf) friendshipStatus = 'self'
+    else if (isFollowing === true) friendshipStatus = 'is_friend'
+    else friendshipStatus = 'not_friends'
+  }
+
   return {
     id,
     userLogin: String(id),
@@ -64,7 +79,8 @@ export function mapAppProfile(raw, opts = {}) {
     joined: raw.joinedAt || raw.joined || null,
     lastActive: raw.joinedAt || raw.lastActive || null,
     online: Boolean(raw.online),
-    friendshipStatus: opts.friendshipStatus || (opts.isSelf ? 'self' : 'not_friends'),
+    friendshipStatus,
+    isFollowing,
     stats: {
       friends: followers,
       groups: raw.stats?.groups ?? 0,
@@ -106,7 +122,10 @@ export async function fetchMyProfile() {
 }
 
 export async function fetchPublicProfile(userId) {
-  const data = await appApiFetch(ENDPOINTS.users.profile(String(userId)), authOpts())
+  // auth: true si token présent → le backend peut renvoyer isFollowing
+  const data = await appApiFetch(ENDPOINTS.users.profile(String(userId)), {
+    auth: Boolean(getToken()),
+  })
   return mapAppProfile(data, { isSelf: false })
 }
 
@@ -119,8 +138,9 @@ export async function enrichSessionUser(user) {
       ...user,
       displayName: profile.displayName || user.displayName,
       email: profile.email || user.email,
-      avatar: profile.avatar || user.avatar,
-      cover: profile.cover || user.cover,
+      // Préférer toujours le profil App API (source de vérité après upload)
+      avatar: profile.avatar ?? user.avatar ?? null,
+      cover: profile.cover ?? user.cover ?? null,
       mentionName: profile.mentionName || user.mentionName,
       link: profile.link || user.link,
     }
@@ -174,21 +194,35 @@ export async function deleteMyAccount(password) {
 export async function uploadAvatar(file) {
   const form = new FormData()
   form.append('avatar', file)
-  return appApiFetch(ENDPOINTS.users.meAvatar, {
+  const data = await appApiFetch(ENDPOINTS.users.meAvatar, {
     method: 'POST',
     auth: true,
     body: form,
   })
+  return { url: normalizeMediaUrl(data?.url) }
 }
 
 export async function uploadCover(file) {
   const form = new FormData()
   form.append('cover', file)
-  return appApiFetch(ENDPOINTS.users.meCover, {
+  const data = await appApiFetch(ENDPOINTS.users.meCover, {
     method: 'POST',
     auth: true,
     body: form,
   })
+  return { url: normalizeMediaUrl(data?.url) }
+}
+
+/** Validation client (UX) — la sécurité réelle est côté UploadValidator WP. */
+export const PROFILE_IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp'
+export const PROFILE_IMAGE_MAX_BYTES = 5 * 1024 * 1024
+
+export function validateProfileImage(file) {
+  if (!file) return 'Fichier manquant.'
+  const allowed = ['image/jpeg', 'image/png', 'image/webp']
+  if (!allowed.includes(file.type)) return 'Formats acceptés : JPEG, PNG, WebP.'
+  if (file.size > PROFILE_IMAGE_MAX_BYTES) return 'L’image ne doit pas dépasser 5 Mo.'
+  return null
 }
 
 export async function followUser(userId) {
@@ -205,17 +239,45 @@ export async function unfollowUser(userId) {
   })
 }
 
+/** GET /users/{id}/follow — { following: boolean } */
+export async function fetchFollowStatus(userId) {
+  const data = await appApiFetch(ENDPOINTS.users.follow(String(userId)), {
+    method: 'GET',
+    auth: true,
+  })
+  return Boolean(data?.following)
+}
+
 function mapListPayload(data) {
   const list = Array.isArray(data) ? data : data?.items || data?.data || []
   return list.map((item) => mapAppProfile(item)).filter(Boolean)
 }
 
-export async function fetchFollowers(userId, { page = 1 } = {}) {
-  const data = await appApiFetch(`${ENDPOINTS.users.followers(String(userId))}?page=${page}`, authOpts())
+export async function fetchFollowers(userId, { page = 1, perPage = 50 } = {}) {
+  const data = await appApiFetch(
+    `${ENDPOINTS.users.followers(String(userId))}?page=${page}&perPage=${perPage}`,
+    authOpts(),
+  )
   return mapListPayload(data)
 }
 
-export async function fetchFollowing(userId, { page = 1 } = {}) {
-  const data = await appApiFetch(`${ENDPOINTS.users.following(String(userId))}?page=${page}`, authOpts())
+export async function fetchFollowing(userId, { page = 1, perPage = 50 } = {}) {
+  const data = await appApiFetch(
+    `${ENDPOINTS.users.following(String(userId))}?page=${page}&perPage=${perPage}`,
+    authOpts(),
+  )
   return mapListPayload(data)
+}
+
+/** IDs que l’utilisateur courant suit (plusieurs pages si besoin). */
+export async function fetchFollowingIds(userId, { maxPages = 5 } = {}) {
+  const ids = new Set()
+  for (let page = 1; page <= maxPages; page += 1) {
+    const list = await fetchFollowing(userId, { page, perPage: 50 })
+    list.forEach((m) => {
+      if (m?.id != null) ids.add(String(m.id))
+    })
+    if (list.length < 50) break
+  }
+  return ids
 }

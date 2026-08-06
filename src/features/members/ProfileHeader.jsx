@@ -1,15 +1,39 @@
+import { useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { PROFILE_IMAGE_ACCEPT } from '../../api/users'
 import { Avatar } from '../../components/ui/Avatar'
 import { Button } from '../../components/ui/Button'
 import { MEMBER_LANGUAGES } from '../../data/membersData'
 import { formatTimeSince } from '../activity/utils'
 
 /** Référence: #item-header (members/single/home.php) — profil YEE */
-export function ProfileHeader({ member, isOwn, onFriendToggle }) {
+export function ProfileHeader({
+  member,
+  isOwn,
+  onFriendToggle,
+  onAvatarChange,
+  onCoverChange,
+  mediaBusy,
+  mediaError,
+}) {
   const { t } = useTranslation()
+  const avatarInputRef = useRef(null)
+  const coverInputRef = useRef(null)
   const langLabel =
     MEMBER_LANGUAGES.find((l) => l.code === member.language)?.label || member.language
+
+  const pickAvatar = (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (file) onAvatarChange?.(file)
+  }
+
+  const pickCover = (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (file) onCoverChange?.(file)
+  }
 
   return (
     <div
@@ -19,25 +43,67 @@ export function ProfileHeader({ member, isOwn, onFriendToggle }) {
       data-bp-item-component="members"
       className="users-header single-headers mb-5 overflow-hidden rounded-bb border border-bb-border bg-bb-content"
     >
-      <div
-        id="header-cover-image"
-        className="h-40 bg-bb-cover bg-cover bg-center bb:h-52"
-        style={
-          member.cover
-            ? { backgroundImage: `url(${member.cover})` }
-            : { backgroundColor: 'var(--bb-cover-image-background-color)' }
-        }
-      />
+      <div className="relative">
+        <div
+          id="header-cover-image"
+          className="h-40 bg-bb-cover bg-cover bg-center bb:h-52"
+          style={
+            member.cover
+              ? { backgroundImage: `url(${member.cover})` }
+              : { backgroundColor: 'var(--bb-cover-image-background-color)' }
+          }
+        />
+        {isOwn && (
+          <>
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept={PROFILE_IMAGE_ACCEPT}
+              className="sr-only"
+              onChange={pickCover}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="absolute bottom-3 right-3"
+              disabled={mediaBusy === 'cover'}
+              onClick={() => coverInputRef.current?.click()}
+            >
+              {mediaBusy === 'cover' ? t('members.uploading') : t('members.changeCover')}
+            </Button>
+          </>
+        )}
+      </div>
 
       <div id="item-header-cover-image" className="relative px-4 pb-4 pt-0 bb:px-6">
         <div className="flex flex-col gap-4 bb:flex-row bb:items-end">
-          <div className="item-header-avatar -mt-12 shrink-0">
+          <div className="item-header-avatar relative -mt-12 shrink-0">
             <Avatar
               name={member.displayName}
               src={member.avatar}
               size="xl"
               className="!h-[120px] !w-[120px] ring-4 ring-bb-content"
             />
+            {isOwn && (
+              <>
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept={PROFILE_IMAGE_ACCEPT}
+                  className="sr-only"
+                  onChange={pickAvatar}
+                />
+                <button
+                  type="button"
+                  disabled={mediaBusy === 'avatar'}
+                  onClick={() => avatarInputRef.current?.click()}
+                  className="absolute bottom-1 right-1 rounded-full border border-bb-border bg-bb-content px-2 py-1 text-[11px] font-medium text-bb-heading shadow-sm hover:border-bb-primary hover:text-bb-primary disabled:opacity-60"
+                >
+                  {mediaBusy === 'avatar' ? '…' : t('members.changeAvatar')}
+                </button>
+              </>
+            )}
           </div>
 
           <div id="item-header-content" className="min-w-0 flex-1 pb-1">
@@ -66,6 +132,11 @@ export function ProfileHeader({ member, isOwn, onFriendToggle }) {
                 )}
               </span>
             </div>
+            {isOwn && mediaError && (
+              <p className="m-0 mt-2 text-bb-sm text-bb-danger" role="alert">
+                {mediaError}
+              </p>
+            )}
           </div>
 
           <div className="flex flex-wrap gap-2 pb-1">

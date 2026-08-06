@@ -1,16 +1,21 @@
+import { ENABLE_BUDDYPRESS } from '../config/api'
 import { apiFetch } from './client'
 import { fetchMembers } from './members'
 import { fetchGroups } from './groups'
 import { fetchForums, fetchTopics } from './forums'
 
 /**
- * Recherche globale multi-types (BuddyBoss Search pattern)
- * Fallback: agrège plusieurs endpoints REST.
+ * Recherche globale — BuddyBoss/BuddyPress désactivés.
+ * Sans ENABLE_BUDDYPRESS : résultats vides (pas d’appel réseau BP).
  */
 
 export async function globalSearch(query, { token } = {}) {
   const q = query.trim()
   if (!q) {
+    return { members: [], groups: [], forums: [], topics: [], posts: [], activity: [] }
+  }
+
+  if (!ENABLE_BUDDYPRESS) {
     return { members: [], groups: [], forums: [], topics: [], posts: [], activity: [] }
   }
 

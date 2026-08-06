@@ -1,11 +1,11 @@
 import { Link, useParams } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
-import { demoEvents } from '../../data/integrationsData'
+import { events } from '../../data/integrationsData'
 
 /** Référence: tribe-events/single-event.php */
 export function EventPage() {
   const { eventId } = useParams()
-  const event = demoEvents.find((e) => String(e.id) === String(eventId))
+  const event = events.find((e) => String(e.id) === String(eventId))
 
   if (!event) {
     return (

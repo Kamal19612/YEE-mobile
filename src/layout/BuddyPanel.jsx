@@ -14,7 +14,7 @@ import {
   IconUsers,
 } from '../components/icons'
 import { useLayout } from '../context/LayoutProvider'
-import { panelItemDefs } from '../data/demoData'
+import { panelItemDefs } from '../data/layoutData'
 import { SiteLogo } from './SiteLogo'
 
 const iconMap = {

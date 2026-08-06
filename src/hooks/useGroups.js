@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { fetchGroup, fetchGroups, joinGroup, leaveGroup } from '../api/groups'
-import { USE_MOCK } from '../config/api'
-import { demoGroups } from '../data/groupsData'
 import { useAuth } from './useAuth'
 
 function applyFilters(list, { search, typeFilter, sort }) {
@@ -36,15 +34,9 @@ export function useGroups({ search = '', typeFilter = 'all', sort = 'active' } =
     setLoading(true)
     setError(null)
     try {
-      if (USE_MOCK) {
-        await new Promise((r) => setTimeout(r, 300))
-        setGroups(demoGroups)
-      } else {
-        setGroups(await fetchGroups({ type: sort, search }))
-      }
+      setGroups(await fetchGroups({ type: sort, search }))
     } catch (err) {
       setError(err.message || 'Failed to load groups')
-      if (USE_MOCK) setGroups(demoGroups)
     } finally {
       setLoading(false)
     }
@@ -75,14 +67,12 @@ export function useGroups({ search = '', typeFilter = 'all', sort = 'active' } =
           }
         }),
       )
-      if (!USE_MOCK) {
-        try {
-          const g = groups.find((x) => x.id === id)
-          if (g?.isMember) await leaveGroup(id, { userId: currentUser.id })
-          else await joinGroup(id)
-        } catch {
-          load()
-        }
+      try {
+        const g = groups.find((x) => x.id === id)
+        if (g?.isMember) await leaveGroup(id, { userId: currentUser.id })
+        else await joinGroup(id)
+      } catch {
+        load()
       }
     },
     [groups, load, currentUser.id],
@@ -108,7 +98,6 @@ export function useGroups({ search = '', typeFilter = 'all', sort = 'active' } =
         memberIds: [currentUser.id],
         admins: [{ id: currentUser.id, displayName: currentUser.displayName }],
       }
-      if (USE_MOCK) demoGroups.unshift(group)
       setGroups((prev) => [group, ...prev])
       return group
     },
@@ -137,20 +126,10 @@ export function useGroup(id) {
       setLoading(true)
       setError(null)
       try {
-        if (USE_MOCK) {
-          await new Promise((r) => setTimeout(r, 200))
-          const found = demoGroups.find((g) => String(g.id) === String(id)) || null
-          if (alive) setGroup(found)
-        } else {
-          const data = await fetchGroup(id)
-          if (alive) setGroup(data)
-        }
+        const data = await fetchGroup(id)
+        if (alive) setGroup(data)
       } catch (err) {
-        const found = demoGroups.find((g) => String(g.id) === String(id)) || null
-        if (alive) {
-          if (found) setGroup(found)
-          else setError(err.message || 'Group not found')
-        }
+        if (alive) setError(err.message || 'Group not found')
       } finally {
         if (alive) setLoading(false)
       }

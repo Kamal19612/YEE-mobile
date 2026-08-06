@@ -14,6 +14,45 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class UserTransformer {
 
+    public const AVATAR_META = 'app_avatar_attachment_id';
+    public const COVER_META  = 'app_cover_attachment_id';
+
+    /**
+     * URL de l'avatar uploadé via App API, ou null si absent.
+     */
+    public static function custom_avatar_url( int $user_id, string $size = 'large' ): ?string {
+        $attachment_id = (int) get_user_meta( $user_id, self::AVATAR_META, true );
+        if ( $attachment_id <= 0 ) {
+            return null;
+        }
+        $url = wp_get_attachment_image_url( $attachment_id, $size );
+        return $url ? $url : null;
+    }
+
+    /**
+     * URL de la couverture uploadée via App API, ou null si absente.
+     */
+    public static function custom_cover_url( int $user_id, string $size = 'large' ): ?string {
+        $attachment_id = (int) get_user_meta( $user_id, self::COVER_META, true );
+        if ( $attachment_id <= 0 ) {
+            return null;
+        }
+        $url = wp_get_attachment_image_url( $attachment_id, $size );
+        return $url ? $url : null;
+    }
+
+    /**
+     * Avatar affiché : upload App API en priorité, sinon Gravatar WP.
+     * Le filtre get_avatar_url (app-api.php) utilise custom_avatar_url : pas de boucle.
+     */
+    public static function avatar_url( int $user_id, int $pixel_size = 300 ): string {
+        $custom = self::custom_avatar_url( $user_id, $pixel_size >= 200 ? 'large' : 'thumbnail' );
+        if ( $custom ) {
+            return $custom;
+        }
+        return (string) get_avatar_url( $user_id, [ 'size' => $pixel_size ] );
+    }
+
     /**
      * @param bool $is_self  True si le viewer consulte son propre profil :
      *                       débloque les champs privés (email, settings...).
@@ -31,15 +70,16 @@ final class UserTransformer {
         $payload = [
             'id'           => (string) $user->ID,
             'displayName'  => $user->display_name,
+            'mentionName'  => $user->user_nicename ?: $user->user_login,
             'bio'          => (string) get_user_meta( $user_id, ProfileFields::BIO, true ),
             'profession'   => (string) get_user_meta( $user_id, ProfileFields::PROFESSION, true ),
             'organization' => (string) get_user_meta( $user_id, ProfileFields::ORGANIZATION, true ),
             'location'     => (string) get_user_meta( $user_id, ProfileFields::LOCATION, true ),
             'socialLinks'  => is_array( $social_links ) ? $social_links : [],
-            'avatarUrl'    => get_avatar_url( $user_id, [ 'size' => 300 ] ),
-            'coverUrl'     => get_user_meta( $user_id, 'app_cover_attachment_id', true )
-                ? wp_get_attachment_image_url( (int) get_user_meta( $user_id, 'app_cover_attachment_id', true ), 'large' )
-                : null,
+            // IMPORTANT : lire app_avatar_attachment_id, pas get_avatar_url seul
+            // (sinon l'upload “réussit” mais disparaît après reconnexion → Gravatar).
+            'avatarUrl'    => self::avatar_url( $user_id, 300 ),
+            'coverUrl'     => self::custom_cover_url( $user_id, 'large' ),
             'stats' => [
                 // Dénormalisés (cf. Migrations.php) — jamais un COUNT() à la volée.
                 'followersCount' => (int) get_user_meta( $user_id, 'app_followers_count', true ),
@@ -74,7 +114,7 @@ final class UserTransformer {
         return [
             'id'          => (string) $user->ID,
             'displayName' => $user->display_name,
-            'avatarUrl'   => get_avatar_url( $user_id, [ 'size' => 100 ] ),
+            'avatarUrl'   => self::avatar_url( $user_id, 100 ),
             'profession'  => (string) get_user_meta( $user_id, ProfileFields::PROFESSION, true ),
         ];
     }

@@ -48,6 +48,26 @@ abstract class AbstractController {
     }
 
     /**
+     * Auth optionnelle : si un Bearer JWT valide est présent, pose app_user_id.
+     * Sinon laisse la requête anonyme (pas d'erreur 401).
+     * Utile pour GET /users/{id} afin d'exposer isFollowing au viewer connecté.
+     */
+    public static function maybe_authenticate( \WP_REST_Request $request ): bool {
+        $auth_header = $request->get_header( 'authorization' );
+        if ( ! $auth_header || stripos( $auth_header, 'Bearer ' ) !== 0 ) {
+            return true;
+        }
+
+        $token  = trim( substr( $auth_header, 7 ) );
+        $claims = JwtService::verify_access_token( $token );
+        if ( ! is_wp_error( $claims ) && ! empty( $claims['sub'] ) ) {
+            $request->set_param( 'app_user_id', (int) $claims['sub'] );
+        }
+
+        return true;
+    }
+
+    /**
      * Construit une réponse d'erreur de validation à partir d'une liste de
      * messages (ex. Sanitizer::password_errors()).
      */

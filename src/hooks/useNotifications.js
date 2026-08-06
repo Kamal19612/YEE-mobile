@@ -4,8 +4,6 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from '../api/notifications'
-import { USE_MOCK } from '../config/api'
-import { demoNotifications } from '../data/notificationsData'
 
 export function useNotifications({ filter = 'all' } = {}) {
   const [items, setItems] = useState([])
@@ -20,13 +18,8 @@ export function useNotifications({ filter = 'all' } = {}) {
       setLoading(true)
       setError(null)
       try {
-        if (USE_MOCK) {
-          await new Promise((r) => setTimeout(r, 250))
-          if (alive) setItems(demoNotifications)
-        } else {
-          const list = await fetchNotifications()
-          if (alive) setItems(list)
-        }
+        const list = await fetchNotifications()
+        if (alive) setItems(list)
       } catch (err) {
         if (alive) setError(err.message || 'Failed to load notifications')
       } finally {
@@ -51,23 +44,19 @@ export function useNotifications({ filter = 'all' } = {}) {
 
   const markRead = useCallback(async (id) => {
     setItems((prev) => prev.map((n) => (n.id === id ? { ...n, unread: false } : n)))
-    if (!USE_MOCK) {
-      try {
-        await markNotificationRead(id)
-      } catch {
-        /* ignore */
-      }
+    try {
+      await markNotificationRead(id)
+    } catch {
+      /* ignore */
     }
   }, [])
 
   const markAllRead = useCallback(async () => {
     setItems((prev) => prev.map((n) => ({ ...n, unread: false })))
-    if (!USE_MOCK) {
-      try {
-        await markAllNotificationsRead()
-      } catch {
-        /* ignore */
-      }
+    try {
+      await markAllNotificationsRead()
+    } catch {
+      /* ignore */
     }
   }, [])
 

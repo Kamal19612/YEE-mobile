@@ -1,8 +1,7 @@
 import { Avatar } from '../components/ui/Avatar'
-import { unreadMessages } from '../data/demoData'
 import clsx from 'clsx'
 
-export function UnreadMessages({ items = unreadMessages }) {
+export function UnreadMessages({ items = [] }) {
   if (!items.length) {
     return (
       <li className="bs-item-wrap list-none px-4 py-6 text-center text-bb-sm text-bb-muted">

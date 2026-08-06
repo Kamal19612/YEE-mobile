@@ -1,15 +1,10 @@
-import { useState } from 'react'
-import { unreadNotifications } from '../../data/demoData'
 import { Avatar } from '../../components/ui/Avatar'
 import { Button } from '../../components/ui/Button'
+import { useNotifications } from '../../hooks/useNotifications'
 
 /** Référence: members/single/notifications.php */
 export function ProfileNotifications() {
-  const [items, setItems] = useState(unreadNotifications)
-
-  const markAllRead = () => {
-    setItems((prev) => prev.map((n) => ({ ...n, unread: false })))
-  }
+  const { notifications, loading, error, markAllRead } = useNotifications()
 
   return (
     <div className="bb-card overflow-hidden">
@@ -19,8 +14,19 @@ export function ProfileNotifications() {
           Mark all as read
         </Button>
       </header>
+      {loading && (
+        <div className="px-4 py-6 text-center text-bb-sm text-bb-muted">Loading…</div>
+      )}
+      {!loading && error && (
+        <div className="px-4 py-4 text-bb-sm text-bb-danger">{error}</div>
+      )}
+      {!loading && !error && notifications.length === 0 && (
+        <div className="px-4 py-6 text-center text-bb-sm text-bb-muted">
+          You have no notifications right now.
+        </div>
+      )}
       <ul className="m-0 list-none p-0">
-        {items.map((n) => (
+        {notifications.map((n) => (
           <li
             key={n.id}
             className={`flex items-start gap-3 border-b border-bb-border px-4 py-3 last:border-b-0 ${

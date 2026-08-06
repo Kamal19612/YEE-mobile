@@ -5,7 +5,7 @@
     "copyright": "© {{year}} AfrEA — Young and Emerging Evaluators"
   },
   "nav": {
-    "stories": "Stories",
+    "stories": "News",
     "members": "Members",
     "groups": "Groups",
     "forums": "Forums",
@@ -17,7 +17,7 @@
     "more": "More options"
   },
   "panel": {
-    "stories": "Story feed",
+    "stories": "News feed",
     "members": "Members",
     "groups": "Cohorts",
     "forums": "Forums",
@@ -47,10 +47,11 @@
     "emailNotVerified": "Please verify your email before signing in.",
     "registerFailed": "Could not create the account",
     "sessionExpired": "Session expired — please sign in again",
+    "accountDeactivated": "Account deactivated.",
+    "passwordChangedRelogin": "Password updated — please sign in again.",
     "loginHint": "Sign in with your AfrEA-YEE account",
     "registerHint": "Create an account. A verification email will be sent to activate it.",
     "registerSuccess": "Account created. Check your inbox to activate it.",
-    "registerSuccessMock": "Demo account created. In live mode, a verification email would be sent.",
     "verifyEmailHint": "After confirming the link in your email, you can sign in.",
     "passwordHint": "At least 10 characters.",
     "rememberMe": "Remember me",
@@ -77,10 +78,8 @@
     "verifyTitle": "Email verification",
     "verifying": "Verifying…",
     "verifySuccess": "Email verified successfully.",
-    "verifySuccessMock": "Email verified (demo mode).",
     "verifyFailed": "Invalid or expired verification link.",
     "verifyMissingToken": "Incomplete link — missing token.",
-    "mockMode": "Demo mode (VITE_USE_MOCK): sign-in uses the sample user",
     "backHome": "Back to home",
     "logoutDone": "Signed out",
     "fields": {
@@ -105,13 +104,14 @@
     "publish": "Publish",
     "draft": "Draft",
     "remove": "Remove",
+    "delete": "Delete",
     "search": "Search…"
   },
   "stories": {
-    "postedUpdate": "shared a story",
+    "postedUpdate": "posted an update",
     "anonymousAuthor": "Anonymous YEE",
     "edited": "edited",
-    "empty": "No stories found. Try a different filter.",
+    "empty": "No news found. Try a different filter.",
     "copyText": "Copy text",
     "hide": "Hide",
     "sidebar": {
@@ -120,11 +120,11 @@
       "cohorts": "Cohorts",
       "online": "Online",
       "tips": "Tips",
-      "tipsBody": "Submit a multimedia story with tags (country, theme, language). Consent is required; publishing goes through pre-publication moderation."
+      "tipsBody": "Publish a multimedia update with tags (country, theme, language). Consent is required; publishing goes through pre-publication moderation."
     },
     "filters": {
       "all": "Published",
-      "mine": "My stories",
+      "mine": "My news",
       "pending": "In moderation",
       "likes": "Favorites",
       "cohorts": "Cohorts"
@@ -136,8 +136,8 @@
       "rejected": "Rejected"
     },
     "composer": {
-      "placeholder": "Share your evaluation story, {{name}}…",
-      "title": "Story title",
+      "placeholder": "Share an update, {{name}}…",
+      "title": "Update title",
       "titlePlaceholder": "E.g. Participatory evaluation in Senegal",
       "country": "Country",
       "thematic": "Theme",
@@ -146,9 +146,9 @@
       "photo": "Photo",
       "audio": "Audio",
       "video": "Video",
-      "consent": "I confirm I have consent from the people concerned and authorize publishing this story on the AfrEA-YEE platform.",
+      "consent": "I confirm I have consent from the people concerned and authorize publishing this update on the AfrEA-YEE platform.",
       "consentRequired": "Consent is required to submit for moderation.",
-      "anonymize": "Hide my name on this story",
+      "anonymize": "Hide my name on this update",
       "saveDraft": "Save draft",
       "submitModeration": "Submit for moderation",
       "submitting": "Submitting…"
@@ -157,6 +157,18 @@
       "country": "Country",
       "thematic": "Theme",
       "language": "Language"
+    },
+    "feed": {
+      "addPhoto": "Add photos",
+      "addAudio": "Add audio",
+      "commentPlaceholder": "Write a comment…",
+      "publishFailed": "Could not publish",
+      "mixedMedia": "Images and audio cannot be combined in the same post.",
+      "tooManyImages": "Maximum 4 images per post.",
+      "tooManyAudio": "Only one audio file per post.",
+      "invalidType": "Unsupported file format.",
+      "fileTooLarge": "File too large (5 MB max per image, 20 MB max for audio).",
+      "uploadFailed": "Media upload failed. Please try again."
     }
   },
   "members": {
@@ -169,19 +181,63 @@
     "grid": "Grid",
     "list": "List",
     "viewProfile": "View profile",
-    "connect": "Connect",
-    "disconnect": "Disconnect",
-    "cancelRequest": "Cancel request",
+    "connect": "Follow",
+    "disconnect": "Unfollow",
+    "cancelRequest": "Cancel",
+    "followers": "Followers",
+    "following": "Following",
+    "noFollowers": "No followers yet.",
+    "noFollowing": "Not following anyone yet.",
+    "loadingFollows": "Loading…",
+    "followListError": "Could not load the list.",
     "message": "Message",
     "editProfile": "Edit profile",
     "settings": "Account settings",
+    "changeAvatar": "Photo",
+    "changeCover": "Change cover",
+    "uploading": "Uploading…",
+    "saving": "Saving…",
+    "deleting": "Deleting…",
+    "settingsSaved": "Settings saved.",
+    "saveChanges": "Save changes",
+    "changePassword": "Change password",
+    "currentPassword": "Current password",
+    "passwordChangeHint": "After changing your password you will be signed out and must sign in again.",
+    "passwordChanged": "Password updated. Signing you out…",
+    "passwordChangeFailed": "Could not change password.",
+    "deleteAccountTitle": "Deactivate account",
+    "deleteAccountHint": "Your public profile will be anonymized. This requires your password.",
+    "deleteAccountConfirm": "I understand my account will be deactivated.",
+    "deleteAccount": "Deactivate my account",
+    "deleteConfirmRequired": "Please confirm by checking the box.",
+    "deletePasswordRequired": "Enter your password.",
+    "deleteFailed": "Could not deactivate the account.",
+    "settingsTabs": {
+      "general": "Security",
+      "privacy": "Privacy",
+      "email": "Email",
+      "danger": "Account"
+    },
+    "privacy": {
+      "whoCanSee": "Who can see your profile?",
+      "whoCanMessage": "Who can message you?",
+      "everyone": "Everyone",
+      "members": "Members only",
+      "friends": "My peers",
+      "nobody": "No one"
+    },
+    "emailPrefs": {
+      "activity": "Email me about activity",
+      "messages": "Email me about messages",
+      "friends": "Email me about connections"
+    },
     "online": "Online",
     "joined": "Joined {{date}}",
     "active": "Active {{time}}",
     "stats": {
       "peers": "Peers",
       "cohorts": "Cohorts",
-      "stories": "Stories"
+      "stories": "News"
     },
     "filters": {
       "country": "Country",
@@ -229,8 +285,8 @@
   },
   "moderation": {
     "title": "Moderation",
-    "subtitle": "{{count}} stor(y|ies) awaiting approval.",
-    "empty": "No stories pending. The queue is clear.",
+    "subtitle": "{{count}} update(s) awaiting approval.",
+    "empty": "No updates pending. The queue is clear.",
     "forbidden": "Access restricted to selected YEEs and the AfrEA Secretariat.",
     "refresh": "Refresh",
     "submitted": "Submitted {{time}}",
@@ -258,14 +314,14 @@
   },
   "search": {
     "prompt": "Global search",
-    "placeholder": "Stories, members, cohorts, forums, resources…",
+    "placeholder": "News, members, cohorts, forums, resources…",
     "showing": "{{count}} result(s) for “{{query}}”",
     "none": "No results for “{{query}}”",
     "empty": "No results for these criteria.",
     "hint": "Enter a keyword and/or filter by country, language, theme.",
     "tabs": {
       "all": "All",
-      "stories": "Stories",
+      "stories": "News",
       "members": "Members",
       "cohorts": "Cohorts",
       "forums": "Forums",

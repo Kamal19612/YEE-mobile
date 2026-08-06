@@ -3,7 +3,6 @@ import { Link, Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { register as registerRequest } from '../../api/auth'
 import { useAuth } from '../../hooks/useAuth'
-import { USE_MOCK } from '../../config/api'
 import { Button } from '../../components/ui/Button'
 
 /**
@@ -48,11 +47,6 @@ export function RegisterPage() {
     setSubmitting(true)
 
     try {
-      if (USE_MOCK) {
-        setSuccessMessage(t('auth.registerSuccessMock'))
-        return
-      }
-
       const data = await registerRequest({
         email: email.trim(),
         password,
@@ -89,12 +83,6 @@ export function RegisterPage() {
     <div className="mx-auto flex min-h-[60vh] w-full max-w-md flex-col justify-center py-10">
       <h1 className="m-0 mb-2 text-bb-xl font-semibold text-bb-heading">{t('auth.signup')}</h1>
       <p className="m-0 mb-6 text-bb-sm text-bb-muted">{t('auth.registerHint')}</p>
-
-      {USE_MOCK && (
-        <p className="mb-4 rounded-bb-inner border border-bb-border bg-bb-alt px-3 py-2 text-bb-sm text-bb-muted">
-          {t('auth.mockMode')}
-        </p>
-      )}
 
       {localError && (
         <p

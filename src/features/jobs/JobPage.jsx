@@ -1,11 +1,11 @@
 import { Link, useParams } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
-import { demoJobs } from '../../data/integrationsData'
+import { jobs } from '../../data/integrationsData'
 import { formatTimeSince } from '../activity/utils'
 
 export function JobPage() {
   const { jobId } = useParams()
-  const job = demoJobs.find((j) => String(j.id) === String(jobId))
+  const job = jobs.find((j) => String(j.id) === String(jobId))
 
   if (!job) {
     return (

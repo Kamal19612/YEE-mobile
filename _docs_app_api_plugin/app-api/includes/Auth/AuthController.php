@@ -6,6 +6,7 @@ use AppApi\Core\AbstractController;
 use AppApi\Core\ApiResponse;
 use AppApi\Core\RestNamespace;
 use AppApi\Core\Sanitizer;
+use AppApi\Users\UserTransformer;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -454,17 +455,22 @@ final class AuthController extends AbstractController {
     }
 
     /**
-     * Transforme un utilisateur WP en payload public. C'est ICI que se
-     * matérialise le principe "React ne voit jamais un objet WP brut" —
-     * même pour un simple utilisateur. À enrichir au sprint Profil avec
-     * avatar, cover, bio, etc. (données BuddyPress).
+     * Payload user renvoyé au login / refresh /auth/me.
+     * Délègue au UserTransformer pour inclure avatarUrl / coverUrl persistés
+     * (app_avatar_attachment_id / app_cover_attachment_id).
      */
     private static function public_user_payload( int $user_id ): array {
-        $user = get_userdata( $user_id );
+        $profile = UserTransformer::to_public_profile( $user_id, true );
+        if ( empty( $profile ) ) {
+            return [];
+        }
         return [
-            'id'          => (string) $user->ID,
-            'displayName' => $user->display_name,
-            'email'       => $user->user_email, // Uniquement sur /me, jamais sur un profil tiers.
+            'id'          => $profile['id'],
+            'displayName' => $profile['displayName'],
+            'mentionName' => $profile['mentionName'] ?? '',
+            'email'       => $profile['email'] ?? '',
+            'avatarUrl'   => $profile['avatarUrl'] ?? null,
+            'coverUrl'    => $profile['coverUrl'] ?? null,
         ];
     }
 }

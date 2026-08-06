@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import clsx from 'clsx'
-import { navItemDefs } from '../data/demoData'
+import { navItemDefs } from '../data/layoutData'
 import { IconEllipsis } from '../components/icons'
 
 const PRIMARY_COUNT = 4

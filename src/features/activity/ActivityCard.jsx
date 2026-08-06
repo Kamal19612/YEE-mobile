@@ -9,7 +9,7 @@ import { ActivityActions, ActivityState } from './ActivityActions'
 import { ActivityComments } from './ActivityComments'
 import { formatTimeSince, stripHtml } from './utils'
 
-/** Carte de récit — buddypress/activity/entry.php adapté AfrEA-YEE */
+/** Carte d’actualité — buddypress/activity/entry.php adapté AfrEA-YEE */
 export function ActivityCard({
   activity,
   onLike,

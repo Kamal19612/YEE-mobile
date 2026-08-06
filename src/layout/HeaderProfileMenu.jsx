@@ -5,7 +5,7 @@ import { Avatar } from '../components/ui/Avatar'
 import { IconAngleDown } from '../components/icons'
 import { useLayout } from '../context/LayoutProvider'
 import { useAuth } from '../hooks/useAuth'
-import { profileMenuDefs } from '../data/demoData'
+import { profileMenuDefs } from '../data/layoutData'
 import { useEffect, useMemo, useRef } from 'react'
 
 export function HeaderProfileMenu({ mode = 'name_and_avatar' }) {
@@ -27,7 +27,7 @@ export function HeaderProfileMenu({ mode = 'name_and_avatar' }) {
     if (!user?.id) return []
     return profileMenuDefs.map((item) => {
       if (item.id === 'logout') return item
-      const href = item.href.replace(/\/members\/\d+/, `/members/${user.id}`)
+      const href = item.href.replace(/\/members\/(?:me|\d+)/, `/members/${user.id}`)
       return { ...item, href }
     })
   }, [user?.id])

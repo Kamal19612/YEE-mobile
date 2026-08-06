@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createThread as apiCreateThread, fetchThreads, sendMessage as apiSend } from '../api/messages'
-import { USE_MOCK } from '../config/api'
-import { demoThreads } from '../data/messagesData'
 import { useAuth } from './useAuth'
 
 export function useMessages(activeThreadId) {
@@ -17,13 +15,8 @@ export function useMessages(activeThreadId) {
       setLoading(true)
       setError(null)
       try {
-        if (USE_MOCK) {
-          await new Promise((r) => setTimeout(r, 250))
-          if (alive) setThreads(demoThreads)
-        } else {
-          const list = await fetchThreads()
-          if (alive) setThreads(list)
-        }
+        const list = await fetchThreads()
+        if (alive) setThreads(list)
       } catch (err) {
         if (alive) setError(err.message || 'Failed to load messages')
       } finally {
@@ -71,12 +64,10 @@ export function useMessages(activeThreadId) {
           )
           .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)),
       )
-      if (!USE_MOCK) {
-        try {
-          await apiSend(threadId, content)
-        } catch {
-          /* keep optimistic */
-        }
+      try {
+        await apiSend(threadId, content)
+      } catch {
+        /* keep optimistic */
       }
       return message
     },
@@ -87,50 +78,25 @@ export function useMessages(activeThreadId) {
 
   const createThread = useCallback(
     async ({ participantName, subject, firstMessage, recipientIds = [] }) => {
-      if (!USE_MOCK) {
-        const created = await apiCreateThread({
-          recipients: recipientIds.length ? recipientIds : undefined,
-          subject: subject || `Conversation avec ${participantName}`,
-          content: firstMessage || '',
-        })
-        const mapped = created?.id
-          ? created
-          : {
-              id: Date.now(),
-              subject: subject || `Conversation avec ${participantName}`,
-              participants: [{ id: Date.now() + 1, displayName: participantName, avatar: null }],
-              unread: false,
-              updatedAt: new Date().toISOString(),
-              messages: [],
-            }
-        setThreads((prev) => [mapped, ...prev])
-        return mapped
-      }
-
-      const id = Date.now()
-      const thread = {
-        id,
+      const created = await apiCreateThread({
+        recipients: recipientIds.length ? recipientIds : undefined,
         subject: subject || `Conversation avec ${participantName}`,
-        participants: [{ id: Date.now() + 1, displayName: participantName, avatar: null }],
-        unread: false,
-        updatedAt: new Date().toISOString(),
-        messages: firstMessage
-          ? [
-              {
-                id: Date.now() + 2,
-                senderId: currentUser.id,
-                senderName: currentUser.displayName,
-                content: firstMessage,
-                date: new Date().toISOString(),
-              },
-            ]
-          : [],
-      }
-      setThreads((prev) => [thread, ...prev])
-      demoThreads.unshift(thread)
-      return thread
+        content: firstMessage || '',
+      })
+      const mapped = created?.id
+        ? created
+        : {
+            id: Date.now(),
+            subject: subject || `Conversation avec ${participantName}`,
+            participants: [{ id: Date.now() + 1, displayName: participantName, avatar: null }],
+            unread: false,
+            updatedAt: new Date().toISOString(),
+            messages: [],
+          }
+      setThreads((prev) => [mapped, ...prev])
+      return mapped
     },
-    [currentUser],
+    [],
   )
 
   return { threads, activeThread, loading, error, sendMessage, unreadCount, createThread }

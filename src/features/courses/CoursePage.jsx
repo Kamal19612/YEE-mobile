@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
-import { demoCourses } from '../../data/integrationsData'
+import { courses } from '../../data/integrationsData'
 
 /** Référence: learndash/ld30/course.php + modules/progress */
 export function CoursePage() {
   const { courseId } = useParams()
-  const initial = demoCourses.find((c) => String(c.id) === String(courseId))
+  const initial = courses.find((c) => String(c.id) === String(courseId))
   const [course, setCourse] = useState(initial)
 
   if (!course) {

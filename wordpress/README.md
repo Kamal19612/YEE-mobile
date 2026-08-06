@@ -23,6 +23,23 @@ Sans bridge, `POST /buddypress/v1/activity`, `/wp/v2/media`, etc. restent en **4
 2. Publie une story depuis le composer.
 3. Si 401 → le bridge n’est pas chargé (mauvais chemin ou App API inactif).
 
+## Avatar / couverture App API
+
+Les uploads sont stockés en user_meta :
+- `app_avatar_attachment_id`
+- `app_cover_attachment_id`
+
+Le plugin **doit** exposer ces URLs via `UserTransformer` (pas seulement `get_avatar_url` / Gravatar).
+Après mise à jour du plugin sur Hostinger, reconnecte-toi : photo + cover persistent, et l’avatar apparaît aussi dans l’annuaire / le feed BuddyPress.
+
+Fichiers à redéployer (plugin App API) :
+- `includes/Users/UserTransformer.php`
+- `includes/Auth/AuthController.php`
+- `includes/Users/FollowController.php` (GET follow status + `is_following`)
+- `includes/Users/ProfileController.php` (`isFollowing` sur profil public)
+- `includes/Core/AbstractController.php` (`maybe_authenticate`)
+- `app-api.php` (filtres `get_avatar_url` + BP REST)
+
 ## Feed actuel
 - CPT `recits` : **absent** sur le site → non utilisé.
 - Source live : **BuddyPress Activity** (`/buddypress/v1/activity`).

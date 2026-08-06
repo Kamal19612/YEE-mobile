@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import * as authApi from '../api/auth'
 import { clearToken, setUnauthorizedHandler } from '../api/client'
 import { enrichSessionUser } from '../api/users'
-import { USE_MOCK } from '../config/api'
-import { currentUser as demoUser } from '../data/demoData'
 
 const AuthContext = createContext(null)
 
@@ -35,14 +33,6 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     let alive = true
     async function bootstrap() {
-      if (USE_MOCK) {
-        if (alive) {
-          setUser(demoUser)
-          setBootstrapping(false)
-        }
-        return
-      }
-
       // Access token mémoire perdu au F5 → restauration via cookie refresh httpOnly
       try {
         const session = await authApi.restoreSession()
@@ -68,10 +58,6 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (email, password, { rememberMe = true } = {}) => {
     setAuthError(null)
-    if (USE_MOCK) {
-      setUser(demoUser)
-      return demoUser
-    }
     try {
       const { user: me } = await authApi.login(email, password, { rememberMe })
       if (!me) {
@@ -91,6 +77,10 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
+  const patchUser = useCallback((patch) => {
+    setUser((prev) => (prev ? { ...prev, ...patch } : prev))
+  }, [])
+
   const value = useMemo(
     () => ({
       user,
@@ -99,10 +89,10 @@ export function AuthProvider({ children }) {
       authError,
       login,
       logout,
-      /** En mock : utilisateur démo. En live : user App API ou null. */
+      patchUser,
       currentUser: user,
     }),
-    [user, bootstrapping, authError, login, logout],
+    [user, bootstrapping, authError, login, logout, patchUser],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

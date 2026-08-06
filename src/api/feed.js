@@ -1,178 +1,243 @@
-import { apiFetch } from './client'
-import {
-  createActivity,
-  fetchActivities,
-  favoriteActivity,
-  mapActivity,
-  postComment,
-} from './activity'
-import { createRecit, getRecits, updateRecitStatus } from './recits'
+import { ENDPOINTS } from '../config/api'
+import { appApiFetch, getToken } from './client'
 
 /**
- * Couche Feed unifiée.
- * - Priorité CPT `recits` si enregistré sur WP
- * - Sinon BuddyPress Activity (Hostinger actuel : pas de CPT récits)
+ * Feed — App API `/app/v1/feed/*`
+ *
+ * Note : `normalizeMediaUrl` n’est pas exporté par `users.js` (hors périmètre).
+ * Même logique locale pour les avatarUrl WordPress (`#038;` / `&amp;`).
  */
-
-let recitsAvailable = null
-
-/** @returns {Promise<boolean>} */
-export async function detectRecitsCpt() {
-  if (recitsAvailable !== null) return recitsAvailable
-  try {
-    await apiFetch('/wp/v2/types/recit', { skipAuth: true, suppressUnauthorized: true })
-    recitsAvailable = true
-  } catch (err) {
-    if (err?.status === 404) {
-      recitsAvailable = false
-    } else {
-      // Erreur réseau / 5xx : ne pas figer le cache, retenter plus tard
-      recitsAvailable = null
-      return false
-    }
-  }
-  return Boolean(recitsAvailable)
+function normalizeMediaUrl(url) {
+  if (!url) return null
+  let u = String(url).replace(/#038;/g, '&').replace(/&amp;/g, '&')
+  if (u.startsWith('//')) u = `https:${u}`
+  return u
 }
 
-/** Force un nouveau probe (après déploiement CPT). */
-export function resetRecitsDetection() {
-  recitsAvailable = null
+function mapAuthor(raw) {
+  if (!raw || typeof raw !== 'object') {
+    return { id: '', displayName: '', avatarUrl: null, profession: '' }
+  }
+  return {
+    id: String(raw.id ?? ''),
+    displayName: raw.displayName || '',
+    avatarUrl: normalizeMediaUrl(raw.avatarUrl),
+    profession: raw.profession || '',
+  }
 }
 
-/**
- * @param {object} filtres
- */
-export async function getFeedItems(filtres = {}) {
-  const {
-    page = 1,
-    perPage = 10,
-    scope = 'all',
-    search = '',
-    author,
-    status,
-    pays = '',
-    langue = '',
-    thematique = '',
-  } = filtres
+/** Validation client (UX) — la sécurité réelle est côté UploadValidator WP. */
+export const FEED_IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp'
+export const FEED_IMAGE_MAX_BYTES = 5 * 1024 * 1024
+export const FEED_IMAGE_MAX_COUNT = 4
+export const FEED_AUDIO_ACCEPT = 'audio/mpeg,audio/mp4,audio/aac,audio/ogg,audio/webm'
+export const FEED_AUDIO_MAX_BYTES = 20 * 1024 * 1024
+export const FEED_AUDIO_MAX_COUNT = 1
 
-  if (await detectRecitsCpt()) {
-    let recitStatus = status
-    if (!recitStatus) {
-      if (scope === 'pending') recitStatus = 'pending'
-      else if (scope === 'just-me') recitStatus = 'publish,pending,draft'
-      else recitStatus = 'publish'
-    }
+const FEED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const FEED_AUDIO_TYPES = ['audio/mpeg', 'audio/mp4', 'audio/aac', 'audio/ogg', 'audio/webm']
 
-    return getRecits({
-      page,
-      perPage,
-      status: recitStatus,
-      search,
-      author,
-      pays,
-      langue,
-      thematique,
-    })
-  }
+function isFeedImage(file) {
+  return file && FEED_IMAGE_TYPES.includes(file.type)
+}
 
-  const list = await fetchActivities({
-    page,
-    perPage,
-    scope: scope === 'pending' ? 'just-me' : scope === 'favorites' ? 'favorites' : scope === 'all' ? 'all' : scope,
-    search,
-  })
-
-  if (scope === 'pending') return list.filter((a) => a.status === 'pending')
-  if (scope === 'favorites') return list.filter((a) => a.favorited)
-  if (scope === 'groups') return list.filter((a) => a.component === 'groups')
-  if (scope === 'just-me' && author != null) {
-    return list.filter((a) => String(a.userId) === String(author))
-  }
-  if (scope === 'all') {
-    return list.filter((a) => !a.status || a.status === 'published' || a.status === 'publish')
-  }
-  return list
+function isFeedAudio(file) {
+  return file && FEED_AUDIO_TYPES.includes(file.type)
 }
 
 /**
- * @param {object} payload
+ * Valide un lot de fichiers avant envoi.
+ * @returns {string|null} message d’erreur, ou null si OK
  */
-export async function createFeedItem(payload = {}) {
-  if (await detectRecitsCpt()) {
-    return createRecit(payload)
+export function validateFeedMedia(files) {
+  const list = Array.isArray(files) ? files.filter(Boolean) : []
+  if (!list.length) return null
+
+  const images = list.filter(isFeedImage)
+  const audios = list.filter(isFeedAudio)
+  const other = list.filter((f) => !isFeedImage(f) && !isFeedAudio(f))
+
+  if (other.length) return 'Formats acceptés : JPEG, PNG, WebP ou audio (MP3, M4A, AAC, OGG, WebM).'
+  if (images.length && audios.length) return 'Images et audio ne peuvent pas être combinés dans le même post.'
+  if (images.length > FEED_IMAGE_MAX_COUNT) return `Maximum ${FEED_IMAGE_MAX_COUNT} images par post.`
+  if (audios.length > FEED_AUDIO_MAX_COUNT) return 'Un seul fichier audio par post.'
+
+  for (const file of images) {
+    if (file.size > FEED_IMAGE_MAX_BYTES) return 'Chaque image ne doit pas dépasser 5 Mo.'
   }
-
-  const {
-    title = '',
-    content = '',
-    status = 'pending',
-    consent = false,
-    anonymous = false,
-    tags = {},
-    media = [],
-  } = payload
-
-  const bodyContent = title ? `${title}\n\n${content}` : content
-
-  return createActivity({
-    content: bodyContent,
-    title,
-    privacy: 'public',
-    status,
-    consent,
-    anonymous,
-    tags,
-    media,
-  })
+  for (const file of audios) {
+    if (file.size > FEED_AUDIO_MAX_BYTES) return 'Le fichier audio ne doit pas dépasser 20 Mo.'
+  }
+  return null
 }
 
-export async function getPendingFeedItems({ page = 1, perPage = 10 } = {}) {
-  if (await detectRecitsCpt()) {
-    return getRecits({ page, perPage, status: 'pending' })
+function mapMediaItem(m) {
+  if (!m || typeof m !== 'object') return null
+  const type = m.type === 'audio' ? 'audio' : m.type === 'image' ? 'image' : null
+  if (!type) return null
+  return {
+    id: String(m.id ?? ''),
+    type,
+    url: normalizeMediaUrl(m.url),
   }
-
-  const list = await fetchActivities({ page, perPage, scope: 'all' })
-  return list.filter((a) => a.status === 'pending')
 }
 
-export async function moderateFeedItem(id, { action, comment = '' } = {}) {
-  if (await detectRecitsCpt()) {
-    const statut = action === 'approve' ? 'publish' : 'draft'
-    const updated = await updateRecitStatus(id, statut)
-    if (comment) {
-      try {
-        await apiFetch(`/afrea/v1/moderation/stories/${id}`, {
-          method: 'POST',
-          body: JSON.stringify({ action, comment }),
-        })
-      } catch {
-        /* endpoint custom optionnel */
-      }
-    }
-    return updated
+function mapPost(raw) {
+  if (!raw || typeof raw !== 'object') return null
+  return {
+    id: String(raw.id),
+    author: mapAuthor(raw.author),
+    content: typeof raw.content === 'string' ? raw.content : '',
+    likesCount: Number(raw.likesCount) || 0,
+    commentsCount: Number(raw.commentsCount) || 0,
+    createdAt: raw.createdAt || '',
+    viewerHasLiked: Boolean(raw.viewerHasLiked),
+    // isOwnPost : source serveur uniquement — ne pas recalculer côté client
+    isOwnPost: Boolean(raw.isOwnPost),
+    media: Array.isArray(raw.media)
+      ? raw.media.map(mapMediaItem).filter(Boolean)
+      : [],
   }
+}
 
-  const publicationStatus = action === 'approve' ? 'published' : 'rejected'
-  const body = {
-    meta: {
-      publication_status: publicationStatus,
-      moderation_comment: comment,
-    },
+function mapComment(raw) {
+  if (!raw || typeof raw !== 'object') return null
+  return {
+    id: String(raw.id),
+    author: mapAuthor(raw.author),
+    content: typeof raw.content === 'string' ? raw.content : '',
+    createdAt: raw.createdAt || '',
   }
+}
 
-  try {
-    const data = await apiFetch(`/buddypress/v1/activity/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(body),
-    })
-    return mapActivity(data)
-  } catch {
-    const data = await apiFetch(`/buddypress/v1/activity/${id}`, {
+function authOpts() {
+  const token = getToken()
+  return token ? { auth: true } : { skipAuth: true }
+}
+
+/**
+ * GET /feed — pagination curseur (`before` = id du dernier post chargé).
+ *
+ * `appApiFetch` ne renvoie que `body.data` et ignore `meta` (voir signalement client.js).
+ * Tant que `meta.nextCursor` n’est pas préservé, on dérive le curseur du dernier id
+ * quand la page est pleine ; `null` si moins de `perPage` items.
+ *
+ * @returns {Promise<{ posts: object[], nextCursor: string|null }>}
+ */
+export async function fetchFeed({ before, perPage = 10, authorId } = {}) {
+  const params = new URLSearchParams()
+  if (before) params.set('before', String(before))
+  if (perPage != null) params.set('perPage', String(perPage))
+  if (authorId != null && authorId !== '') params.set('authorId', String(authorId))
+
+  const qs = params.toString()
+  const path = qs ? `${ENDPOINTS.feed.list}?${qs}` : ENDPOINTS.feed.list
+  const data = await appApiFetch(path, authOpts())
+
+  const list = Array.isArray(data) ? data : []
+  const posts = list.map(mapPost).filter(Boolean)
+  const nextCursor =
+    posts.length > 0 && posts.length >= perPage ? posts[posts.length - 1].id : null
+
+  return { posts, nextCursor }
+}
+
+/**
+ * POST /feed — JSON `{ content }` ou multipart (content + media Files).
+ * Ne pas fixer Content-Type sur FormData : le navigateur pose le boundary.
+ */
+export async function createPost({ content, media } = {}) {
+  const files = Array.isArray(media) ? media.filter(Boolean) : []
+
+  if (files.length > 0) {
+    const formData = new FormData()
+    formData.append('content', content || '')
+    files.forEach((file) => formData.append('media', file))
+    const data = await appApiFetch(ENDPOINTS.feed.list, {
       method: 'POST',
-      body: JSON.stringify({ id, ...body }),
+      auth: true,
+      body: formData,
     })
-    return mapActivity(data)
+    return mapPost(data)
   }
+
+  const data = await appApiFetch(ENDPOINTS.feed.list, {
+    method: 'POST',
+    auth: true,
+    body: JSON.stringify({ content }),
+  })
+  return mapPost(data)
 }
 
-export { favoriteActivity, postComment }
+/** GET /feed/{id} */
+export async function fetchPost(id) {
+  const data = await appApiFetch(ENDPOINTS.feed.detail(String(id)), authOpts())
+  return mapPost(data)
+}
+
+/** DELETE /feed/{id} */
+export async function deletePost(id) {
+  return appApiFetch(ENDPOINTS.feed.detail(String(id)), {
+    method: 'DELETE',
+    auth: true,
+  })
+}
+
+/** POST /feed/{id}/like */
+export async function likePost(id) {
+  return appApiFetch(ENDPOINTS.feed.like(String(id)), {
+    method: 'POST',
+    auth: true,
+  })
+}
+
+/** DELETE /feed/{id}/like */
+export async function unlikePost(id) {
+  return appApiFetch(ENDPOINTS.feed.like(String(id)), {
+    method: 'DELETE',
+    auth: true,
+  })
+}
+
+/**
+ * GET /feed/{id}/comments?before=
+ * Même limitation meta que fetchFeed.
+ * @returns {Promise<{ comments: object[], nextCursor: string|null }>}
+ */
+export async function fetchComments(postId, { before, perPage = 20 } = {}) {
+  const params = new URLSearchParams()
+  if (before) params.set('before', String(before))
+  if (perPage != null) params.set('perPage', String(perPage))
+
+  const qs = params.toString()
+  const base = ENDPOINTS.feed.comments(String(postId))
+  const path = qs ? `${base}?${qs}` : base
+  const data = await appApiFetch(path, authOpts())
+
+  const list = Array.isArray(data) ? data : []
+  const comments = list.map(mapComment).filter(Boolean)
+  const nextCursor =
+    comments.length > 0 && comments.length >= perPage
+      ? comments[comments.length - 1].id
+      : null
+
+  return { comments, nextCursor }
+}
+
+/** POST /feed/{id}/comments — body: { content } */
+export async function createComment(postId, { content }) {
+  const data = await appApiFetch(ENDPOINTS.feed.comments(String(postId)), {
+    method: 'POST',
+    auth: true,
+    body: JSON.stringify({ content }),
+  })
+  return mapComment(data)
+}
+
+/** DELETE /feed/comments/{commentId} */
+export async function deleteComment(commentId) {
+  return appApiFetch(ENDPOINTS.feed.deleteComment(String(commentId)), {
+    method: 'DELETE',
+    auth: true,
+  })
+}

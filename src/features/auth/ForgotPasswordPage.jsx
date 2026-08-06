@@ -3,7 +3,6 @@ import { Link, Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { forgotPassword } from '../../api/auth'
 import { useAuth } from '../../hooks/useAuth'
-import { USE_MOCK } from '../../config/api'
 import { Button } from '../../components/ui/Button'
 
 /**
@@ -31,10 +30,6 @@ export function ForgotPasswordPage() {
     setSubmitting(true)
 
     try {
-      if (USE_MOCK) {
-        setSuccessMessage(t('auth.forgotSuccess'))
-        return
-      }
       const data = await forgotPassword(email.trim())
       setSuccessMessage(data?.message || t('auth.forgotSuccess'))
     } catch (err) {

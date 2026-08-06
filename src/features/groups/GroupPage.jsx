@@ -3,14 +3,21 @@ import { Link, Navigate, NavLink, Route, Routes, useParams } from 'react-router-
 import clsx from 'clsx'
 import { Avatar } from '../../components/ui/Avatar'
 import { Button } from '../../components/ui/Button'
-import { demoMembers } from '../../data/membersData'
-import { demoActivities } from '../../data/activityData'
 import { useAuth } from '../../hooks/useAuth'
 import { useGroup } from '../../hooks/useGroups'
 import { ActivityCard } from '../activity/ActivityCard'
 import { ActivityComposer } from '../activity/ActivityComposer'
 import { applyComment, buildStoryPost } from '../activity/storyHelpers'
 import { formatTimeSince } from '../activity/utils'
+
+function groupMembersFromGroup(group) {
+  const adminIds = new Set((group.admins || []).map((a) => a.id))
+  const admins = (group.admins || []).map((a) => ({ id: a.id, displayName: a.displayName, avatar: null }))
+  const stubs = (group.memberIds || [])
+    .filter((id) => !adminIds.has(id))
+    .map((id) => ({ id, displayName: `Member ${id}`, avatar: null }))
+  return [...admins, ...stubs]
+}
 
 /** Référence: groups/single/home.php + invite-anyone.php */
 export function GroupPage() {
@@ -158,44 +165,9 @@ function GroupNav({ groupId, isMember }) {
 }
 
 function GroupActivity({ group }) {
-  const initial = useMemo(
-    () =>
-      demoActivities
-        .filter((a) => a.group?.id === group.id || (a.component === 'groups' && a.group?.id === group.id))
-        .map((a) => ({
-          ...a,
-          status: a.status || 'published',
-          group: { id: group.id, name: group.name, avatar: group.avatar, link: `/groups/${group.id}` },
-          component: 'groups',
-        })),
-    [group],
-  )
-  const [posts, setPosts] = useState(
-    initial.length
-      ? initial
-      : [
-          {
-            id: `g-${group.id}-welcome`,
-            userId: group.admins?.[0]?.id || 1,
-            userName: group.admins?.[0]?.displayName || 'Admin',
-            userLink: `/members/${group.admins?.[0]?.id || 1}`,
-            avatar: null,
-            content: `Bienvenue dans ${group.name} ! Présentez-vous ci-dessous.`,
-            date: group.created,
-            component: 'groups',
-            type: 'story',
-            privacy: 'public',
-            status: 'published',
-            favorited: false,
-            favoriteCount: 2,
-            commentCount: 0,
-            edited: false,
-            group: { id: group.id, name: group.name, avatar: group.avatar, link: `/groups/${group.id}` },
-            media: [],
-            comments: [],
-          },
-        ],
-  )
+  const { user } = useAuth()
+  const currentUser = user || { id: 0, displayName: 'Guest', avatar: null }
+  const [posts, setPosts] = useState([])
 
   return (
     <div className="max-w-content">
@@ -242,13 +214,19 @@ function GroupActivity({ group }) {
             }}
           />
         ))}
+        {!posts.length && (
+          <li className="bb-card p-8 text-center text-bb-sm text-bb-muted">No activity yet.</li>
+        )}
       </ul>
     </div>
   )
 }
 
 function GroupMembers({ group }) {
-  const members = demoMembers.filter((m) => group.memberIds?.includes(m.id))
+  const { user } = useAuth()
+  const currentUser = user || { id: 0, displayName: 'Guest', avatar: null }
+  const members = useMemo(() => groupMembersFromGroup(group), [group])
+
   return (
     <ul className="m-0 grid list-none grid-cols-1 gap-3 p-0 sm:grid-cols-2 lg:grid-cols-3">
       {members.map((m) => (
@@ -284,16 +262,14 @@ function GroupInvite({ group }) {
   const [selected, setSelected] = useState([])
   const [sent, setSent] = useState(false)
 
-  const candidates = demoMembers.filter(
-    (m) =>
-      m.id !== currentUser.id &&
-      !group.memberIds?.includes(m.id) &&
-      (m.displayName.toLowerCase().includes(query.toLowerCase()) ||
-        m.mentionName.toLowerCase().includes(query.toLowerCase())),
-  )
+  const candidates = []
 
-  const toggle = (id) => {
-    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  const toggle = (member) => {
+    setSelected((prev) =>
+      prev.some((m) => m.id === member.id)
+        ? prev.filter((m) => m.id !== member.id)
+        : [...prev, member],
+    )
   }
 
   return (
@@ -316,8 +292,8 @@ function GroupInvite({ group }) {
               <label className="flex cursor-pointer items-center gap-3 rounded-bb-inner px-2 py-2 hover:bg-bb-alt">
                 <input
                   type="checkbox"
-                  checked={selected.includes(m.id)}
-                  onChange={() => toggle(m.id)}
+                  checked={selected.some((s) => s.id === m.id)}
+                  onChange={() => toggle(m)}
                 />
                 <Avatar name={m.displayName} src={m.avatar} size="sm" />
                 <span className="text-bb-sm text-bb-heading">{m.displayName}</span>
@@ -335,18 +311,14 @@ function GroupInvite({ group }) {
           Select people to invite from the community.
         </div>
         <ul id="invite-anyone-invite-list" className="m-0 mb-4 min-h-[120px] list-none space-y-2 p-0">
-          {selected.map((id) => {
-            const m = demoMembers.find((x) => x.id === id)
-            if (!m) return null
-            return (
-              <li key={id} className="flex items-center justify-between rounded-bb-inner bg-bb-alt px-3 py-2">
-                <span className="text-bb-sm text-bb-heading">{m.displayName}</span>
-                <button type="button" className="text-bb-xs text-bb-danger" onClick={() => toggle(id)}>
-                  Remove
-                </button>
-              </li>
-            )
-          })}
+          {selected.map((m) => (
+            <li key={m.id} className="flex items-center justify-between rounded-bb-inner bg-bb-alt px-3 py-2">
+              <span className="text-bb-sm text-bb-heading">{m.displayName}</span>
+              <button type="button" className="text-bb-xs text-bb-danger" onClick={() => toggle(m)}>
+                Remove
+              </button>
+            </li>
+          ))}
           {!selected.length && (
             <li className="text-bb-sm text-bb-muted">No invites selected yet.</li>
           )}

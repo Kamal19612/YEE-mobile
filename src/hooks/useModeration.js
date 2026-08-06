@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
 import { fetchPendingStories, moderateStory as apiModerate } from '../api/moderation'
-import { USE_MOCK } from '../config/api'
-import { demoActivities, PUBLICATION_STATUS } from '../data/activityData'
-import { useAuth } from './useAuth'
 
 /** Rôles autorisés à modérer (TDR §7.iii) */
 export function canModerate(user) {
@@ -17,7 +14,6 @@ export function canModerate(user) {
 }
 
 export function useModeration({ perPage = 10 } = {}) {
-  const { user } = useAuth()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -27,12 +23,7 @@ export function useModeration({ perPage = 10 } = {}) {
     setLoading(true)
     setError(null)
     try {
-      if (USE_MOCK) {
-        await new Promise((r) => setTimeout(r, 300))
-        setItems(demoActivities.filter((a) => a.status === PUBLICATION_STATUS.PENDING))
-      } else {
-        setItems(await fetchPendingStories({ perPage }))
-      }
+      setItems(await fetchPendingStories({ perPage }))
     } catch (err) {
       setError(err.message || 'Failed to load moderation queue')
     } finally {
@@ -48,24 +39,6 @@ export function useModeration({ perPage = 10 } = {}) {
     async (id, { action, comment = '' }) => {
       setActingId(id)
       try {
-        const nextStatus =
-          action === 'approve' ? PUBLICATION_STATUS.PUBLISHED : PUBLICATION_STATUS.REJECTED
-
-        if (USE_MOCK) {
-          const idx = demoActivities.findIndex((a) => a.id === id)
-          if (idx >= 0) {
-            demoActivities[idx] = {
-              ...demoActivities[idx],
-              status: nextStatus,
-              moderationComment: comment,
-              moderatedAt: new Date().toISOString(),
-              moderatedBy: user?.id,
-            }
-          }
-          setItems((prev) => prev.filter((a) => a.id !== id))
-          return demoActivities[idx]
-        }
-
         const updated = await apiModerate(id, { action, comment })
         setItems((prev) => prev.filter((a) => a.id !== id))
         return updated
@@ -73,7 +46,7 @@ export function useModeration({ perPage = 10 } = {}) {
         setActingId(null)
       }
     },
-    [user?.id],
+    [],
   )
 
   return {
