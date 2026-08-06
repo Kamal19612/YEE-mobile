@@ -28,8 +28,8 @@ export default defineConfig(({ mode }) => {
     env.VITE_WP_PROXY_TARGET || 'https://sandybrown-rail-456461.hostingersite.com'
 
   return {
-    // GitHub Pages project site: https://<user>.github.io/Buddyboss/
-    base: process.env.VITE_BASE || (mode === 'production' ? '/Buddyboss/' : '/'),
+    // GitHub Pages project site: https://<user>.github.io/YEE/
+    base: process.env.VITE_BASE || (mode === 'production' ? '/YEE/' : '/'),
     plugins: [react()],
     server: {
       port: 5173,

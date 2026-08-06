@@ -28,7 +28,7 @@ jobs:
       - run: npm ci
       - run: npm run build
         env:
-          VITE_BASE: /Buddyboss/
+          VITE_BASE: /YEE/
           # GitHub Pages n'a pas de proxy Vite : URLs absolues vers WordPress Hostinger
           VITE_WP_API_URL: https://sandybrown-rail-456461.hostingersite.com/wp-json
           VITE_APP_API_URL: https://sandybrown-rail-456461.hostingersite.com/wp-json/app/v1
