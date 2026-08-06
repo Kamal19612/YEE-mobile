@@ -5,8 +5,6 @@ export const navItemDefs = [
   { id: 'members', href: '/members', labelKey: 'nav.members' },
   { id: 'groups', href: '/groups', labelKey: 'nav.groups' },
   { id: 'institutions', href: '/institutions', labelKey: 'nav.institutions' },
-  { id: 'forums', href: '/forums', labelKey: 'nav.forums' },
-  { id: 'resources', href: '/resources', labelKey: 'nav.resources' },
 ]
 
 export const panelItemDefs = [
@@ -14,11 +12,7 @@ export const panelItemDefs = [
   { id: 'members', href: '/members', icon: 'users', count: 0, labelKey: 'panel.members' },
   { id: 'groups', href: '/groups', icon: 'group', count: 0, labelKey: 'panel.groups' },
   { id: 'institutions', href: '/institutions', icon: 'globe', count: 0, labelKey: 'panel.institutions' },
-  { id: 'forums', href: '/forums', icon: 'forum', count: 0, labelKey: 'panel.forums' },
-  { id: 'resources', href: '/resources', icon: 'book', count: 0, labelKey: 'panel.resources' },
-  { id: 'messages', href: '/messages', icon: 'inbox', count: 0, labelKey: 'panel.messages' },
   { id: 'notifications', href: '/notifications', icon: 'bell', count: 0, labelKey: 'panel.notifications' },
-  { id: 'moderation', href: '/moderation', icon: 'shield', count: 0, labelKey: 'panel.moderation' },
 ]
 
 export const profileMenuDefs = [

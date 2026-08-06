@@ -22,7 +22,15 @@ export function LoginPage() {
   const deactivated = location.state?.reason === 'account_deactivated'
   const passwordChanged = location.state?.reason === 'password_changed'
 
-  if (!isBootstrapping && isAuthenticated) {
+  if (isBootstrapping) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-bb-body">
+        <p className="m-0 text-bb-sm text-bb-muted">{t('common.loading')}</p>
+      </div>
+    )
+  }
+
+  if (isAuthenticated) {
     return <Navigate to={from} replace />
   }
 
@@ -50,19 +58,12 @@ export function LoginPage() {
       title={t('auth.signin')}
       hint={t('auth.loginHint')}
       footer={
-        <>
-          <p className="m-0 text-center text-bb-sm text-bb-muted">
-            {t('auth.noAccount')}{' '}
-            <Link to="/register" className="font-medium text-bb-primary hover:underline">
-              {t('auth.signup')}
-            </Link>
-          </p>
-          <p className="mt-2 text-center text-bb-sm text-bb-muted">
-            <Link to="/" className="text-bb-primary hover:underline">
-              {t('auth.backHome')}
-            </Link>
-          </p>
-        </>
+        <p className="m-0 text-center text-bb-sm text-bb-muted">
+          {t('auth.noAccount')}{' '}
+          <Link to="/register" className="font-medium text-bb-primary hover:underline">
+            {t('auth.signup')}
+          </Link>
+        </p>
       }
     >
       {(expired || deactivated || passwordChanged || authError || localError) && (

@@ -10,6 +10,8 @@ const NOTIFICATION_TYPES = new Set([
   'institution_affiliation_request',
   'institution_affiliation_approved',
   'institution_affiliation_rejected',
+  'post_like',
+  'post_comment',
 ])
 
 function normalizeMediaUrl(url) {
@@ -34,7 +36,14 @@ function mapActor(raw) {
 function mapSubject(raw) {
   if (!raw || typeof raw !== 'object') return null
   const typeRaw = raw.type || raw.objectType || raw.object_type
-  const type = typeRaw === 'institution' ? 'institution' : typeRaw === 'group' ? 'group' : null
+  const type =
+    typeRaw === 'institution'
+      ? 'institution'
+      : typeRaw === 'group'
+        ? 'group'
+        : typeRaw === 'post'
+          ? 'post'
+          : null
   if (!type) return null
   const id = raw.id ?? raw.ID ?? raw.objectId ?? raw.object_id
   if (id == null || id === '') return null

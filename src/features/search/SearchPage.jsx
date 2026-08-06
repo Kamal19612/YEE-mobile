@@ -7,7 +7,7 @@ import { IconSearch } from '../../components/icons'
 import { STORY_COUNTRIES, STORY_THEMATICS } from '../../data/activityData'
 import { MEMBER_LANGUAGES } from '../../data/membersData'
 import { SEARCH_TABS, useSearch } from '../../hooks/useSearch'
-import { formatTimeSince, stripHtml } from '../activity/utils'
+import { stripHtml } from '../activity/utils'
 
 /** Recherche globale multi-critères — contenu, langue, pays, thématique */
 export function SearchPage() {
@@ -207,48 +207,6 @@ export function SearchPage() {
                     title={g.name}
                     meta={`${g.membersCount} · ${g.status}`}
                     avatarName={g.name}
-                  />
-                ))}
-              </ResultSection>
-            )}
-
-            {(tab === 'all' || tab === 'forums') && results.forums.length > 0 && (
-              <ResultSection title={t('search.tabs.forums')} count={counts.forums}>
-                {results.forums.map((f) => (
-                  <ResultRow
-                    key={`f-${f.id}`}
-                    to={`/forums/${f.id}`}
-                    title={f.title}
-                    meta={`${f.topicCount} · ${f.replyCount}`}
-                    avatarName={f.title}
-                  />
-                ))}
-              </ResultSection>
-            )}
-
-            {(tab === 'all' || tab === 'topics') && results.topics.length > 0 && (
-              <ResultSection title={t('search.tabs.topics')} count={counts.topics}>
-                {results.topics.map((topic) => (
-                  <ResultRow
-                    key={`t-${topic.id}`}
-                    to={`/forums/${topic.forumId}/topics/${topic.id}`}
-                    title={topic.title}
-                    meta={`${topic.authorName} · ${formatTimeSince(topic.lastReplyAt)}`}
-                    avatarName={topic.authorName}
-                  />
-                ))}
-              </ResultSection>
-            )}
-
-            {(tab === 'all' || tab === 'resources') && results.resources.length > 0 && (
-              <ResultSection title={t('search.tabs.resources')} count={counts.resources}>
-                {results.resources.map((r) => (
-                  <ResultRow
-                    key={`r-${r.id}`}
-                    to="/resources"
-                    title={r.title}
-                    meta={r.thematic}
-                    avatarName={r.title}
                   />
                 ))}
               </ResultSection>

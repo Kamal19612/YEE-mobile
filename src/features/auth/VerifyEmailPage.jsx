@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { verifyEmail } from '../../api/auth'
 import { Button } from '../../components/ui/Button'
+import { AuthShell } from './AuthShell'
 
 /**
  * Vérification email App API — POST /app/v1/auth/verify-email
@@ -39,15 +40,16 @@ export function VerifyEmailPage() {
   }, [token, t])
 
   return (
-    <div className="mx-auto flex min-h-[60vh] w-full max-w-md flex-col justify-center py-10">
-      <h1 className="m-0 mb-2 text-bb-xl font-semibold text-bb-heading">{t('auth.verifyTitle')}</h1>
-
+    <AuthShell title={t('auth.verifyTitle')}>
       {status === 'loading' && (
         <p className="m-0 text-bb-sm text-bb-muted">{t('auth.verifying')}</p>
       )}
 
       {status === 'missing' && (
-        <p className="mb-6 rounded-bb-inner border border-red-200 bg-red-50 px-3 py-2 text-bb-sm text-red-700" role="alert">
+        <p
+          className="mb-6 rounded-bb-inner border border-red-200 bg-red-50 px-3 py-2 text-bb-sm text-red-700"
+          role="alert"
+        >
           {t('auth.verifyMissingToken')}
         </p>
       )}
@@ -62,7 +64,10 @@ export function VerifyEmailPage() {
       )}
 
       {status === 'error' && (
-        <p className="mb-6 rounded-bb-inner border border-red-200 bg-red-50 px-3 py-2 text-bb-sm text-red-700" role="alert">
+        <p
+          className="mb-6 rounded-bb-inner border border-red-200 bg-red-50 px-3 py-2 text-bb-sm text-red-700"
+          role="alert"
+        >
           {message}
         </p>
       )}
@@ -72,6 +77,6 @@ export function VerifyEmailPage() {
           {t('auth.signin')}
         </Button>
       )}
-    </div>
+    </AuthShell>
   )
 }

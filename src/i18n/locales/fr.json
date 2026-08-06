@@ -58,6 +58,8 @@
     "accountDeactivated": "Compte désactivé.",
     "passwordChangedRelogin": "Mot de passe modifié — reconnectez-vous.",
     "loginHint": "Connectez-vous avec votre compte AfrEA-YEE.",
+    "welcomeTitle": "Bienvenue sur AfrEA-YEE",
+    "welcomeBody": "La plateforme des jeunes et émergents évaluateurs. Connectez-vous pour rejoindre la communauté.",
     "registerHint": "Créez un compte. Un e-mail de vérification sera envoyé pour l’activer.",
     "registerSuccess": "Compte créé. Vérifiez votre boîte mail pour l’activer.",
     "verifyEmailHint": "Après confirmation du lien reçu par e-mail, vous pourrez vous connecter.",
@@ -679,7 +681,9 @@
       "groupRejected": "Votre demande pour {{subject}} a été refusée",
       "instRequest": "{{actor}} demande une affiliation à {{subject}}",
       "instApproved": "Votre affiliation à {{subject}} a été approuvée",
-      "instRejected": "Votre affiliation à {{subject}} a été refusée"
+      "instRejected": "Votre affiliation à {{subject}} a été refusée",
+      "postLike": "{{actor}} a aimé votre publication",
+      "postComment": "{{actor}} a commenté votre publication"
     },
     "filters": {
       "all": "Toutes",

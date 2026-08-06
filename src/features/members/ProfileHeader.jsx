@@ -173,15 +173,6 @@ export function ProfileHeader({
             ) : (
               <>
                 <FriendAction member={member} onFriendToggle={onFriendToggle} />
-                <Button
-                  as={Link}
-                  to="/messages"
-                  variant="outline"
-                  size="sm"
-                  className="min-h-10 flex-1 touch-manipulation sm:flex-none"
-                >
-                  {t('members.message')}
-                </Button>
               </>
             )}
           </div>

@@ -6,9 +6,6 @@ export const SEARCH_TABS = [
   { id: 'activity', labelKey: 'search.tabs.stories' },
   { id: 'members', labelKey: 'search.tabs.members' },
   { id: 'groups', labelKey: 'search.tabs.cohorts' },
-  { id: 'forums', labelKey: 'search.tabs.forums' },
-  { id: 'topics', labelKey: 'search.tabs.topics' },
-  { id: 'resources', labelKey: 'search.tabs.resources' },
 ]
 
 export function useSearch(query, filters = {}) {
@@ -66,9 +63,6 @@ export function useSearch(query, filters = {}) {
     () => ({
       members: results.members.length,
       groups: results.groups.length,
-      forums: results.forums.length,
-      topics: results.topics.length,
-      resources: results.resources.length,
       activity: results.activity.length,
     }),
     [results],

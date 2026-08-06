@@ -38,7 +38,15 @@ export function RegisterPage() {
   const [localError, setLocalError] = useState(null)
   const [successMessage, setSuccessMessage] = useState(null)
 
-  if (!isBootstrapping && isAuthenticated) {
+  if (isBootstrapping) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-bb-body">
+        <p className="m-0 text-bb-sm text-bb-muted">{t('common.loading')}</p>
+      </div>
+    )
+  }
+
+  if (isAuthenticated) {
     return <Navigate to="/" replace />
   }
 
@@ -69,8 +77,8 @@ export function RegisterPage() {
         title={t('auth.signup')}
         footer={
           <p className="m-0 text-center text-bb-sm text-bb-muted">
-            <Link to="/" className="text-bb-primary hover:underline">
-              {t('auth.backHome')}
+            <Link to="/login" className="font-medium text-bb-primary hover:underline">
+              {t('auth.backToSignin')}
             </Link>
           </p>
         }
@@ -94,19 +102,12 @@ export function RegisterPage() {
       title={t('auth.signup')}
       hint={t('auth.registerHint')}
       footer={
-        <>
-          <p className="m-0 text-center text-bb-sm text-bb-muted">
-            {t('auth.haveAccount')}{' '}
-            <Link to="/login" className="font-medium text-bb-primary hover:underline">
-              {t('auth.signin')}
-            </Link>
-          </p>
-          <p className="mt-2 text-center text-bb-sm text-bb-muted">
-            <Link to="/" className="text-bb-primary hover:underline">
-              {t('auth.backHome')}
-            </Link>
-          </p>
-        </>
+        <p className="m-0 text-center text-bb-sm text-bb-muted">
+          {t('auth.haveAccount')}{' '}
+          <Link to="/login" className="font-medium text-bb-primary hover:underline">
+            {t('auth.signin')}
+          </Link>
+        </p>
       }
     >
       {localError && (

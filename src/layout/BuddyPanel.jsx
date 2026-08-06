@@ -4,13 +4,9 @@ import { useTranslation } from 'react-i18next'
 import {
   IconActivity,
   IconBell,
-  IconBook,
   IconClose,
-  IconForum,
   IconGlobe,
   IconGroup,
-  IconInbox,
-  IconShield,
   IconSidebar,
   IconUsers,
 } from '../components/icons'
@@ -24,15 +20,11 @@ const iconMap = {
   users: IconUsers,
   group: IconGroup,
   globe: IconGlobe,
-  forum: IconForum,
-  inbox: IconInbox,
   bell: IconBell,
-  book: IconBook,
-  shield: IconShield,
 }
 
-const PRIMARY_IDS = ['stories', 'members', 'groups', 'institutions', 'forums', 'resources']
-const SECONDARY_IDS = ['messages', 'notifications', 'moderation']
+const PRIMARY_IDS = ['stories', 'members', 'groups', 'institutions']
+const SECONDARY_IDS = ['notifications']
 
 function isItemActive(pathname, href) {
   if (href === '/') return pathname === '/'

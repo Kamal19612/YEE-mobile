@@ -8,6 +8,8 @@ export const NOTIFICATION_I18N_KEYS = {
   institution_affiliation_request: 'notifications.types.instRequest',
   institution_affiliation_approved: 'notifications.types.instApproved',
   institution_affiliation_rejected: 'notifications.types.instRejected',
+  post_like: 'notifications.types.postLike',
+  post_comment: 'notifications.types.postComment',
 }
 
 /**
@@ -54,6 +56,11 @@ export function notificationHref(notification) {
       return notification.subject?.id
         ? `/institutions/${notification.subject.id}`
         : '/institutions'
+    case 'post_like':
+    case 'post_comment':
+      return notification.subject?.id
+        ? `/feed/${notification.subject.id}`
+        : '/'
     default:
       return '/notifications'
   }
