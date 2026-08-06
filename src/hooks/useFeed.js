@@ -17,7 +17,7 @@ import {
  * - `isOwnPost` vient du serveur, jamais recalculé ici
  * - Pas de fallback silencieux qui masque une erreur backend
  */
-export function useFeed({ perPage = 10, authorId } = {}) {
+export function useFeed({ perPage = 10, authorId, groupId } = {}) {
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -37,6 +37,7 @@ export function useFeed({ perPage = 10, authorId } = {}) {
           before: append ? before : undefined,
           perPage,
           authorId,
+          groupId,
         })
 
         setPosts((prev) => (append ? [...prev, ...chunk] : chunk))
@@ -54,7 +55,7 @@ export function useFeed({ perPage = 10, authorId } = {}) {
         setLoadingMore(false)
       }
     },
-    [perPage, authorId],
+    [perPage, authorId, groupId],
   )
 
   useEffect(() => {
@@ -70,7 +71,7 @@ export function useFeed({ perPage = 10, authorId } = {}) {
     async ({ content, media } = {}) => {
       setActionError(null)
       try {
-        const created = await apiCreatePost({ content, media })
+        const created = await apiCreatePost({ content, media, groupId })
         setPosts((prev) => [created, ...prev])
         return created
       } catch (err) {
@@ -78,7 +79,7 @@ export function useFeed({ perPage = 10, authorId } = {}) {
         throw err
       }
     },
-    [],
+    [groupId],
   )
 
   /**

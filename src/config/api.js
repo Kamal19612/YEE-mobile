@@ -52,4 +52,17 @@ export const ENDPOINTS = {
     comments: (id) => `/feed/${id}/comments`,
     deleteComment: (commentId) => `/feed/comments/${commentId}`,
   },
+  groups: {
+    list: '/groups',
+    detail: (id) => `/groups/${id}`,
+    join: (id) => `/groups/${id}/join`,
+    membership: (id) => `/groups/${id}/membership`,
+    invitations: (id) => `/groups/${id}/invitations`,
+    respondInvitation: (id) => `/groups/${id}/invitations/respond`,
+    members: (id) => `/groups/${id}/members`,
+    approveMember: (id, userId) => `/groups/${id}/members/${userId}/approve`,
+    rejectMember: (id, userId) => `/groups/${id}/members/${userId}/reject`,
+    removeMember: (id, userId) => `/groups/${id}/members/${userId}`,
+    changeMemberRole: (id, userId) => `/groups/${id}/members/${userId}/role`,
+  },
 }

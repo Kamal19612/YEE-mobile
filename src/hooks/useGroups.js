@@ -1,146 +1,416 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { fetchGroup, fetchGroups, joinGroup, leaveGroup } from '../api/groups'
-import { useAuth } from './useAuth'
+import { useCallback, useEffect, useState } from 'react'
+import {
+  approveMember as apiApproveMember,
+  changeMemberRole as apiChangeMemberRole,
+  createGroup as apiCreateGroup,
+  fetchGroup,
+  fetchGroupMembers,
+  fetchGroups,
+  joinGroup as apiJoinGroup,
+  leaveGroup as apiLeaveGroup,
+  rejectMember as apiRejectMember,
+  removeMember as apiRemoveMember,
+  respondToInvitation as apiRespondToInvitation,
+} from '../api/groups'
 
-function applyFilters(list, { search, typeFilter, sort }) {
-  let result = [...list]
-  if (typeFilter === 'my') result = result.filter((g) => g.isMember)
-  if (typeFilter === 'public') result = result.filter((g) => g.status === 'public')
-  if (typeFilter === 'private') result = result.filter((g) => g.status === 'private')
-
-  const q = search.trim().toLowerCase()
-  if (q) {
-    result = result.filter(
-      (g) => g.name.toLowerCase().includes(q) || g.description.toLowerCase().includes(q),
-    )
+/**
+ * Applique un statut viewer optimiste + ajustement membersCount.
+ * Ne recalcule jamais le statut à partir d’autre chose que l’intention d’action.
+ */
+function withViewerStatus(group, nextStatus, { deltaMembers = 0, nextRole } = {}) {
+  if (!group) return group
+  return {
+    ...group,
+    viewerStatus: nextStatus,
+    viewerRole: nextRole !== undefined ? nextRole : group.viewerRole,
+    membersCount: Math.max(0, (group.membersCount || 0) + deltaMembers),
   }
-
-  if (sort === 'popular') result.sort((a, b) => b.membersCount - a.membersCount)
-  else if (sort === 'newest') result.sort((a, b) => new Date(b.created) - new Date(a.created))
-  else if (sort === 'alphabetical') result.sort((a, b) => a.name.localeCompare(b.name))
-  else result.sort((a, b) => new Date(b.lastActive) - new Date(a.lastActive))
-
-  return result
 }
 
-export function useGroups({ search = '', typeFilter = 'all', sort = 'active' } = {}) {
-  const { user } = useAuth()
-  const currentUser = user || { id: 0, displayName: 'Guest' }
+/**
+ * Liste des groupes — App API `GET /groups?search=&mine=`
+ * Pas de fallback silencieux : les erreurs d’action remontent telles quelles.
+ */
+export function useGroups({ search = '', mine = false } = {}) {
   const [groups, setGroups] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [actionError, setActionError] = useState(null)
 
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      setGroups(await fetchGroups({ type: sort, search }))
+      setGroups(await fetchGroups({ search, mine }))
     } catch (err) {
-      setError(err.message || 'Failed to load groups')
+      setError(err.message || 'Impossible de charger les groupes')
+      setGroups([])
     } finally {
       setLoading(false)
     }
-  }, [sort, search])
+  }, [search, mine])
 
   useEffect(() => {
     load()
   }, [load])
 
-  const visible = useMemo(
-    () => applyFilters(groups, { search, typeFilter, sort }),
-    [groups, search, typeFilter, sort],
-  )
+  const createGroup = useCallback(async ({ name, description, visibility = 'public' }) => {
+    setActionError(null)
+    try {
+      const created = await apiCreateGroup({ name, description, visibility })
+      setGroups((prev) => [created, ...prev.filter((g) => String(g.id) !== String(created.id))])
+      return created
+    } catch (err) {
+      setActionError(err.message || 'Impossible de créer le groupe')
+      throw err
+    }
+  }, [])
 
-  const toggleMembership = useCallback(
+  const join = useCallback(
     async (id) => {
+      setActionError(null)
+      const target = groups.find((g) => String(g.id) === String(id))
+      if (!target) return
+
+      const snapshot = groups
+      const optimisticStatus = target.visibility === 'private' ? 'pending' : 'active'
+      const delta = optimisticStatus === 'active' ? 1 : 0
+
       setGroups((prev) =>
-        prev.map((g) => {
-          if (g.id !== id) return g
-          const joining = !g.isMember
-          return {
-            ...g,
-            isMember: joining,
-            membersCount: joining ? g.membersCount + 1 : Math.max(0, g.membersCount - 1),
-            memberIds: joining
-              ? [...new Set([...(g.memberIds || []), currentUser.id])]
-              : (g.memberIds || []).filter((uid) => uid !== currentUser.id),
-          }
-        }),
+        prev.map((g) =>
+          String(g.id) === String(id)
+            ? withViewerStatus(g, optimisticStatus, {
+                deltaMembers: delta,
+                nextRole: optimisticStatus === 'active' ? 'member' : null,
+              })
+            : g,
+        ),
       )
+
       try {
-        const g = groups.find((x) => x.id === id)
-        if (g?.isMember) await leaveGroup(id, { userId: currentUser.id })
-        else await joinGroup(id)
-      } catch {
-        load()
+        const res = await apiJoinGroup(id)
+        const status = res?.status || optimisticStatus
+        setGroups((prev) =>
+          prev.map((g) =>
+            String(g.id) === String(id)
+              ? withViewerStatus(
+                  { ...g, membersCount: target.membersCount },
+                  status,
+                  {
+                    deltaMembers: status === 'active' ? 1 : 0,
+                    nextRole: status === 'active' ? 'member' : null,
+                  },
+                )
+              : g,
+          ),
+        )
+        return res
+      } catch (err) {
+        setGroups(snapshot)
+        setActionError(err.message || 'Impossible de rejoindre le groupe')
+        throw err
       }
     },
-    [groups, load, currentUser.id],
+    [groups],
   )
 
-  const createGroup = useCallback(
-    async ({ name, description, status = 'public' }) => {
-      const group = {
-        id: Date.now(),
-        name: name.trim(),
-        slug: name.trim().toLowerCase().replace(/\s+/g, '-'),
-        description: description.trim() || 'Nouveau groupe AfrEA-YEE',
-        status,
-        cohortType: 'thematic',
-        avatar: null,
-        cover: null,
-        membersCount: 1,
-        lastActive: new Date().toISOString(),
-        created: new Date().toISOString(),
-        isMember: true,
-        isAdmin: true,
-        isMod: false,
-        memberIds: [currentUser.id],
-        admins: [{ id: currentUser.id, displayName: currentUser.displayName }],
+  const leave = useCallback(
+    async (id) => {
+      setActionError(null)
+      const target = groups.find((g) => String(g.id) === String(id))
+      if (!target) return
+
+      const snapshot = groups
+      setGroups((prev) =>
+        prev.map((g) =>
+          String(g.id) === String(id)
+            ? withViewerStatus(g, 'none', { deltaMembers: -1, nextRole: null })
+            : g,
+        ),
+      )
+
+      try {
+        return await apiLeaveGroup(id)
+      } catch (err) {
+        setGroups(snapshot)
+        setActionError(err.message || 'Impossible de quitter le groupe')
+        throw err
       }
-      setGroups((prev) => [group, ...prev])
-      return group
     },
-    [currentUser],
+    [groups],
+  )
+
+  const respondToInvitation = useCallback(
+    async (id, accept) => {
+      setActionError(null)
+      const target = groups.find((g) => String(g.id) === String(id))
+      if (!target) return
+
+      const snapshot = groups
+      const nextStatus = accept ? 'active' : 'none'
+      setGroups((prev) =>
+        prev.map((g) =>
+          String(g.id) === String(id)
+            ? withViewerStatus(g, nextStatus, {
+                deltaMembers: accept ? 1 : 0,
+                nextRole: accept ? 'member' : null,
+              })
+            : g,
+        ),
+      )
+
+      try {
+        return await apiRespondToInvitation(id, accept)
+      } catch (err) {
+        setGroups(snapshot)
+        setActionError(err.message || 'Impossible de répondre à l’invitation')
+        throw err
+      }
+    },
+    [groups],
   )
 
   return {
-    groups: visible,
-    total: visible.length,
+    groups,
+    total: groups.length,
     loading,
-    error,
-    toggleMembership,
+    error: error || actionError,
+    actionError,
     createGroup,
+    join,
+    leave,
+    respondToInvitation,
     reload: load,
   }
 }
 
+/** Détail d’un groupe — GET /groups/{id} */
 export function useGroup(id) {
   const [group, setGroup] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  useEffect(() => {
-    let alive = true
-    async function run() {
-      setLoading(true)
+  const load = useCallback(async () => {
+    if (id == null || id === '') {
+      setGroup(null)
+      setLoading(false)
       setError(null)
-      try {
-        const data = await fetchGroup(id)
-        if (alive) setGroup(data)
-      } catch (err) {
-        if (alive) setError(err.message || 'Group not found')
-      } finally {
-        if (alive) setLoading(false)
-      }
+      return
     }
-    run()
-    return () => {
-      alive = false
+    setLoading(true)
+    setError(null)
+    try {
+      setGroup(await fetchGroup(id))
+    } catch (err) {
+      setGroup(null)
+      setError(err.message || 'Groupe introuvable')
+    } finally {
+      setLoading(false)
     }
   }, [id])
 
-  const patch = useCallback((fn) => setGroup((prev) => (prev ? fn(prev) : prev)), [])
+  useEffect(() => {
+    load()
+  }, [load])
 
-  return { group, loading, error, patch }
+  return { group, setGroup, loading, error, reload: load }
+}
+
+/**
+ * Actions d’adhésion sur le groupe courant — mise à jour optimiste de viewerStatus.
+ * Branche `setGroup` fourni par `useGroup` (même instance de state).
+ */
+export function useGroupMembership(id, { group, setGroup } = {}) {
+  const [actionError, setActionError] = useState(null)
+
+  const join = useCallback(async () => {
+    setActionError(null)
+    if (!group || !setGroup) return
+
+    const snapshot = group
+    const optimisticStatus = group.visibility === 'private' ? 'pending' : 'active'
+    const delta = optimisticStatus === 'active' ? 1 : 0
+    setGroup(
+      withViewerStatus(group, optimisticStatus, {
+        deltaMembers: delta,
+        nextRole: optimisticStatus === 'active' ? 'member' : null,
+      }),
+    )
+
+    try {
+      const res = await apiJoinGroup(id)
+      const status = res?.status || optimisticStatus
+      setGroup(
+        withViewerStatus(
+          { ...snapshot, membersCount: snapshot.membersCount },
+          status,
+          {
+            deltaMembers: status === 'active' ? 1 : 0,
+            nextRole: status === 'active' ? 'member' : null,
+          },
+        ),
+      )
+      return res
+    } catch (err) {
+      setGroup(snapshot)
+      setActionError(err.message || 'Impossible de rejoindre le groupe')
+      throw err
+    }
+  }, [id, group, setGroup])
+
+  const leave = useCallback(async () => {
+    setActionError(null)
+    if (!group || !setGroup) return
+
+    const snapshot = group
+    setGroup(withViewerStatus(group, 'none', { deltaMembers: -1, nextRole: null }))
+
+    try {
+      return await apiLeaveGroup(id)
+    } catch (err) {
+      setGroup(snapshot)
+      setActionError(err.message || 'Impossible de quitter le groupe')
+      throw err
+    }
+  }, [id, group, setGroup])
+
+  const respondToInvitation = useCallback(
+    async (accept) => {
+      setActionError(null)
+      if (!group || !setGroup) return
+
+      const snapshot = group
+      const nextStatus = accept ? 'active' : 'none'
+      setGroup(
+        withViewerStatus(group, nextStatus, {
+          deltaMembers: accept ? 1 : 0,
+          nextRole: accept ? 'member' : null,
+        }),
+      )
+
+      try {
+        return await apiRespondToInvitation(id, accept)
+      } catch (err) {
+        setGroup(snapshot)
+        setActionError(err.message || 'Impossible de répondre à l’invitation')
+        throw err
+      }
+    },
+    [id, group, setGroup],
+  )
+
+  return { join, leave, respondToInvitation, actionError, clearActionError: () => setActionError(null) }
+}
+
+/**
+ * Membres d’un groupe + actions modération.
+ * `status` : active | pending | invited | banned
+ */
+export function useGroupMembers(id, status = 'active') {
+  const [members, setMembers] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [actionError, setActionError] = useState(null)
+
+  const load = useCallback(async () => {
+    if (id == null || id === '') {
+      setMembers([])
+      setLoading(false)
+      return
+    }
+    setLoading(true)
+    setError(null)
+    try {
+      setMembers(await fetchGroupMembers(id, { status }))
+    } catch (err) {
+      setMembers([])
+      setError(err.message || 'Impossible de charger les membres')
+    } finally {
+      setLoading(false)
+    }
+  }, [id, status])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  const approve = useCallback(
+    async (userId) => {
+      setActionError(null)
+      const snapshot = members
+      setMembers((prev) => prev.filter((m) => String(m.user.id) !== String(userId)))
+      try {
+        return await apiApproveMember(id, userId)
+      } catch (err) {
+        setMembers(snapshot)
+        setActionError(err.message || 'Impossible d’approuver')
+        throw err
+      }
+    },
+    [id, members],
+  )
+
+  const reject = useCallback(
+    async (userId) => {
+      setActionError(null)
+      const snapshot = members
+      setMembers((prev) => prev.filter((m) => String(m.user.id) !== String(userId)))
+      try {
+        return await apiRejectMember(id, userId)
+      } catch (err) {
+        setMembers(snapshot)
+        setActionError(err.message || 'Impossible de rejeter')
+        throw err
+      }
+    },
+    [id, members],
+  )
+
+  const remove = useCallback(
+    async (userId) => {
+      setActionError(null)
+      const snapshot = members
+      setMembers((prev) => prev.filter((m) => String(m.user.id) !== String(userId)))
+      try {
+        return await apiRemoveMember(id, userId)
+      } catch (err) {
+        setMembers(snapshot)
+        setActionError(err.message || 'Impossible d’exclure')
+        throw err
+      }
+    },
+    [id, members],
+  )
+
+  const changeRole = useCallback(
+    async (userId, role) => {
+      setActionError(null)
+      const snapshot = members
+      setMembers((prev) =>
+        prev.map((m) =>
+          String(m.user.id) === String(userId) ? { ...m, role } : m,
+        ),
+      )
+      try {
+        return await apiChangeMemberRole(id, userId, role)
+      } catch (err) {
+        setMembers(snapshot)
+        setActionError(err.message || 'Impossible de changer le rôle')
+        throw err
+      }
+    },
+    [id, members],
+  )
+
+  return {
+    members,
+    loading,
+    error: error || actionError,
+    actionError,
+    approve,
+    reject,
+    remove,
+    changeRole,
+    reload: load,
+  }
 }

@@ -4,26 +4,39 @@ import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { IconSearch } from '../../components/icons'
 import { Button } from '../../components/ui/Button'
-import { groupSortOptions, groupTypeFilters } from '../../data/groupsData'
+import { groupTypeFilters, groupVisibilityOptions } from '../../data/groupsData'
 import { useGroups } from '../../hooks/useGroups'
 import { GroupCard } from './GroupCard'
 
-/** Référence: buddypress/groups/index.php — cohortes AfrEA-YEE */
+/** Annuaire des groupes — App API `/groups` */
 export function GroupsPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
-  const [sort, setSort] = useState('active')
   const [typeFilter, setTypeFilter] = useState('all')
   const [view, setView] = useState('grid')
   const [createOpen, setCreateOpen] = useState(false)
   const [newName, setNewName] = useState('')
   const [newDesc, setNewDesc] = useState('')
-  const { groups, total, loading, error, toggleMembership, createGroup } = useGroups({
-    search,
-    sort,
-    typeFilter,
-  })
+  const [newVisibility, setNewVisibility] = useState('public')
+  const [creating, setCreating] = useState(false)
+  const [formError, setFormError] = useState(null)
+  const [busyId, setBusyId] = useState(null)
+
+  const mine = typeFilter === 'mine'
+  const { groups, total, loading, error, actionError, createGroup, join, leave, respondToInvitation } =
+    useGroups({ search, mine })
+
+  const runAction = async (id, fn) => {
+    setBusyId(id)
+    try {
+      await fn()
+    } catch {
+      /* actionError déjà posé par le hook — message serveur affiché */
+    } finally {
+      setBusyId(null)
+    }
+  }
 
   return (
     <div id="buddypress" className="buddypress-wrap w-full">
@@ -43,11 +56,24 @@ export function GroupsPage() {
           onSubmit={async (e) => {
             e.preventDefault()
             if (!newName.trim()) return
-            const g = await createGroup({ name: newName, description: newDesc })
-            setCreateOpen(false)
-            setNewName('')
-            setNewDesc('')
-            navigate(`/groups/${g.id}`)
+            setCreating(true)
+            setFormError(null)
+            try {
+              const g = await createGroup({
+                name: newName.trim(),
+                description: newDesc.trim(),
+                visibility: newVisibility,
+              })
+              setCreateOpen(false)
+              setNewName('')
+              setNewDesc('')
+              setNewVisibility('public')
+              navigate(`/groups/${g.id}`)
+            } catch (err) {
+              setFormError(err.message || t('groups.createFailed'))
+            } finally {
+              setCreating(false)
+            }
           }}
         >
           <h2 className="m-0 text-bb-md font-semibold text-bb-heading">{t('groups.createTitle')}</h2>
@@ -65,11 +91,47 @@ export function GroupsPage() {
             rows={3}
             className="w-full rounded-bb-input border border-bb-border px-3 py-2 text-bb-sm outline-none focus:border-bb-primary"
           />
+          <fieldset className="m-0 space-y-2 border-0 p-0">
+            <legend className="mb-1 text-bb-sm font-medium text-bb-heading">
+              {t('groups.visibility.label')}
+            </legend>
+            {groupVisibilityOptions.map((opt) => (
+              <label
+                key={opt.id}
+                className={clsx(
+                  'flex cursor-pointer gap-3 rounded-bb-inner border px-3 py-2',
+                  newVisibility === opt.id
+                    ? 'border-bb-primary bg-[rgba(var(--bb-primary-color-rgb),0.06)]'
+                    : 'border-bb-border',
+                )}
+              >
+                <input
+                  type="radio"
+                  name="visibility"
+                  value={opt.id}
+                  checked={newVisibility === opt.id}
+                  onChange={() => setNewVisibility(opt.id)}
+                  className="mt-1"
+                />
+                <span>
+                  <span className="block text-bb-sm font-medium text-bb-heading">{t(opt.labelKey)}</span>
+                  <span className="block text-bb-xs text-bb-muted">{t(opt.hintKey)}</span>
+                </span>
+              </label>
+            ))}
+          </fieldset>
+          {formError && <p className="m-0 text-bb-sm text-bb-danger">{formError}</p>}
           <div className="flex gap-2">
-            <Button type="submit" size="sm">
-              {t('common.create')}
+            <Button type="submit" size="sm" disabled={creating}>
+              {creating ? t('common.loading') : t('common.create')}
             </Button>
-            <Button type="button" size="sm" variant="outline" onClick={() => setCreateOpen(false)}>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setCreateOpen(false)}
+              disabled={creating}
+            >
               {t('common.cancel')}
             </Button>
           </div>
@@ -102,17 +164,6 @@ export function GroupsPage() {
               </option>
             ))}
           </select>
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value)}
-            className="h-9 rounded-bb-input border border-bb-border bg-bb-content px-2 text-bb-sm"
-          >
-            {groupSortOptions.map((f) => (
-              <option key={f.id} value={f.id}>
-                {t(f.labelKey)}
-              </option>
-            ))}
-          </select>
           <div className="flex overflow-hidden rounded-bb-input border border-bb-border">
             {['grid', 'list'].map((v) => (
               <button
@@ -130,6 +181,10 @@ export function GroupsPage() {
         </div>
       </div>
 
+      {actionError && (
+        <div className="bb-card mb-4 p-3 text-bb-sm text-bb-danger">{actionError}</div>
+      )}
+
       {loading && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -138,7 +193,9 @@ export function GroupsPage() {
         </div>
       )}
 
-      {!loading && error && <div className="bb-card p-4 text-bb-sm text-bb-danger">{error}</div>}
+      {!loading && error && !actionError && (
+        <div className="bb-card p-4 text-bb-sm text-bb-danger">{error}</div>
+      )}
 
       {!loading && !error && groups.length === 0 && (
         <div className="bb-card p-8 text-center text-bb-sm text-bb-muted">{t('groups.empty')}</div>
@@ -149,7 +206,9 @@ export function GroupsPage() {
           id="groups-list"
           className={clsx(
             'm-0 list-none p-0',
-            view === 'grid' ? 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3' : 'flex flex-col gap-3',
+            view === 'grid'
+              ? 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'
+              : 'flex flex-col gap-3',
           )}
         >
           {groups.map((group) => (
@@ -157,7 +216,12 @@ export function GroupsPage() {
               key={group.id}
               group={group}
               view={view}
-              onToggleMembership={toggleMembership}
+              busy={busyId === group.id}
+              onJoin={(id) => runAction(id, () => join(id))}
+              onLeave={(id) => runAction(id, () => leave(id))}
+              onRespondInvitation={(id, accept) =>
+                runAction(id, () => respondToInvitation(id, accept))
+              }
             />
           ))}
         </ul>

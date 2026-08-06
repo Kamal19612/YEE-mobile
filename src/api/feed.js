@@ -124,11 +124,12 @@ function authOpts() {
  *
  * @returns {Promise<{ posts: object[], nextCursor: string|null }>}
  */
-export async function fetchFeed({ before, perPage = 10, authorId } = {}) {
+export async function fetchFeed({ before, perPage = 10, authorId, groupId } = {}) {
   const params = new URLSearchParams()
   if (before) params.set('before', String(before))
   if (perPage != null) params.set('perPage', String(perPage))
   if (authorId != null && authorId !== '') params.set('authorId', String(authorId))
+  if (groupId != null && groupId !== '') params.set('groupId', String(groupId))
 
   const qs = params.toString()
   const path = qs ? `${ENDPOINTS.feed.list}?${qs}` : ENDPOINTS.feed.list
@@ -146,12 +147,14 @@ export async function fetchFeed({ before, perPage = 10, authorId } = {}) {
  * POST /feed — JSON `{ content }` ou multipart (content + media Files).
  * Ne pas fixer Content-Type sur FormData : le navigateur pose le boundary.
  */
-export async function createPost({ content, media } = {}) {
+export async function createPost({ content, media, groupId } = {}) {
   const files = Array.isArray(media) ? media.filter(Boolean) : []
+  const gid = groupId != null && groupId !== '' ? String(groupId) : null
 
   if (files.length > 0) {
     const formData = new FormData()
     formData.append('content', content || '')
+    if (gid) formData.append('groupId', gid)
     files.forEach((file) => formData.append('media', file))
     const data = await appApiFetch(ENDPOINTS.feed.list, {
       method: 'POST',
@@ -161,10 +164,13 @@ export async function createPost({ content, media } = {}) {
     return mapPost(data)
   }
 
+  const body = { content }
+  if (gid) body.groupId = gid
+
   const data = await appApiFetch(ENDPOINTS.feed.list, {
     method: 'POST',
     auth: true,
-    body: JSON.stringify({ content }),
+    body: JSON.stringify(body),
   })
   return mapPost(data)
 }

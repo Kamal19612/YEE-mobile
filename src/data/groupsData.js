@@ -1,15 +1,30 @@
-/** Group directory filter constants — AfrEA-YEE cohortes */
-
-export const groupSortOptions = [
-  { id: 'active', labelKey: 'groups.sort.active' },
-  { id: 'popular', labelKey: 'groups.sort.popular' },
-  { id: 'newest', labelKey: 'groups.sort.newest' },
-  { id: 'alphabetical', labelKey: 'groups.sort.alphabetical' },
-]
+/** Filtres annuaire + options de création — App API Groups */
 
 export const groupTypeFilters = [
   { id: 'all', labelKey: 'groups.type.all' },
-  { id: 'my', labelKey: 'groups.type.mine' },
-  { id: 'public', labelKey: 'groups.type.public' },
-  { id: 'private', labelKey: 'groups.type.private' },
+  { id: 'mine', labelKey: 'groups.type.mine' },
+]
+
+export const groupVisibilityOptions = [
+  {
+    id: 'public',
+    labelKey: 'groups.visibility.public',
+    hintKey: 'groups.visibility.publicHint',
+  },
+  {
+    id: 'private',
+    labelKey: 'groups.visibility.private',
+    hintKey: 'groups.visibility.privateHint',
+  },
+  {
+    id: 'secret',
+    labelKey: 'groups.visibility.secret',
+    hintKey: 'groups.visibility.secretHint',
+  },
+]
+
+export const groupRoleOptions = [
+  { id: 'member', labelKey: 'groups.roles.member' },
+  { id: 'moderator', labelKey: 'groups.roles.moderator' },
+  { id: 'admin', labelKey: 'groups.roles.admin' },
 ]
