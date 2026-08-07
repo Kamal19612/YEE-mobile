@@ -25,7 +25,7 @@ function softenRefreshCookies(proxyRes) {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const wpTarget =
-    env.VITE_WP_PROXY_TARGET || 'http://yee.socialracine.com/'
+    env.VITE_WP_PROXY_TARGET || 'http://wp.socialracine.com/'
 
   return {
     plugins: [react()],
