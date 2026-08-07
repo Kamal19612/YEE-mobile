@@ -25,11 +25,9 @@ function softenRefreshCookies(proxyRes) {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const wpTarget =
-    env.VITE_WP_PROXY_TARGET || 'https://sandybrown-rail-456461.hostingersite.com'
+    env.VITE_WP_PROXY_TARGET || 'http://yee.socialracine.com/'
 
   return {
-    // GitHub Pages project site: https://<user>.github.io/YEE/
-    base: process.env.VITE_BASE || (mode === 'production' ? '/YEE/' : '/'),
     plugins: [react()],
     server: {
       port: 5173,
