@@ -29,9 +29,9 @@ jobs:
       - run: npm run build
         env:
           VITE_BASE: /YEE/
-          # GitHub Pages n'a pas de proxy Vite : URLs absolues vers WordPress Hostinger
-          VITE_WP_API_URL: https://sandybrown-rail-456461.hostingersite.com/wp-json
-          VITE_APP_API_URL: https://sandybrown-rail-456461.hostingersite.com/wp-json/app/v1
+          # GitHub Pages n'a pas de proxy Vite : URLs absolues vers WordPress
+          VITE_WP_API_URL: https://wp.socialracine.com/wp-json
+          VITE_APP_API_URL: https://wp.socialracine.com/wp-json/app/v1
           VITE_API_TIMEOUT: "15000"
       - name: Add .nojekyll and SPA fallback
         run: |
