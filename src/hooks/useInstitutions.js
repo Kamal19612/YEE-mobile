@@ -6,12 +6,15 @@ import {
   createInstitution as apiCreateInstitution,
   deleteInstitution as apiDeleteInstitution,
   fetchAffiliations,
+  enrichAffiliationMedia,
   fetchInstitution,
   fetchInstitutions,
   rejectAffiliation as apiRejectAffiliation,
+  removeMember as apiRemoveMember,
   removeReferent as apiRemoveReferent,
   requestAffiliation as apiRequestAffiliation,
   updateInstitution as apiUpdateInstitution,
+  withInferredReferents,
 } from '../api/institutions'
 
 function withAffiliationStatus(institution, nextStatus, { deltaMembers = 0 } = {}) {
@@ -188,11 +191,18 @@ export function useInstitutionAffiliations(id, status = 'pending') {
     setLoading(true)
     setError(null)
     try {
-      setAffiliations(await fetchAffiliations(id, { status }))
+      const list = await fetchAffiliations(id, { status })
+      const initial = status === 'active' ? withInferredReferents(list) : list
+      setAffiliations(initial)
+      setLoading(false)
+
+      if (status === 'active' && initial.length > 0) {
+        const enriched = withInferredReferents(await enrichAffiliationMedia(initial))
+        setAffiliations(enriched)
+      }
     } catch (err) {
       setAffiliations([])
       setError(err.message || 'Impossible de charger les affiliations')
-    } finally {
       setLoading(false)
     }
   }, [id, status])
@@ -259,6 +269,22 @@ export function useInstitutionAffiliations(id, status = 'pending') {
     [id],
   )
 
+  const removeMember = useCallback(
+    async (userId) => {
+      setActionError(null)
+      const snapshot = affiliations
+      setAffiliations((prev) => prev.filter((a) => String(a.user.id) !== String(userId)))
+      try {
+        return await apiRemoveMember(id, userId)
+      } catch (err) {
+        setAffiliations(snapshot)
+        setActionError(err.message || 'Impossible de retirer le membre')
+        throw err
+      }
+    },
+    [id, affiliations],
+  )
+
   return {
     affiliations,
     loading,
@@ -268,6 +294,7 @@ export function useInstitutionAffiliations(id, status = 'pending') {
     reject,
     addReferent,
     removeReferent,
+    removeMember,
     reload: load,
   }
 }

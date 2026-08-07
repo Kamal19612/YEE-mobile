@@ -127,24 +127,32 @@ function GroupHeader({ group, onJoin, onLeave, onRespond, busy }) {
       id="item-header"
       className="groups-header single-headers mb-5 overflow-hidden rounded-bb border border-bb-border bg-bb-content"
     >
-      <div
-        className="h-40 bg-cover bg-center bb:h-52"
-        style={
-          group.coverUrl
-            ? { backgroundImage: `url(${group.coverUrl})` }
-            : { backgroundColor: 'var(--bb-cover-image-background-color)' }
-        }
-      />
-      <div className="relative flex flex-col gap-4 px-4 pb-4 bb:flex-row bb:items-end bb:px-6">
-        <div className="-mt-12 shrink-0">
+      <div className="bb-item-header-cover relative z-0">
+        {group.coverUrl ? (
+          <img
+            src={group.coverUrl}
+            alt=""
+            className="bb-item-header-cover-img"
+            decoding="async"
+          />
+        ) : (
+          <div
+            className="absolute inset-0"
+            style={{ backgroundColor: 'var(--bb-cover-image-background-color)' }}
+            aria-hidden="true"
+          />
+        )}
+      </div>
+      <div className="bb-item-header-body flex flex-col gap-4 bb:flex-row bb:items-end">
+        <div className="bb-item-header-avatar">
           <Avatar
             name={group.name}
             src={group.coverUrl}
             size="xl"
-            className="!h-[100px] !w-[100px] ring-4 ring-bb-content"
+            className="!h-[100px] !w-[100px] ring-4 ring-bb-content sm:!h-[120px] sm:!w-[120px]"
           />
         </div>
-        <div className="min-w-0 flex-1">
+        <div className="bb-item-header-content">
           <h1 className="m-0 text-bb-xl font-semibold text-bb-heading">{group.name}</h1>
           <p className="m-0 mt-1 text-bb-sm text-bb-text">{group.description}</p>
           <div className="mt-2 flex flex-wrap gap-3 text-bb-xs text-bb-muted">

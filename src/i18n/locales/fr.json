@@ -515,19 +515,38 @@
     "you": "vous",
     "affiliatedSince": "Depuis le {{date}}",
     "memberRole": {
-      "member": "Membre",
+      "member": "Membre affilié",
       "referent": "Référent"
+    },
+    "memberRoleTyped": {
+      "continent": {
+        "member": "Membre — Continent",
+        "referent": "Référent — Continent"
+      },
+      "country": {
+        "member": "Membre — Pays",
+        "referent": "Référent — Pays"
+      },
+      "local": {
+        "member": "Membre — Club",
+        "referent": "Référent — Club"
+      }
     },
     "noActiveMembers": "Aucun membre affilié pour le moment.",
     "approve": "Approuver",
     "reject": "Rejeter",
     "manageReferents": "Gestion des référents",
     "manageReferentsHint": "Nommez ou retirez des référents pour cette institution.",
+    "manageReferentsListHint": "Liste des membres affiliés : nommez un référent, retirez-lui ce rôle, ou retirez le membre de l’institution.",
     "addReferent": "Nommer un référent",
     "addReferentHint": "Recherchez un membre pour lui conférer les droits de référent sur cette institution.",
-    "nominateReferent": "Nommer",
+    "nominateReferent": "Nommer référent",
     "removeReferent": "Retirer le référent",
     "removeReferentHint": "Recherchez le membre dont vous souhaitez retirer les droits de référent.",
+    "removeMember": "Retirer le membre",
+    "removeMemberConfirm": "Retirer {{name}} de cette institution ?",
+    "memberRemoved": "Membre retiré de l’institution.",
+    "memberRemoveFailed": "Impossible de retirer le membre.",
     "referentSearchPlaceholder": "Rechercher par nom ou e-mail…",
     "referentAdded": "Référent nommé.",
     "referentRemoved": "Référent retiré.",

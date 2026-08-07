@@ -19,13 +19,29 @@ const LIST_AFFILIATION_STATUSES = new Set(['active', 'pending', 'rejected'])
 
 function mapUser(raw) {
   if (!raw || typeof raw !== 'object') {
-    return { id: '', displayName: '', avatarUrl: null, profession: '' }
+    return {
+      id: '',
+      displayName: '',
+      avatarUrl: null,
+      coverUrl: null,
+      profession: '',
+      memberType: null,
+    }
   }
+  const memberTypes = raw.memberTypes || raw.member_types
+  const memberType =
+    raw.memberType ||
+    raw.member_type ||
+    (Array.isArray(memberTypes) && memberTypes.length ? memberTypes[0] : null) ||
+    null
+
   return {
     id: String(raw.id ?? ''),
-    displayName: raw.displayName || '',
+    displayName: raw.displayName || raw.name || '',
     avatarUrl: normalizeMediaUrl(raw.avatarUrl || raw.avatar),
+    coverUrl: normalizeMediaUrl(raw.coverUrl || raw.cover),
     profession: raw.profession || '',
+    memberType: memberType ? String(memberType) : null,
   }
 }
 
@@ -36,7 +52,9 @@ export function mapInstitution(raw) {
   const type = TYPES.has(raw.type) ? raw.type : 'local'
   const viewerAffiliationStatus = AFFILIATION_STATUSES.has(raw.viewerAffiliationStatus)
     ? raw.viewerAffiliationStatus
-    : 'none'
+    : AFFILIATION_STATUSES.has(raw.affiliationStatus)
+      ? raw.affiliationStatus
+      : 'none'
 
   return {
     id: String(raw.id ?? ''),
@@ -59,29 +77,88 @@ export function mapInstitution(raw) {
     coverUrl: normalizeMediaUrl(raw.coverUrl || raw.cover),
     avatarUrl: normalizeMediaUrl(raw.avatarUrl || raw.avatar),
     viewerAffiliationStatus,
-    viewerIsReferent: Boolean(raw.viewerIsReferent),
+    viewerIsReferent: Boolean(raw.viewerIsReferent ?? raw.isReferent ?? raw.is_referent),
   }
+}
+
+function pickAffiliationRole(raw) {
+  const candidates = [
+    raw.role,
+    raw.memberRole,
+    raw.member_role,
+    raw.affiliationRole,
+    raw.affiliation_role,
+    raw.userRole,
+    raw.user_role,
+    raw.user?.role,
+    raw.user?.memberRole,
+    raw.user?.member_role,
+  ]
+  for (const value of candidates) {
+    if (value == null || value === '') continue
+    if (Array.isArray(value)) {
+      const hit = value.map((v) => String(v).toLowerCase()).find(Boolean)
+      if (hit) return hit
+      continue
+    }
+    return String(value).toLowerCase()
+  }
+  return ''
 }
 
 export function mapAffiliation(raw) {
   if (!raw || typeof raw !== 'object') return null
   const status = LIST_AFFILIATION_STATUSES.has(raw.status) ? raw.status : 'pending'
-  const roleRaw = String(raw.role || raw.memberRole || raw.user?.role || '').toLowerCase()
-  const isReferent = Boolean(
+  const roleRaw = pickAffiliationRole(raw)
+  const isReferentFlag =
     raw.isReferent ??
-      raw.userIsReferent ??
-      raw.viewerIsReferent ??
-      raw.user?.isReferent ??
-      roleRaw === 'referent',
+    raw.is_referent ??
+    raw.userIsReferent ??
+    raw.user_is_referent ??
+    raw.viewerIsReferent ??
+    raw.user?.isReferent ??
+    raw.user?.is_referent
+  const isReferent = Boolean(
+    isReferentFlag ||
+      roleRaw === 'referent' ||
+      roleRaw === 'referent_user' ||
+      roleRaw.includes('referent'),
   )
   return {
     user: mapUser(raw.user),
     status,
     isReferent,
-    role: isReferent ? 'referent' : 'member',
-    requestedAt: raw.requestedAt || '',
-    decidedAt: raw.decidedAt || null,
+    role: isReferent ? 'referent' : roleRaw && roleRaw !== 'member' ? roleRaw : 'member',
+    requestedAt: raw.requestedAt || raw.requested_at || '',
+    decidedAt: raw.decidedAt || raw.decided_at || null,
   }
+}
+
+/**
+ * Si l’API n’envoie pas isReferent, marque le plus ancien affilié actif comme référent
+ * (souvent le créateur / premier validé).
+ */
+export function withInferredReferents(affiliations) {
+  const list = Array.isArray(affiliations) ? affiliations.map((a) => ({ ...a })) : []
+  if (!list.length) return list
+  if (list.some((a) => a.isReferent)) return list
+
+  const stamp = (a) => {
+    const iso = a.decidedAt || a.requestedAt
+    const t = iso ? Date.parse(iso) : NaN
+    return Number.isFinite(t) ? t : Number.MAX_SAFE_INTEGER
+  }
+
+  let oldestIdx = 0
+  for (let i = 1; i < list.length; i += 1) {
+    if (stamp(list[i]) < stamp(list[oldestIdx])) oldestIdx = i
+  }
+  list[oldestIdx] = {
+    ...list[oldestIdx],
+    isReferent: true,
+    role: 'referent',
+  }
+  return list
 }
 
 function authOpts() {
@@ -169,14 +246,55 @@ export async function requestAffiliation(id) {
 
 /**
  * DELETE /institutions/{id}/affiliation
+ * Sans userId : le viewer quitte l’institution.
+ * Avec userId : un référent retire ce membre (query ?userId=).
  * @returns {{ status: string }}
  */
-export async function cancelAffiliation(id) {
-  const data = await appApiFetch(ENDPOINTS.institutions.affiliation(String(id)), {
+export async function cancelAffiliation(id, { userId } = {}) {
+  const params = new URLSearchParams()
+  if (userId != null && userId !== '') params.set('userId', String(userId))
+  const qs = params.toString()
+  const base = ENDPOINTS.institutions.affiliation(String(id))
+  const path = qs ? `${base}?${qs}` : base
+  const data = await appApiFetch(path, {
     method: 'DELETE',
     auth: true,
   })
   return data && typeof data === 'object' ? data : { status: 'none' }
+}
+
+/** Référent retire un membre — DELETE /affiliation?userId= */
+export async function removeMember(id, userId) {
+  return cancelAffiliation(id, { userId })
+}
+
+/**
+ * La liste affiliations ne renvoie pas coverUrl — on complète via GET /users/{id}.
+ */
+export async function enrichAffiliationMedia(affiliations) {
+  const { fetchPublicProfile } = await import('./users')
+  return Promise.all(
+    affiliations.map(async (affiliation) => {
+      const userId = affiliation?.user?.id
+      if (!userId) return affiliation
+      try {
+        const profile = await fetchPublicProfile(userId)
+        if (!profile) return affiliation
+        return {
+          ...affiliation,
+          user: {
+            ...affiliation.user,
+            coverUrl: profile.cover || affiliation.user.coverUrl || null,
+            avatarUrl: affiliation.user.avatarUrl || profile.avatar || null,
+            profession: affiliation.user.profession || profile.profession || '',
+            memberType: affiliation.user.memberType || profile.memberType || null,
+          },
+        }
+      } catch {
+        return affiliation
+      }
+    }),
+  )
 }
 
 /** GET /institutions/{id}/affiliations?status= */

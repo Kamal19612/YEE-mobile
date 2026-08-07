@@ -104,6 +104,27 @@
     box-shadow: 0 0 0 3px rgba(var(--bb-primary-color-rgb), 0.15);
   }
 
+  /* Header cover + avatar (profil, groupe, institution) — padding haut léger */
+  .bb-item-header-cover {
+    @apply relative h-44 w-full overflow-hidden sm:h-48 bb:h-52;
+  }
+
+  .bb-item-header-cover-img {
+    @apply absolute inset-0 h-full w-full object-cover object-center;
+  }
+
+  .bb-item-header-body {
+    @apply relative z-20 px-3 pb-4 pt-2 sm:px-4 sm:pt-2.5 bb:px-6;
+  }
+
+  .bb-item-header-avatar {
+    @apply relative z-20 -mt-12 w-fit shrink-0 self-start sm:-mt-14;
+  }
+
+  .bb-item-header-content {
+    @apply min-w-0 flex-1 pb-1 pt-0.5;
+  }
+
   .bb-surface-glass {
     background: var(--bb-header-background);
     backdrop-filter: blur(12px);

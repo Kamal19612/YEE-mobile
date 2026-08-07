@@ -46,15 +46,22 @@ export function ProfileHeader({
     >
       {/* Couverture en arrière-plan ; bouton en haut à droite (hors zone avatar) */}
       <div className="relative z-0">
-        <div
-          id="header-cover-image"
-          className="h-44 bg-bb-cover bg-cover bg-center sm:h-48 bb:h-52"
-          style={
-            member.cover
-              ? { backgroundImage: `url(${member.cover})` }
-              : { backgroundColor: 'var(--bb-cover-image-background-color)' }
-          }
-        />
+        <div id="header-cover-image" className="bb-item-header-cover bg-bb-cover">
+          {member.cover ? (
+            <img
+              src={member.cover}
+              alt=""
+              className="bb-item-header-cover-img"
+              decoding="async"
+            />
+          ) : (
+            <div
+              className="absolute inset-0"
+              style={{ backgroundColor: 'var(--bb-cover-image-background-color)' }}
+              aria-hidden="true"
+            />
+          )}
+        </div>
         {isOwn && (
           <>
             <input
@@ -84,9 +91,9 @@ export function ProfileHeader({
       </div>
 
       {/* Avatar au-dessus de la couverture */}
-      <div id="item-header-cover-image" className="relative z-20 px-3 pb-4 pt-0 sm:px-4 bb:px-6">
+      <div id="item-header-cover-image" className="bb-item-header-body">
         <div className="flex flex-col gap-4 bb:flex-row bb:items-end">
-          <div className="item-header-avatar relative z-20 -mt-12 w-fit shrink-0 self-start">
+          <div className="item-header-avatar bb-item-header-avatar">
             <Avatar
               name={member.displayName}
               src={member.avatar}
@@ -117,7 +124,7 @@ export function ProfileHeader({
             )}
           </div>
 
-          <div id="item-header-content" className="min-w-0 flex-1 pb-1">
+          <div id="item-header-content" className="bb-item-header-content">
             <h2 className="user-nicename m-0 break-words text-bb-lg font-semibold text-bb-heading sm:text-bb-xl">
               {member.displayName}
             </h2>

@@ -515,19 +515,38 @@
     "you": "you",
     "affiliatedSince": "Since {{date}}",
     "memberRole": {
-      "member": "Member",
+      "member": "Affiliated member",
       "referent": "Referent"
+    },
+    "memberRoleTyped": {
+      "continent": {
+        "member": "Member — Continent",
+        "referent": "Referent — Continent"
+      },
+      "country": {
+        "member": "Member — Country",
+        "referent": "Referent — Country"
+      },
+      "local": {
+        "member": "Member — Club",
+        "referent": "Referent — Club"
+      }
     },
     "noActiveMembers": "No affiliated members yet.",
     "approve": "Approve",
     "reject": "Reject",
     "manageReferents": "Referent management",
     "manageReferentsHint": "Nominate or remove referents for this institution.",
+    "manageReferentsListHint": "Affiliated members: nominate a referent, revoke that role, or remove the member from the institution.",
     "addReferent": "Nominate a referent",
     "addReferentHint": "Search for a member to grant referent rights on this institution.",
-    "nominateReferent": "Nominate",
+    "nominateReferent": "Nominate referent",
     "removeReferent": "Remove referent",
     "removeReferentHint": "Search for the member whose referent rights you want to revoke.",
+    "removeMember": "Remove member",
+    "removeMemberConfirm": "Remove {{name}} from this institution?",
+    "memberRemoved": "Member removed from the institution.",
+    "memberRemoveFailed": "Could not remove the member.",
     "referentSearchPlaceholder": "Search by name or email…",
     "referentAdded": "Referent nominated.",
     "referentRemoved": "Referent removed.",

@@ -15,7 +15,7 @@ import { InstitutionCard, InstitutionHero } from './InstitutionCard'
 import { ReferentPanel } from './ReferentPanel'
 
 /**
- * Fiche institution — hero bulle (cover + médaillon) + contenu plat.
+ * Fiche institution — header type profil (cover + avatar) + contenu.
  * `?tab=referent` ouvre le panneau référent si autorisé.
  */
 export function InstitutionPage() {
@@ -44,13 +44,10 @@ export function InstitutionPage() {
 
   if (loading) {
     return (
-      <div className="w-full space-y-5">
-        <div className="mx-auto h-[240px] w-[240px] animate-pulse rounded-full bg-bb-alt" />
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-28 animate-pulse rounded-bb bg-bb-alt" />
-          ))}
-        </div>
+      <div className="w-full space-y-4">
+        <div className="h-52 animate-pulse rounded-bb bg-bb-alt" />
+        <div className="h-12 animate-pulse rounded-bb bg-bb-alt" />
+        <div className="h-40 animate-pulse rounded-bb bg-bb-alt" />
       </div>
     )
   }
@@ -140,7 +137,7 @@ function InstitutionHeader({ institution, busy, onRequest, onCancel }) {
   if (user) {
     if (status === 'none' || status === 'rejected') {
       actions = (
-        <Button type="button" size="sm" disabled={busy} onClick={onRequest}>
+        <Button type="button" size="sm" className="min-h-10 flex-1 touch-manipulation sm:flex-none" disabled={busy} onClick={onRequest}>
           {t('institutions.requestAffiliation')}
         </Button>
       )
@@ -150,14 +147,14 @@ function InstitutionHeader({ institution, busy, onRequest, onCancel }) {
           <span className="inline-flex items-center rounded-bb-inner bg-bb-alt px-3 py-1.5 text-bb-sm text-bb-muted">
             {t('institutions.status.pending')}
           </span>
-          <Button type="button" size="sm" variant="outline" disabled={busy} onClick={onCancel}>
+          <Button type="button" size="sm" variant="outline" className="min-h-10 flex-1 touch-manipulation sm:flex-none" disabled={busy} onClick={onCancel}>
             {t('institutions.cancelRequest')}
           </Button>
         </>
       )
     } else if (status === 'active') {
       actions = (
-        <Button type="button" size="sm" variant="outline" disabled={busy} onClick={onCancel}>
+        <Button type="button" size="sm" variant="outline" className="min-h-10 flex-1 touch-manipulation sm:flex-none" disabled={busy} onClick={onCancel}>
           {t('institutions.leave')}
         </Button>
       )
@@ -215,9 +212,9 @@ function InstitutionOverview({ institution }) {
         </header>
 
         {members.loading && (
-          <ul className="m-0 grid list-none grid-cols-1 gap-3 p-0 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <li key={i} className="h-28 animate-pulse rounded-bb bg-bb-alt" />
+          <ul className="m-0 grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <li key={i} className="h-64 animate-pulse rounded-bb bg-bb-alt" />
             ))}
           </ul>
         )}
@@ -231,56 +228,15 @@ function InstitutionOverview({ institution }) {
         )}
 
         {!members.loading && sortedAffiliations.length > 0 && (
-          <ul className="m-0 grid list-none grid-cols-1 gap-3 p-0 sm:grid-cols-2 lg:grid-cols-3">
-            {sortedAffiliations.map((a) => {
-              const isYou = user && String(user.id) === String(a.user.id)
-              const roleKey = a.isReferent
-                ? 'institutions.memberRole.referent'
-                : 'institutions.memberRole.member'
-              return (
-                <li
-                  key={a.user.id}
-                  className="bb-card flex items-start gap-3 p-4 transition-shadow duration-150 hover:shadow-card-hover"
-                >
-                  <Link to={`/members/${a.user.id}`} className="shrink-0">
-                    <Avatar name={a.user.displayName} src={a.user.avatarUrl} size="lg" />
-                  </Link>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Link
-                        to={`/members/${a.user.id}`}
-                        className="truncate font-medium text-bb-heading hover:text-bb-primary"
-                      >
-                        {a.user.displayName}
-                      </Link>
-                      {isYou && (
-                        <span className="text-bb-xs text-bb-muted">{t('institutions.you')}</span>
-                      )}
-                    </div>
-                    <span
-                      className={clsx(
-                        'mt-1.5 inline-flex rounded-bb-inner px-2 py-0.5 text-bb-xs font-semibold',
-                        a.isReferent
-                          ? 'bg-[rgba(var(--bb-primary-color-rgb),0.12)] text-bb-primary'
-                          : 'bg-bb-alt text-bb-muted',
-                      )}
-                    >
-                      {t(roleKey)}
-                    </span>
-                    {a.user.profession ? (
-                      <p className="m-0 mt-2 truncate text-bb-sm text-bb-text">{a.user.profession}</p>
-                    ) : null}
-                    {a.decidedAt ? (
-                      <p className="m-0 mt-1 text-bb-xs text-bb-muted">
-                        {t('institutions.affiliatedSince', {
-                          date: formatAffiliationDate(a.decidedAt),
-                        })}
-                      </p>
-                    ) : null}
-                  </div>
-                </li>
-              )
-            })}
+          <ul className="m-0 grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {sortedAffiliations.map((a) => (
+              <AffiliationMemberCard
+                key={a.user.id}
+                affiliation={a}
+                institution={institution}
+                isYou={Boolean(user && String(user.id) === String(a.user.id))}
+              />
+            ))}
           </ul>
         )}
       </section>
@@ -320,6 +276,100 @@ function InstitutionOverview({ institution }) {
         </section>
       )}
     </div>
+  )
+}
+
+function AffiliationMemberCard({ affiliation, institution, isYou }) {
+  const { t } = useTranslation()
+  const user = affiliation.user
+  const role = affiliation.isReferent ? 'referent' : 'member'
+  const instType = institution?.type || 'local'
+  const roleLabel = t(`institutions.memberRoleTyped.${instType}.${role}`, {
+    defaultValue: t(`institutions.memberRole.${role}`),
+  })
+  const memberTypeLabel = user.memberType
+    ? String(user.memberType)
+    : null
+  const coverUrl = user.coverUrl || user.cover
+
+  return (
+    <li className="list-none overflow-hidden rounded-bb border border-bb-border bg-bb-content text-center shadow-card transition-shadow duration-200 ease-bb hover:shadow-card-hover">
+      <div
+        className="h-24 bg-cover bg-center"
+        style={
+          coverUrl
+            ? { backgroundImage: `url(${coverUrl})` }
+            : {
+                backgroundImage:
+                  'linear-gradient(135deg, var(--bb-primary-color) 0%, #3d4f6a 48%, var(--bb-accent-color) 120%)',
+              }
+        }
+      />
+      <div className="-mt-10 px-4 pb-4">
+        <Link to={`/members/${user.id}`} className="relative mx-auto inline-block">
+          <Avatar
+            name={user.displayName}
+            src={user.avatarUrl || user.avatar}
+            size="xl"
+            className="ring-4 ring-bb-content"
+          />
+        </Link>
+
+        <div className="mt-2">
+          <Link
+            to={`/members/${user.id}`}
+            className="line-clamp-2 text-[1.125rem] font-medium text-bb-heading hover:text-bb-primary"
+          >
+            {user.displayName}
+          </Link>
+          {isYou ? (
+            <p className="m-0 mt-0.5 text-bb-xs text-bb-muted">{t('institutions.you')}</p>
+          ) : null}
+        </div>
+
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-1.5">
+          <span
+            className={clsx(
+              'inline-flex rounded-bb-option px-2 py-0.5 text-[11px] font-semibold',
+              affiliation.isReferent
+                ? 'bg-[rgba(var(--bb-primary-color-rgb),0.12)] text-bb-primary'
+                : 'bg-[var(--bb-label-background-color)] text-[var(--bb-label-text-color)]',
+            )}
+          >
+            {roleLabel}
+          </span>
+          {memberTypeLabel ? (
+            <span className="inline-flex rounded-bb-option bg-bb-alt px-2 py-0.5 text-[11px] font-medium text-bb-muted">
+              {memberTypeLabel}
+            </span>
+          ) : null}
+        </div>
+
+        {user.profession ? (
+          <p className="m-0 mt-2 line-clamp-2 text-bb-sm text-bb-text">{user.profession}</p>
+        ) : (
+          <p className="m-0 mt-2 text-bb-sm text-bb-muted">{t('members.noProfession')}</p>
+        )}
+
+        {affiliation.decidedAt ? (
+          <p className="m-0 mt-1.5 text-bb-xs text-bb-muted">
+            {t('institutions.affiliatedSince', {
+              date: formatAffiliationDate(affiliation.decidedAt),
+            })}
+          </p>
+        ) : null}
+
+        <Button
+          as={Link}
+          to={`/members/${user.id}`}
+          variant="outline"
+          size="sm"
+          className="mt-4 min-h-10 w-full touch-manipulation"
+        >
+          {t('members.viewProfile')}
+        </Button>
+      </div>
+    </li>
   )
 }
 

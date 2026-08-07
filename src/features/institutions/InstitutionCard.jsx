@@ -112,49 +112,120 @@ export function InstitutionCard({
   )
 }
 
-/** Hero détail — grande bulle ronde avec cover + infos ; actions sous la bulle. */
+/** Hero détail — même structure que ProfileHeader (cover + avatar + infos). */
 export function InstitutionHero({ institution, actions = null, backLink }) {
   const { t } = useTranslation()
   const loc = institutionLocation(institution)
   const status = institution.viewerAffiliationStatus
+  const logoSrc = institution.avatarUrl || institution.coverUrl
 
   return (
-    <div className="flex flex-col items-center gap-4">
-      {backLink ? <div className="w-full self-start">{backLink}</div> : null}
+    <div className="space-y-3">
+      {backLink ? <div className="w-full">{backLink}</div> : null}
 
       <div
-        className="relative flex h-[220px] w-[220px] shrink-0 flex-col justify-end overflow-hidden rounded-full border border-white/20 px-5 pb-7 pt-8 text-center text-white shadow-[0_14px_40px_rgba(18,26,43,0.26)] sm:h-[240px] sm:w-[240px]"
-        style={institutionCoverStyle(institution)}
+        id="item-header"
+        role="complementary"
+        data-bp-item-id={institution.id}
+        data-bp-item-component="institutions"
+        className="users-header single-headers overflow-hidden rounded-bb border border-bb-border bg-bb-content"
       >
-        <p className="m-0 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-white/75">
-          {t(`institutions.type.${institution.type}`)}
-          {loc ? ` · ${loc}` : ''}
-        </p>
-        <h1 className="m-0 mt-1 line-clamp-3 text-bb-lg font-semibold leading-tight text-white drop-shadow-sm">
-          {institution.name}
-        </h1>
-        {institution.description ? (
-          <p className="m-0 mt-1.5 line-clamp-2 text-bb-xs text-white/80">{institution.description}</p>
-        ) : null}
-        <div className="mt-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[0.65rem] text-white/75">
-          <span>
-            {t(
-              institution.membersCount === 1
-                ? 'institutions.membersCount_one'
-                : 'institutions.membersCount_other',
-              { count: institution.membersCount },
+        <div className="relative z-0">
+          <div id="header-cover-image" className="bb-item-header-cover">
+            {institution.coverUrl ? (
+              <img
+                src={institution.coverUrl}
+                alt=""
+                className="bb-item-header-cover-img"
+                decoding="async"
+              />
+            ) : (
+              <div
+                className="absolute inset-0"
+                style={institutionThemeCoverStyle()}
+                aria-hidden="true"
+              />
             )}
-          </span>
-          {status && status !== 'none' && <span>{t(`institutions.status.${status}`)}</span>}
-          {institution.viewerIsReferent && (
-            <span className="font-semibold text-[#f0c75e]">{t('institutions.referentBadge')}</span>
-          )}
+          </div>
+        </div>
+
+        <div id="item-header-cover-image" className="bb-item-header-body">
+          <div className="flex flex-col gap-4 bb:flex-row bb:items-end">
+            <div className="item-header-avatar bb-item-header-avatar">
+              <Avatar
+                name={institution.name || '?'}
+                src={logoSrc}
+                size="xl"
+                className="!h-[104px] !w-[104px] ring-4 ring-bb-content sm:!h-[120px] sm:!w-[120px]"
+              />
+            </div>
+
+            <div id="item-header-content" className="bb-item-header-content">
+              <h1 className="user-nicename m-0 break-words text-bb-lg font-semibold text-bb-heading sm:text-bb-xl">
+                {institution.name}
+              </h1>
+              <p className="m-0 mt-0.5 text-bb-sm text-bb-muted">
+                {t(`institutions.type.${institution.type}`)}
+                {loc ? ` · ${loc}` : ''}
+              </p>
+              {institution.description ? (
+                <p className="m-0 mt-2 max-w-xl text-bb-sm text-bb-text">{institution.description}</p>
+              ) : null}
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                <Chip>{t(`institutions.type.${institution.type}`)}</Chip>
+                {institution.countryName ? <Chip>{institution.countryName}</Chip> : null}
+                {institution.continentName ? <Chip>{institution.continentName}</Chip> : null}
+                {status && status !== 'none' ? (
+                  <Chip>{t(`institutions.status.${status}`)}</Chip>
+                ) : null}
+                {institution.viewerIsReferent ? (
+                  <Chip>{t('institutions.referentBadge')}</Chip>
+                ) : null}
+              </div>
+            </div>
+
+            {actions ? (
+              <div className="flex w-full flex-wrap gap-2 pb-1 bb:w-auto">{actions}</div>
+            ) : null}
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-2 border-t border-bb-border pt-3 text-center sm:flex sm:flex-wrap sm:gap-6 sm:text-left">
+            <Stat
+              label={t('institutions.membersLabel')}
+              value={institution.membersCount ?? 0}
+            />
+            <Stat
+              label={t('institutions.typeLabel')}
+              value={t(`institutions.type.${institution.type}`)}
+            />
+          </div>
         </div>
       </div>
+    </div>
+  )
+}
 
-      {actions ? (
-        <div className="flex flex-wrap items-center justify-center gap-2">{actions}</div>
-      ) : null}
+/** Cover fiche institution — bleu uni du thème / logo YEE. */
+function institutionThemeCoverStyle() {
+  return {
+    backgroundColor: 'var(--bb-primary-color)',
+    backgroundImage: 'none',
+  }
+}
+
+function Chip({ children }) {
+  return (
+    <span className="inline-flex rounded-bb-option bg-[var(--bb-label-background-color)] px-2 py-0.5 text-[11px] font-medium text-[var(--bb-label-text-color)]">
+      {children}
+    </span>
+  )
+}
+
+function Stat({ label, value }) {
+  return (
+    <div className="min-w-0">
+      <div className="truncate text-bb-md font-semibold text-bb-heading">{value}</div>
+      <div className="truncate text-bb-xs text-bb-muted">{label}</div>
     </div>
   )
 }
