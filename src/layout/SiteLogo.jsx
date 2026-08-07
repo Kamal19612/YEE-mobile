@@ -1,41 +1,57 @@
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import clsx from 'clsx'
+import logoYee from '../assets/brand/logo-yee-network.png'
 
 /**
- * Marque AfrEA-YEE — destinée à la sidebar.
- * `compact` : pastille « AY » (panel replié)
+ * Marque YEE network — logo officiel (ovale bleu).
+ * `compact` : version réduite (panel replié)
  * `as="span"` : rendu non-lien (ex. bouton parent qui ouvre le panel)
+ * `size="lg"` : plus grand (auth)
+ * `variant="onDark"` : ombre pour fond sombre
  */
-export function SiteLogo({ className = '', href = '/', compact = false, as }) {
+export function SiteLogo({
+  className = '',
+  href = '/',
+  compact = false,
+  as,
+  size = 'md',
+  variant = 'default',
+}) {
   const { t } = useTranslation()
   const title = t('app.name')
+  const onDark = variant === 'onDark'
+
+  const imgClass = clsx(
+    'block h-auto w-auto object-contain',
+    compact && 'h-8 max-w-[56px]',
+    !compact && size === 'sm' && 'h-9 max-w-[140px]',
+    !compact && size === 'md' && 'h-10 max-w-[160px] sm:h-11 sm:max-w-[180px]',
+    !compact && size === 'lg' && 'h-12 max-w-[200px] sm:h-14 sm:max-w-[230px]',
+    onDark && 'drop-shadow-[0_8px_20px_rgba(0,0,0,0.4)]',
+  )
 
   const mark = (
-    <span
-      className={clsx(
-        'relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-bb-inner bg-bb-primary text-bb-xs font-bold tracking-wide text-white shadow-[0_6px_14px_rgba(47,91,255,0.28)]',
-        compact && className,
-      )}
-    >
-      AY
-      <span
-        className="absolute -bottom-0.5 left-1/2 h-0.5 w-4 -translate-x-1/2 rounded-full bg-bb-accent"
-        aria-hidden="true"
-      />
-    </span>
+    <img
+      src={logoYee}
+      alt={title}
+      width={635}
+      height={323}
+      decoding="async"
+      className={imgClass}
+    />
   )
 
   if (compact) {
     if (as === 'span') {
       return (
-        <span className={clsx('inline-flex', className)} title={t('app.tagline')}>
+        <span className={clsx('inline-flex items-center', className)} title={t('app.tagline')}>
           {mark}
         </span>
       )
     }
     return (
-      <Link to={href} rel="home" title={t('app.tagline')} className={clsx('inline-flex', className)}>
+      <Link to={href} rel="home" title={t('app.tagline')} className={clsx('inline-flex items-center', className)}>
         {mark}
       </Link>
     )
@@ -46,18 +62,13 @@ export function SiteLogo({ className = '', href = '/', compact = false, as }) {
       <Link
         to={href}
         rel="home"
-        className="group flex min-w-0 items-center gap-2.5"
+        className={clsx(
+          'inline-flex items-center',
+          onDark && 'rounded-full bg-white/10 p-1.5 ring-1 ring-white/25 backdrop-blur-sm',
+        )}
         title={t('app.tagline')}
       >
         {mark}
-        <span className="min-w-0">
-          <span className="font-display block truncate text-bb-md font-semibold tracking-tight text-bb-heading transition-colors group-hover:text-bb-primary">
-            {title}
-          </span>
-          <span className="block truncate text-[11px] leading-tight text-bb-muted">
-            {t('app.tagline')}
-          </span>
-        </span>
       </Link>
     </div>
   )

@@ -3,10 +3,10 @@
  * Cool Atlantic blue + warm ochre accents for the emerging evaluators network.
  */
 :root {
-  --bb-primary-color: #2f5bff;
-  --bb-primary-color-rgb: 47, 91, 255;
-  --bb-accent-color: #c8922a;
-  --bb-accent-color-rgb: 200, 146, 42;
+  --bb-primary-color: #0066a3;
+  --bb-primary-color-rgb: 0, 102, 163;
+  --bb-accent-color: #d49e00;
+  --bb-accent-color-rgb: 212, 158, 0;
   --bb-body-background-color: #eef1f7;
   --bb-body-background-color-rgb: 238, 241, 247;
   --bb-content-background-color: #ffffff;
@@ -21,24 +21,24 @@
   --bb-alternate-text-color: #8b93a7;
   --bb-alternate-text-color-rgb: 139, 147, 167;
 
-  --bb-primary-button-background-regular: #2f5bff;
-  --bb-primary-button-background-hover: #1a45e8;
-  --bb-primary-button-border-regular: #2f5bff;
-  --bb-primary-button-border-hover: #1a45e8;
+  --bb-primary-button-background-regular: #0066a3;
+  --bb-primary-button-background-hover: #005288;
+  --bb-primary-button-border-regular: #0066a3;
+  --bb-primary-button-border-hover: #005288;
   --bb-primary-button-text-regular: #ffffff;
   --bb-primary-button-text-hover: #ffffff;
 
   --bb-secondary-button-background-regular: #f4f6fa;
-  --bb-secondary-button-background-hover: #2f5bff;
+  --bb-secondary-button-background-hover: #0066a3;
   --bb-secondary-button-border-regular: #f4f6fa;
-  --bb-secondary-button-border-hover: #2f5bff;
+  --bb-secondary-button-border-hover: #0066a3;
   --bb-secondary-button-text-regular: #121a2b;
   --bb-secondary-button-text-hover: #ffffff;
 
   --bb-header-background: rgba(255, 255, 255, 0.86);
   --bb-header-alternate-background: #f4f6fa;
   --bb-header-links: #121a2b;
-  --bb-header-links-hover: #2f5bff;
+  --bb-header-links-hover: #0066a3;
   --bb-header-height: 76px;
   --bb-header-mobile-logo-size: 40px;
   --bb-panel-width: 68px;
@@ -56,26 +56,26 @@
   --bb-sidenav-text-active: #ffffff;
   --bb-sidenav-menu-background-color-regular: transparent;
   --bb-sidenav-menu-background-color-hover: #f4f6fa;
-  --bb-sidenav-menu-background-color-active: #2f5bff;
+  --bb-sidenav-menu-background-color-active: #0066a3;
   --bb-sidenav-count-text-color-regular: #121a2b;
   --bb-sidenav-count-text-color-hover: #ffffff;
-  --bb-sidenav-count-text-color-active: #2f5bff;
+  --bb-sidenav-count-text-color-active: #0066a3;
   --bb-sidenav-count-background-color-regular: #f4f6fa;
-  --bb-sidenav-count-background-color-hover: #2f5bff;
+  --bb-sidenav-count-background-color-hover: #0066a3;
   --bb-sidenav-count-background-color-active: #ffffff;
 
   --bb-footer-background: transparent;
   --bb-footer-widget-background: transparent;
   --bb-footer-text-color: #4a5568;
   --bb-footer-menu-link-color-regular: #4a5568;
-  --bb-footer-menu-link-color-hover: #2f5bff;
+  --bb-footer-menu-link-color-hover: #0066a3;
   --bb-footer-menu-link-color-active: #121a2b;
 
-  --bb-label-background-color: #e4ebff;
-  --bb-label-text-color: #2f5bff;
+  --bb-label-background-color: #e0f0fa;
+  --bb-label-text-color: #0066a3;
   --bb-tooltip-background: #121a2b;
   --bb-tooltip-color: #ffffff;
-  --bb-default-notice-color: #2f5bff;
+  --bb-default-notice-color: #0066a3;
   --bb-success-color: #0f9f57;
   --bb-warning-color: #d4890f;
   --bb-danger-color: #d12129;

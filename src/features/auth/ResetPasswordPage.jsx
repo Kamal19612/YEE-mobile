@@ -96,10 +96,8 @@ export function ResetPasswordPage() {
       title={t('auth.resetTitle')}
       hint={t('auth.resetHint')}
       footer={
-        <p className="m-0 text-center text-bb-sm text-bb-muted">
-          <Link to="/login" className="font-medium text-bb-primary hover:underline">
-            {t('auth.backToSignin')}
-          </Link>
+        <p className="m-0">
+          <Link to="/login">{t('auth.backToSignin')}</Link>
         </p>
       }
     >

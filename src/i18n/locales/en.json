@@ -1,8 +1,8 @@
 {
   "app": {
-    "name": "AfrEA-YEE",
+    "name": "YEE network",
     "tagline": "Young and Emerging Evaluators Platform",
-    "copyright": "© {{year}} AfrEA — Young and Emerging Evaluators"
+    "copyright": "© {{year}} YEE network — Young and Emerging Evaluators"
   },
   "nav": {
     "stories": "News",
@@ -57,9 +57,11 @@
     "sessionExpired": "Session expired — please sign in again.",
     "accountDeactivated": "Account deactivated.",
     "passwordChangedRelogin": "Password updated — please sign in again.",
-    "loginHint": "Sign in with your AfrEA-YEE account.",
-    "welcomeTitle": "Welcome to AfrEA-YEE",
-    "welcomeBody": "The platform for young and emerging evaluators. Sign in to join the community.",
+    "loginHint": "Sign in with your YEE network account.",
+    "emailPlaceholder": "Enter your email",
+    "passwordPlaceholder": "Enter your password",
+    "welcomeTitle": "A community of emerging evaluators.",
+    "welcomeBody": "Join the YEE network to learn, connect, and grow with your peers.",
     "registerHint": "Create an account. A verification email will be sent to activate it.",
     "registerSuccess": "Account created. Check your inbox to activate it.",
     "verifyEmailHint": "After confirming the link in your email, you can sign in.",

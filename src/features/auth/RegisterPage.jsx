@@ -40,7 +40,7 @@ export function RegisterPage() {
 
   if (isBootstrapping) {
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-bb-body">
+      <div className="flex min-h-dvh items-center justify-center bg-white">
         <p className="m-0 text-bb-sm text-bb-muted">{t('common.loading')}</p>
       </div>
     )
@@ -76,10 +76,8 @@ export function RegisterPage() {
       <AuthShell
         title={t('auth.signup')}
         footer={
-          <p className="m-0 text-center text-bb-sm text-bb-muted">
-            <Link to="/login" className="font-medium text-bb-primary hover:underline">
-              {t('auth.backToSignin')}
-            </Link>
+          <p className="m-0">
+            <Link to="/login">{t('auth.backToSignin')}</Link>
           </p>
         }
       >
@@ -102,11 +100,9 @@ export function RegisterPage() {
       title={t('auth.signup')}
       hint={t('auth.registerHint')}
       footer={
-        <p className="m-0 text-center text-bb-sm text-bb-muted">
+        <p className="m-0">
           {t('auth.haveAccount')}{' '}
-          <Link to="/login" className="font-medium text-bb-primary hover:underline">
-            {t('auth.signin')}
-          </Link>
+          <Link to="/login">{t('auth.signin')}</Link>
         </p>
       }
     >

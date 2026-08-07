@@ -89,7 +89,7 @@ export default {
         panel: '0 8px 28px rgba(18, 26, 43, 0.1)',
         dropdown: '0 8px 24px rgba(18, 26, 43, 0.12)',
         card: '0 1px 2px rgba(18, 26, 43, 0.04), 0 8px 24px rgba(18, 26, 43, 0.04)',
-        'card-hover': '0 4px 8px rgba(18, 26, 43, 0.05), 0 16px 32px rgba(47, 91, 255, 0.08)',
+        'card-hover': '0 4px 8px rgba(18, 26, 43, 0.05), 0 16px 32px rgba(0, 102, 163, 0.08)',
       },
       height: {
         header: 'var(--bb-header-height)',
