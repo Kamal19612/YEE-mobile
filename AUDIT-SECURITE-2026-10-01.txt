@@ -1,0 +1,388 @@
+================================================================================
+AUDIT DE SÉCURITÉ ET D’ARCHITECTURE — AFREA-YEE
+================================================================================
+
+Projet          : AfrEA-YEE (React + Spring Boot + Supabase)
+Fichier         : AUDIT-SECURITE-2026-10-01.txt
+Revue initiale  : 1er octobre 2026
+Révision        : 4 octobre 2026 (constats moyens et faibles traités)
+Méthode         : revue statique du dépôt (aucun service démarré, aucun
+                  secret lu, aucune donnée de production consultée)
+Périmètre       : code présent dans /var/www/html/YEE
+Verdict         : les fuites du 1er octobre et les constats moyens/faibles
+                  sont fermés dans le code. SMTP est branché (actif dès
+                  que SPRING_MAIL_HOST est défini). Reste bloquant sur
+                  l’instance : basculer le JDBC hors superuser postgres.
+
+Les rapports historiques (actions d’août, WordPress) ne décrivent plus
+l’application. Le détail produit reste dans AUDIT-COMPLET-AFREA-YEE.txt.
+
+Compteurs : 1 constat élevé ouvert (E2 datasource), 0 moyen, 0 faible.
+E1 (SMTP) est fermé côté code.
+18 classes de test Java. Aucun test React. Pas de CI applicative.
+Six constats du 1er octobre sont clos (section 4).
+
+
+================================================================================
+1. VERDICT
+================================================================================
+
+Ne pas ouvrir le service au public tant que le point suivant n’est
+pas traité sur l’instance réellement déployée :
+
+  1. La migration V15 active le RLS et crée le rôle yee_api, mais
+     spring-boot/.env.example se connecte encore en postgres. Le
+     superuser contourne le RLS. Le basculement est manuel et hors dépôt.
+     Brancher aussi un SMTP réel (SPRING_MAIL_HOST) : le code envoie
+     dès que l’hôte est défini ; sans lui l’inscription prod ne peut
+     pas aboutir seule.
+
+Ce qui a changé depuis le 1er octobre, et qui tient :
+
+  - le fil, les commentaires et les likes d’un groupe private ou secret
+    répondent 404 hors membre actif (ou admin du site) ;
+  - les pièces de messages passent par un endpoint authentifié qui
+    vérifie le participant ; /media ne sert plus le bucket chat-media ;
+  - profil Spring par défaut : prod. SameSite=Lax. Origine obligatoire
+    sur le refresh. Les jetons d’e-mail ne sont plus journalisés ;
+  - filet anyRequest().authenticated(). X-Forwarded-For honoré seulement
+    si l’appel vient d’un proxy de confiance ;
+  - migrations V15–V17 : RLS forcé, rôles Data API révoqués sur public,
+    schéma public retiré de l’API Supabase locale ;
+  - plafonds multipart alignés (20 Mo / 45 Mo). Scripts shell de stack
+    en plus des scripts PowerShell.
+
+Ce qui tenait déjà : access token en mémoire, cookie de refresh httpOnly
+avec rotation et détection de réutilisation, mots de passe BCrypt,
+e-mail masqué sur les profils publics, HTML filtré (Jsoup), protections
+SSRF du link preview, rôle administrateur rechargé en base à chaque JWT,
+erreurs API sans pile technique, rétention planifiée.
+
+
+================================================================================
+2. ARCHITECTURE RÉELLE
+================================================================================
+
+Frontend   React 19, Vite 8, React Router 7, Tailwind 3, i18next.
+           Garde de routes : pages d’auth publiques, le reste derrière
+           ProtectedLayout. Admin UI derrière AdminGuard (isSiteAdmin).
+API        Spring Boot 4.1, Java 21, Security stateless, JPA, Flyway.
+           open-in-view=false, ddl-auto=validate.
+           Profil par défaut : prod (surcharge locale : SPRING_PROFILES_ACTIVE=dev).
+Données    Postgres via Supabase (local ou cloud). L’auth n’est pas
+           Supabase Auth : utilisateurs, hash et refresh sont dans les
+           tables Flyway (V1 à V17).
+           V15 crée le rôle JDBC yee_api (NOSUPERUSER, NOBYPASSRLS) et
+           force le RLS. La politique yee_api_all ouvre toutes les lignes
+           à ce rôle : les droits métier restent dans Spring.
+Fichiers   Disque local par défaut, ou Supabase Storage si
+           APP_STORAGE_PROVIDER=supabase (clé service_role côté serveur).
+           Buckets servis en public : avatars, covers, post-media.
+           chat-media : lecture API après contrôle d’accès.
+Temps réel SSE (notifications, messages), pas de WebSocket.
+Session    Access JWT (HS256, TTL 900 s) en mémoire navigateur.
+           Refresh httpOnly, path=/auth, SameSite=Lax par défaut,
+           rotation de famille. Origine obligatoire et dans la liste blanche.
+
+Parcours réellement routés
+  /login /register /verify-email /forgot-password /reset-password
+  /  /feed/:postId  /members  /groups  /institutions
+  /notifications  /messages  /search  /admin/accounts
+
+Hors parcours (redirection ou code non monté)
+  Forums, ressources, modération, boutique, cours, événements, emplois,
+  adhésions. Ils restent dans src/ et s’appuient encore sur des données
+  locales ou d’anciens clients WordPress.
+
+Déploiement documenté
+  - Dev : npm run supabase:start puis stack:start
+    (scripts/start-stack.sh et .ps1).
+  - GitHub Pages : front seul, VITE_API_URL vide. Ce n’est pas un
+    environnement avec API.
+  - .env.example local : profil dev, liens d’e-mail exposés, cookie
+    non Secure. Réservé au poste de développement.
+
+
+================================================================================
+3. MATURITÉ (JUGEMENT DE REVUE, 0 À 5)
+================================================================================
+
+  Auth            4    session solide ; pas de SMTP ; 2FA retirée (V17)
+  Fil             4    lectures de groupe fermées ; médias private/secret derrière l’adhésion
+  Messages        4    droits de conversation et médias derrière le participant
+  Institutions    3    parcours branché
+  Admin           3    rôle côté API et côté UI
+  Groupes         4    contenu et roster private/secret réservés aux membres actifs ;
+                       la fiche d’un groupe private reste un résumé public
+  Médias          4    chat et posts de groupe non publics contrôlés ; WebP décodé
+  Exploitation    3    profil prod, scripts Linux, CI Gradle + lint, débit en base ;
+                       pas de SMTP, bascule yee_api non faite dans l’exemple
+
+Légende : 5 = exposable. Ces notes ne sont pas une métrique runtime.
+Au 1er octobre : messages 3, groupes 2, médias 2, exploitation 1.
+
+
+================================================================================
+4. CONSTATS DU 1er OCTOBRE — CLOS
+================================================================================
+
+F1 (fil de groupe) — clos
+  GroupFeedAccess.requireGroupFeed et requirePostReadable.
+  Appelés depuis PostService (liste et détail), CommentService
+  et ReactionService (likes, likers).
+  private et secret : membre active ou admin du site, sinon 404
+  (« Groupe introuvable » / « Publication introuvable »).
+  Un pending ou une invitation ne suffit pas. Le fil global exclut
+  toujours les posts de groupe. Tests : GroupFeedAccessTest.
+
+F2 (pièces de messages) — clos dans l’application
+  ConversationService enregistre l’URL d’API
+  /conversations/{id}/media/{mediaId} (ChatMediaLinks).
+  ChatMediaService vérifie conversation + ConversationPermissions.requireAccess,
+  puis lit le bucket chat-media. Cache private, nosniff.
+  MediaWebConfig ne monte plus que avatars, covers et post-media.
+  /conversations/** est authentifié.
+
+F3 (secrets d’e-mail) — la fuite est close, l’envoi non
+  AuthEmailService journalise « verification requested to= » / reset,
+  jamais l’URL ni le jeton. Le profil prod force
+  expose-email-links=false même si la variable d’environnement est vraie.
+  Le défaut Spring est prod. Le profil dev peut encore renvoyer le lien :
+  c’est documenté et limité à l’exemple local.
+
+F4 (RLS / Data API) — le schéma est verrouillé, le runtime pas encore
+  V15 : ENABLE + FORCE ROW LEVEL SECURITY, REVOKE sur anon, authenticated
+  et service_role, rôle yee_api. V16 (table 2FA, RLS) puis V17 (DROP).
+  supabase/config.toml : schemas = ["graphql_public"] seulement.
+  Reste ouvert : le compte JDBC de l’exemple, voir E2.
+
+F5 (filet permitAll) — clos
+  SecurityConfig termine par anyRequest().authenticated().
+  Les GET publics sont listés avant ce filet.
+
+F6 (IP transférée) — le contournement d’en-tête est clos
+  RateLimiter.clientIp n’honore X-Forwarded-For que si l’adresse TCP
+  est dans app.trusted-proxies (défaut 127.0.0.1, ::1). Il prend alors
+  le dernier saut hors proxy. Test : ClientIpTest.
+  Le compteur reste en mémoire : voir M3.
+
+F7 (Origin absent) — clos
+  AppProperties.isOriginAllowed exige une origine non vide et présente
+  dans APP_ALLOWED_ORIGINS. Test : AppOriginPolicyTest.
+  Cookie par défaut : SameSite=Lax, Secure=true.
+
+F8 (plafond servlet) — l’écart de taille est clos
+  spring.servlet.multipart.max-file-size=20MB, max-request-size=45MB
+  (4 images de 5 Mo + 1 audio de 20 Mo). JPEG, PNG et WebP sont décodés
+  (ImageIO + webp-imageio). Un en-tête RIFF/WEBP qui n’est pas une image
+  est refusé.
+
+
+--------------------------------------------------------------------------------
+M1 (médias de posts de groupe) — clos dans l’application
+--------------------------------------------------------------------------------
+
+Un groupe qui n’est pas public stocke le fichier dans group-post-media.
+Ce dossier n’est pas monté en HTTP. Le JSON renvoie
+/feed/{postId}/media/{mediaId}. PostMediaFileService rejoue
+GroupFeedAccess. Le front charge ce chemin en blob avec le jeton.
+/media/post-media/{postId}/{fichier} ne sert plus le disque en direct :
+si le groupe n’est pas public, 404, y compris pour un fichier déjà écrit
+dans post-media. Les médias du fil global et d’un groupe public restent
+à une URL publique.
+
+Résidu : un objet déjà déposé dans un bucket Supabase marqué public
+reste téléchargeable par son URL de stockage tant que le bucket l’est.
+Ne pas créer group-post-media ni chat-media avec public = true.
+
+
+--------------------------------------------------------------------------------
+M2 (roster private) — clos
+--------------------------------------------------------------------------------
+
+GroupPermissions.canListMembers : public pour tout le monde,
+private et secret pour un membre active ou un admin du site.
+listMembers répond 404 sinon. La fiche (nom, description, effectif)
+d’un groupe private reste visible : c’est le résumé pour demander
+à rejoindre. Un membre banned ne voit plus un groupe secret.
+Un invité le voit encore, sans la liste des membres.
+
+
+--------------------------------------------------------------------------------
+M3 (débit) — clos pour plusieurs instances
+--------------------------------------------------------------------------------
+
+Le compteur de production est la table rate_limit_buckets (V18, RLS).
+INSERT … ON CONFLICT est le même pour toutes les instances. La purge
+quotidienne retire les fenêtres expirées. Les tests unitaires gardent
+le compteur mémoire.
+
+
+--------------------------------------------------------------------------------
+M4 (WebP) — clos
+--------------------------------------------------------------------------------
+
+ImageUploadValidator décode le WebP comme le JPEG et le PNG.
+Test : un faux en-tête est refusé, et un lecteur image/webp est enregistré.
+
+
+--------------------------------------------------------------------------------
+M5 (CI) — clos sur le correctif demandé
+--------------------------------------------------------------------------------
+
+.github/workflows/ci.yml lance oxlint et Gradle test à chaque push
+et pull request. Le README ne présente plus GitHub Pages comme
+l’application : c’est une coquille sans API. Il n’y a toujours pas
+de tests React.
+
+
+--------------------------------------------------------------------------------
+M6 (mots de passe) — clos
+--------------------------------------------------------------------------------
+
+PasswordPolicy exige 10 caractères et au moins deux types (minuscules,
+majuscules, chiffres, signes), plus une liste noire élargie.
+« correct-horse » passe (lettres et tiret). Une suite de lettres
+seules ne passe plus. La 2FA reste en phase 2 : la colonne est inerte,
+V17 a retiré la table.
+
+
+================================================================================
+5. CONSTATS OUVERTS
+================================================================================
+
+--------------------------------------------------------------------------------
+E1  ÉLEVÉE — Pas de transporteur d’e-mail — clos dans le code
+--------------------------------------------------------------------------------
+
+AuthEmailService envoie via JavaMailSender dès que SPRING_MAIL_HOST
+est défini (spring-boot-starter-mail). Sans hôte : pas d’envoi, journal
+« skipped ». Le jeton n’est jamais loggé. En prod le lien reste hors
+JSON. Reste opérationnel : renseigner le SMTP sur l’instance
+(voir spring-boot/.env.example et README).
+
+
+--------------------------------------------------------------------------------
+E2  ÉLEVÉE — L’exemple se connecte encore en superuser
+--------------------------------------------------------------------------------
+
+Où
+  V15__api_role_rls.sql : le rôle yee_api n’a pas BYPASSRLS.
+  Le commentaire de la migration le dit : postgres contourne le RLS.
+  spring-boot/.env.example : SPRING_DATASOURCE_USERNAME=postgres
+  et mot de passe postgres, avec la consigne de basculer après Flyway.
+  La politique yee_api_all est USING (true) : une fois le rôle en place,
+  le RLS n’isole pas les lignes entre utilisateurs. Il empêche les rôles
+  Data API (anon, authenticated) de lire les tables si un GRANT traînait.
+  extra_search_path de config.toml contient encore public.
+
+Effet
+  Tant que l’instance utilise postgres, V15 ne change pas le contrôle
+  effectif. Si l’API Data d’un projet cloud réexpose public, le filet
+  dépend des REVOKE, pas du compte applicatif.
+  Cette revue n’a pas interrogé la base réelle.
+
+Correctif
+  Après le premier passage Flyway : mot de passe yee_api hors dépôt,
+  SPRING_DATASOURCE_USERNAME=yee_api. Ne pas laisser postgres sur un
+  serveur exposé. Toute table nouvelle reprend ENABLE, FORCE et
+  POLICY yee_api_all (V15 le rappelle). Retirer public du search_path
+  PostgREST si ce chemin n’est pas requis.
+
+
+Les constats moyens et faibles sont fermés. E1 (SMTP) est branché
+dans le code. Reste E2 (datasource postgres sur l’instance).
+
+
+--------------------------------------------------------------------------------
+F1  FAIBLE — Héritage BuddyBoss — clos
+--------------------------------------------------------------------------------
+
+Features mortes retirées (forums, resources, shop, courses, jobs,
+events, memberships), ainsi que les clients BuddyPress
+(activity, storiesFeed, forums, members, recits, integrations),
+ENABLE_BUDDYPRESS, ActivityComposer/Card et CartDropdown.
+Pied de page : /legal/about|privacy|terms|contact (pages provisoires).
+
+
+--------------------------------------------------------------------------------
+F2  FAIBLE — HTML — clos (filtre aussi à la lecture)
+--------------------------------------------------------------------------------
+
+HtmlContentSanitizer reste à l’écriture. PostService, CommentService
+et ConversationService le rejouent à la lecture avant le JSON.
+dangerouslySetInnerHTML ne reçoit plus que du HTML déjà nettoyé
+deux fois. Ne pas y brancher une autre source.
+
+
+--------------------------------------------------------------------------------
+F3  FAIBLE — search_path PostgREST — clos
+--------------------------------------------------------------------------------
+
+extra_search_path = ["extensions"] uniquement. public n’est ni dans
+[api].schemas ni dans le search_path.
+
+
+================================================================================
+6. CONTRÔLES DÉJÀ EN PLACE
+================================================================================
+
+  JWT HS256, secret d’au moins 32 octets, sinon l’API ne démarre pas.
+  Sujet = id utilisateur. Le rôle n’est pas figé dans le token : le
+  filtre recharge l’utilisateur et refuse un compte désactivé.
+  Refresh : hash en base, famille, used_at, révocation si réutilisation.
+  Cookie httpOnly, SameSite=Lax par défaut. L’access token n’est pas
+  dans localStorage (seul un indicateur « session déjà vue » y est écrit).
+  Refresh refusé sans Origin de la liste blanche.
+  Profil public : l’e-mail, whoCanMessage et la préférence mail ne
+  partent que pour soi-même.
+  CORS : liste blanche APP_ALLOWED_ORIGINS, credentials autorisés,
+  liste vide = aucun en-tête CORS.
+  Link preview : schéma http(s), DNS, IP privées, hôtes bloqués,
+  redirections manuelles, taille, timeout, oEmbed YouTube sans HTML.
+  Admin : /admin/** exige ROLE_SITE_ADMIN. L’UI redirige sinon.
+  Suppression de compte : contrôle du mot de passe, hard delete, médias
+  retirés (y compris chat-media). Un admin ne se supprime pas par cette route.
+  Erreurs : message générique, pas de stack au client.
+  Rétention quotidienne : notifications, previews, refresh périmés,
+  messages de plus de 730 jours.
+  Groupes secret : masqués dans la liste et le détail.
+  Groupes private et secret : fil, commentaires, likes, médias et
+  liste des membres réservés aux membres actifs.
+  Messagerie : participant, ou membre actif pour le fil de groupe ;
+  whoCanMessage (everyone / friends / nobody) ; média via ChatMediaService.
+  Écritures non listées : authentifiées par défaut.
+  Limite d’IP : en-têtes ignorés hors proxy de confiance.
+  Compteurs de débit en base, communs aux instances (V18).
+
+
+================================================================================
+7. ORDRE DE TRAVAIL
+================================================================================
+
+  1. Sur l’instance : SMTP réel (SPRING_MAIL_HOST) + profil prod.
+  2. Basculer le datasource sur yee_api. Vérifier que anon ne lit pas public.
+  Déjà faits dans cette passe : médias de groupes non publics, roster
+  private, compteur en base, décodage WebP, CI Gradle + lint,
+  politique de mots de passe.
+
+Ensuite seulement : modération éditoriale, recherche réelle, pages
+légales, nettoyage du code mort. Le détail produit reste dans
+AUDIT-COMPLET-AFREA-YEE.txt (mis à jour le 2 octobre 2026).
+
+
+================================================================================
+8. CE QUE CETTE REVUE N’A PAS FAIT
+================================================================================
+
+  Pas de scan de ports, pas d’appel à l’API en cours d’exécution,
+  pas de lecture de spring-boot/.env ni des logs.
+  Pas de test navigateur du parcours.
+  Pas de contrôle que l’instance locale ou cloud a déjà exécuté V15
+  ni qu’elle a quitté le rôle postgres.
+  Les gravités décrivent le code, pas une exploitation constatée
+  sur une instance.
+
+
+Fin de l’audit — révision du 4 octobre 2026
+================================================================================

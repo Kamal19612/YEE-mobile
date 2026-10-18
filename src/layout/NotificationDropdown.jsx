@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import clsx from 'clsx'
@@ -13,6 +13,12 @@ import {
   formatNotificationMessage,
   notificationHref,
 } from '../features/notifications/utils'
+import {
+  canUseWebPushApis,
+  platformAllowsPush,
+  shouldShowIosInstallHint,
+} from '../lib/pwaInstall'
+import { enableWebPush, wasPushEnabledLocally } from '../lib/webPush'
 
 export function NotificationDropdown() {
   const { t } = useTranslation()
@@ -22,6 +28,21 @@ export function NotificationDropdown() {
   const open = openDropdown === 'notifications'
   const wasOpenRef = useRef(false)
   const preview = notifications.slice(0, 5)
+  const [pushBusy, setPushBusy] = useState(false)
+  const [pushOn, setPushOn] = useState(() => wasPushEnabledLocally())
+  const showPushCta =
+    canUseWebPushApis() && !pushOn && (platformAllowsPush() || shouldShowIosInstallHint())
+
+  const onEnablePush = useCallback(async () => {
+    if (shouldShowIosInstallHint()) return
+    setPushBusy(true)
+    try {
+      const result = await enableWebPush()
+      if (result === 'subscribed') setPushOn(true)
+    } finally {
+      setPushBusy(false)
+    }
+  }, [])
 
   useEffect(() => {
     if (open && !wasOpenRef.current) {
@@ -59,6 +80,22 @@ export function NotificationDropdown() {
           ) : null
         }
       />
+      {showPushCta && (
+        <div className="border-b border-bb-border bg-[rgba(0,102,163,0.06)] px-4 py-2.5">
+          {shouldShowIosInstallHint() ? (
+            <p className="m-0 text-bb-xs text-bb-text">{t('pwa.iosPushRequiresInstall')}</p>
+          ) : (
+            <button
+              type="button"
+              disabled={pushBusy}
+              onClick={() => onEnablePush().catch(() => {})}
+              className="text-bb-sm font-medium text-bb-primary hover:underline disabled:opacity-60"
+            >
+              {pushBusy ? t('pwa.pushEnabling') : t('pwa.enablePush')}
+            </button>
+          )}
+        </div>
+      )}
       <ul className="notification-list bb-nouveau-list m-0 max-h-[360px] list-none overflow-y-auto p-0">
         {loading && preview.length === 0 && (
           <li className="list-none px-4 py-6 text-center text-bb-sm text-bb-muted">

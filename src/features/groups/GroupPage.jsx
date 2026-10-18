@@ -1,22 +1,27 @@
-import { useState } from 'react'
-import { Link, Navigate, NavLink, Route, Routes, useParams } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, Navigate, NavLink, Route, Routes, useNavigate, useParams } from 'react-router-dom'
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { inviteToGroup } from '../../api/groups'
+import { openGroupConversation } from '../../api/messages'
 import { Avatar } from '../../components/ui/Avatar'
 import { Button } from '../../components/ui/Button'
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { UserPicker } from '../../components/ui/UserPicker'
-import { groupRoleOptions } from '../../data/groupsData'
+import { groupRoleOptions, groupVisibilityOptions } from '../../data/groupsData'
 import { useAuth } from '../../hooks/useAuth'
 import { useFeed } from '../../hooks/useFeed'
 import {
   useGroup,
+  useGroupAdmin,
   useGroupMembership,
   useGroupMembers,
 } from '../../hooks/useGroups'
 import { FeedComposer } from '../activity/FeedComposer'
+import { FeedNewActivityHandler } from '../activity/FeedNewActivityHandler'
 import { FeedPostCard } from '../activity/FeedPostCard'
 import { ActivityPlaceholder } from '../activity/ActivityPlaceholder'
+import { scrollFeedToTop } from '../activity/scrollFeedToTop'
 import { GroupMembershipActions } from './GroupCard'
 
 function isModerator(role) {
@@ -26,13 +31,22 @@ function isModerator(role) {
 /** Page détail groupe — App API Groups + Feed filtré */
 export function GroupPage() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
+  const { user } = useAuth()
   const { groupId } = useParams()
   const { group, setGroup, loading, error } = useGroup(groupId)
   const { join, leave, respondToInvitation, actionError } = useGroupMembership(groupId, {
     group,
     setGroup,
   })
+  const {
+    updateGroup,
+    deleteGroup,
+    actionError: adminError,
+  } = useGroupAdmin(groupId, { group, setGroup })
   const [busy, setBusy] = useState(false)
+  const [leaveOpen, setLeaveOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
 
   if (loading) {
     return (
@@ -55,7 +69,8 @@ export function GroupPage() {
     )
   }
 
-  const canModerate = isModerator(group.viewerRole)
+  const canAdmin = Boolean(user?.isSiteAdmin || group.viewerRole === 'admin')
+  const canModerate = Boolean(canAdmin || isModerator(group.viewerRole))
   const isActive = group.viewerStatus === 'active'
 
   const run = async (fn) => {
@@ -69,19 +84,32 @@ export function GroupPage() {
     }
   }
 
+  const confirmLeave = async () => {
+    await run(leave)
+    setLeaveOpen(false)
+  }
+
   return (
     <div className="bp-wrap w-full">
       <GroupHeader
         group={group}
         busy={busy}
+        canDelete={canAdmin}
         onJoin={() => run(join)}
-        onLeave={() => run(leave)}
+        onLeave={() => setLeaveOpen(true)}
+        onDelete={() => setDeleteOpen(true)}
         onRespond={(accept) => run(() => respondToInvitation(accept))}
       />
-      {actionError && (
-        <div className="bb-card mb-4 p-3 text-bb-sm text-bb-danger">{actionError}</div>
+      {(actionError || adminError) && (
+        <div className="bb-card mb-4 p-3 text-bb-sm text-bb-danger">{actionError || adminError}</div>
       )}
-      <GroupNav groupId={group.id} isActive={isActive} canModerate={canModerate} />
+      <GroupNav
+        groupId={group.id}
+        isActive={isActive}
+        canModerate={canModerate}
+        canAdmin={canAdmin}
+        canDiscuss={isActive || Boolean(user?.isSiteAdmin)}
+      />
       <div id="item-body" className="item-body">
         <Routes>
           <Route
@@ -89,6 +117,16 @@ export function GroupPage() {
             element={<GroupFeed group={group} canPost={isActive} />}
           />
           <Route path="members" element={<GroupMembersTab group={group} />} />
+          <Route
+            path="discussion"
+            element={
+              isActive || user?.isSiteAdmin ? (
+                <GroupDiscussionRedirect groupId={group.id} />
+              ) : (
+                <Navigate to=".." replace />
+              )
+            }
+          />
           <Route
             path="moderation"
             element={
@@ -105,14 +143,61 @@ export function GroupPage() {
               isActive ? <GroupInvite group={group} /> : <Navigate to=".." replace />
             }
           />
+          <Route
+            path="settings"
+            element={
+              canAdmin ? (
+                <GroupSettings
+                  group={group}
+                  onSave={updateGroup}
+                  onDelete={async () => {
+                    await deleteGroup()
+                    navigate('/groups', { replace: true })
+                  }}
+                />
+              ) : (
+                <Navigate to=".." replace />
+              )
+            }
+          />
           <Route path="*" element={<Navigate to="." replace />} />
         </Routes>
       </div>
+
+      <ConfirmDialog
+        open={leaveOpen}
+        title={t('groups.leaveConfirmTitle')}
+        body={t('groups.leaveConfirmBody')}
+        confirmLabel={t('groups.leaveGroup')}
+        confirming={busy}
+        onCancel={() => {
+          if (!busy) setLeaveOpen(false)
+        }}
+        onConfirm={confirmLeave}
+      />
+
+      <ConfirmDialog
+        open={deleteOpen}
+        title={t('groups.deleteConfirmTitle')}
+        body={t('groups.deleteConfirmBody', { name: group.name })}
+        confirmLabel={t('groups.delete')}
+        confirming={busy}
+        onCancel={() => {
+          if (!busy) setDeleteOpen(false)
+        }}
+        onConfirm={async () => {
+          await run(async () => {
+            await deleteGroup()
+            navigate('/groups', { replace: true })
+          })
+          setDeleteOpen(false)
+        }}
+      />
     </div>
   )
 }
 
-function GroupHeader({ group, onJoin, onLeave, onRespond, busy }) {
+function GroupHeader({ group, onJoin, onLeave, onRespond, onDelete, canDelete, busy }) {
   const { t } = useTranslation()
   const visibility = group.visibility || 'public'
   const statusLabel =
@@ -152,9 +237,9 @@ function GroupHeader({ group, onJoin, onLeave, onRespond, busy }) {
             className="!h-[100px] !w-[100px] ring-4 ring-bb-content sm:!h-[120px] sm:!w-[120px]"
           />
         </div>
-        <div className="bb-item-header-content">
-          <h1 className="m-0 text-bb-xl font-semibold text-bb-heading">{group.name}</h1>
-          <p className="m-0 mt-1 text-bb-sm text-bb-text">{group.description}</p>
+        <div className="bb-item-header-content min-w-0">
+          <h1 className="m-0 break-words text-bb-lg font-semibold text-bb-heading sm:text-bb-xl">{group.name}</h1>
+          <p className="m-0 mt-1 break-words text-bb-sm text-bb-text">{group.description}</p>
           <div className="mt-2 flex flex-wrap gap-3 text-bb-xs text-bb-muted">
             <span>{statusLabel}</span>
             <span>
@@ -172,7 +257,7 @@ function GroupHeader({ group, onJoin, onLeave, onRespond, busy }) {
             )}
           </div>
         </div>
-        <div className="flex gap-2 pb-1">
+        <div className="flex flex-wrap gap-2 pb-1">
           {group.viewerStatus === 'active' && (
             <Button as={Link} to={`/groups/${group.id}/invite`} size="sm" variant="secondary">
               {t('groups.invite')}
@@ -185,18 +270,37 @@ function GroupHeader({ group, onJoin, onLeave, onRespond, busy }) {
             onLeave={onLeave}
             onRespondInvitation={onRespond}
           />
+          {canDelete ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={busy}
+              className="border-[#b01b22] text-[var(--bb-danger-color)] hover:border-[#8f161c] hover:bg-red-50 hover:text-[#8f161c]"
+              onClick={onDelete}
+            >
+              {t('groups.delete')}
+            </Button>
+          ) : null}
         </div>
       </div>
     </div>
   )
 }
 
-function GroupNav({ groupId, isActive, canModerate }) {
+function GroupNav({ groupId, isActive, canModerate, canAdmin, canDiscuss }) {
   const { t } = useTranslation()
   const tabs = [
     { id: 'feed', label: t('groups.tabs.feed'), to: `/groups/${groupId}`, end: true },
     { id: 'members', label: t('groups.tabs.members'), to: `/groups/${groupId}/members` },
   ]
+  if (canDiscuss) {
+    tabs.splice(1, 0, {
+      id: 'discussion',
+      label: t('groups.tabs.discussion'),
+      to: `/groups/${groupId}/discussion`,
+    })
+  }
   if (canModerate) {
     tabs.push({
       id: 'moderation',
@@ -209,6 +313,13 @@ function GroupNav({ groupId, isActive, canModerate }) {
       id: 'invite',
       label: t('groups.tabs.invite'),
       to: `/groups/${groupId}/invite`,
+    })
+  }
+  if (canAdmin) {
+    tabs.push({
+      id: 'settings',
+      label: t('groups.tabs.settings'),
+      to: `/groups/${groupId}/settings`,
     })
   }
 
@@ -238,9 +349,36 @@ function GroupNav({ groupId, isActive, canModerate }) {
   )
 }
 
+function GroupDiscussionRedirect({ groupId }) {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+    openGroupConversation(groupId)
+      .then((thread) => {
+        if (!cancelled && thread?.id) navigate(`/messages/${thread.id}`, { replace: true })
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message || t('messages.openGroupFailed'))
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [groupId, navigate, t])
+
+  if (error) {
+    return <div className="bb-card p-4 text-bb-sm text-bb-danger">{error}</div>
+  }
+  return <div className="bb-card p-4 text-bb-sm text-bb-muted">{t('messages.openingDiscussion')}</div>
+}
+
 function GroupFeed({ group, canPost }) {
   const { t } = useTranslation()
-  const canViewFeed = group.visibility === 'public' || group.viewerStatus === 'active'
+  const { user } = useAuth()
+  const canViewFeed =
+    group.visibility === 'public' || group.viewerStatus === 'active' || Boolean(user?.isSiteAdmin)
   const {
     posts,
     loading,
@@ -254,6 +392,11 @@ function GroupFeed({ group, canPost }) {
     loadComments,
     addComment,
     removeComment,
+    pendingNewCount,
+    refreshingPending,
+    applyPendingRefresh,
+    dismissPending,
+    resetNewActivityBanner,
   } = useFeed({ perPage: 10, groupId: group.id, enabled: canViewFeed })
 
   if (!canViewFeed) {
@@ -264,9 +407,22 @@ function GroupFeed({ group, canPost }) {
     )
   }
 
+  const handleCreatePost = async (payload) => {
+    const created = await createPost(payload)
+    scrollFeedToTop()
+    return created
+  }
+
   return (
-    <div className="max-w-content">
-      {canPost && <FeedComposer onSubmit={createPost} />}
+    <div id="group-activity-stream" className="max-w-content">
+      <FeedNewActivityHandler
+        pendingNewCount={pendingNewCount}
+        refreshingPending={refreshingPending}
+        applyPendingRefresh={applyPendingRefresh}
+        dismissPending={dismissPending}
+        resetNewActivityBanner={resetNewActivityBanner}
+      />
+      {canPost && <FeedComposer onSubmit={handleCreatePost} />}
 
       {loading && (
         <>
@@ -315,8 +471,9 @@ function GroupFeed({ group, canPost }) {
 function GroupMembersTab({ group }) {
   const { t } = useTranslation()
   const { user } = useAuth()
-  const canViewMembers = group.visibility === 'public' || group.viewerStatus === 'active'
-  const canModerate = isModerator(group.viewerRole)
+  const canViewMembers =
+    group.visibility === 'public' || group.viewerStatus === 'active' || Boolean(user?.isSiteAdmin)
+  const canModerate = Boolean(user?.isSiteAdmin || isModerator(group.viewerRole))
   const { members, loading, error } = useGroupMembers(
     canViewMembers ? group.id : null,
     'active',
@@ -360,6 +517,7 @@ function GroupMembersTab({ group }) {
             </Link>
             <div className="text-bb-xs text-bb-muted">
               {t(`groups.roles.${m.role}`)}
+              {m.isCreator ? ` · ${t('groups.author')}` : ''}
               {user && String(user.id) === String(m.user.id) ? ` · ${t('groups.you')}` : ''}
             </div>
             {m.user.profession && (
@@ -382,10 +540,13 @@ function GroupMembersTab({ group }) {
 
 function GroupModeration({ group }) {
   const { t } = useTranslation()
-  const isAdmin = group.viewerRole === 'admin'
+  const { user } = useAuth()
+  const isAdmin = Boolean(user?.isSiteAdmin || group.viewerRole === 'admin')
   const pending = useGroupMembers(group.id, 'pending')
   const active = useGroupMembers(group.id, 'active')
   const [localError, setLocalError] = useState(null)
+  const [removeTarget, setRemoveTarget] = useState(null)
+  const [removing, setRemoving] = useState(false)
 
   const wrap = async (fn) => {
     setLocalError(null)
@@ -474,12 +635,13 @@ function GroupModeration({ group }) {
                 <div className="min-w-0">
                   <div className="truncate text-bb-sm font-medium text-bb-heading">
                     {m.user.displayName}
+                    {m.isCreator ? ` · ${t('groups.author')}` : ''}
                   </div>
                   <div className="text-bb-xs text-bb-muted">{t(`groups.roles.${m.role}`)}</div>
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                {isAdmin && (
+                {isAdmin && !m.isCreator && (
                   <select
                     value={m.role}
                     onChange={(e) => wrap(() => active.changeRole(m.user.id, e.target.value))}
@@ -493,19 +655,173 @@ function GroupModeration({ group }) {
                     ))}
                   </select>
                 )}
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => wrap(() => active.remove(m.user.id))}
-                >
-                  {t('groups.removeMember')}
-                </Button>
+                {m.isCreator ? (
+                  <span className="text-bb-xs text-bb-muted">{t('groups.ownerCannotLeave')}</span>
+                ) : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setRemoveTarget(m)}
+                  >
+                    {t('groups.removeMember')}
+                  </Button>
+                )}
               </div>
             </li>
           ))}
         </ul>
       </section>
+
+      <ConfirmDialog
+        open={Boolean(removeTarget)}
+        title={t('groups.removeConfirmTitle')}
+        body={t('groups.removeConfirmBody', { name: removeTarget?.user?.displayName || '' })}
+        confirmLabel={t('groups.removeMember')}
+        confirming={removing}
+        onCancel={() => {
+          if (!removing) setRemoveTarget(null)
+        }}
+        onConfirm={async () => {
+          if (!removeTarget) return
+          setRemoving(true)
+          try {
+            await wrap(() => active.remove(removeTarget.user.id))
+            setRemoveTarget(null)
+          } finally {
+            setRemoving(false)
+          }
+        }}
+      />
+    </div>
+  )
+}
+
+function GroupSettings({ group, onSave, onDelete }) {
+  const { t } = useTranslation()
+  const [name, setName] = useState(group.name || '')
+  const [description, setDescription] = useState(group.description || '')
+  const [visibility, setVisibility] = useState(group.visibility || 'public')
+  const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [message, setMessage] = useState(null)
+  const [error, setError] = useState(null)
+
+  return (
+    <div className="space-y-4">
+      <form
+        className="bb-card max-w-lg space-y-3 p-4"
+        onSubmit={async (e) => {
+          e.preventDefault()
+          if (!name.trim()) return
+          setSaving(true)
+          setError(null)
+          setMessage(null)
+          try {
+            await onSave({
+              name: name.trim(),
+              description: description.trim(),
+              visibility,
+            })
+            setMessage(t('groups.settingsSaved'))
+          } catch (err) {
+            setError(err.message || t('groups.settingsFailed'))
+          } finally {
+            setSaving(false)
+          }
+        }}
+      >
+        <h2 className="m-0 text-bb-md font-semibold text-bb-heading">{t('groups.settingsTitle')}</h2>
+        <p className="m-0 text-bb-sm text-bb-muted">{t('groups.settingsHelp')}</p>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder={t('groups.namePlaceholder')}
+          required
+          className="h-10 w-full rounded-bb-input border border-bb-border px-3 text-bb-sm outline-none focus:border-bb-primary"
+        />
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder={t('groups.descriptionPlaceholder')}
+          rows={3}
+          className="w-full rounded-bb-input border border-bb-border px-3 py-2 text-bb-sm outline-none focus:border-bb-primary"
+        />
+        <fieldset className="m-0 space-y-2 border-0 p-0">
+          <legend className="mb-1 text-bb-sm font-medium text-bb-heading">
+            {t('groups.visibility.label')}
+          </legend>
+          {groupVisibilityOptions.map((opt) => (
+            <label
+              key={opt.id}
+              className={clsx(
+                'flex cursor-pointer gap-3 rounded-bb-inner border px-3 py-2',
+                visibility === opt.id
+                  ? 'border-bb-primary bg-[rgba(var(--bb-primary-color-rgb),0.06)]'
+                  : 'border-bb-border',
+              )}
+            >
+              <input
+                type="radio"
+                name="group-visibility"
+                value={opt.id}
+                checked={visibility === opt.id}
+                onChange={() => setVisibility(opt.id)}
+                className="mt-1"
+              />
+              <span>
+                <span className="block text-bb-sm font-medium text-bb-heading">{t(opt.labelKey)}</span>
+                <span className="block text-bb-xs text-bb-muted">{t(opt.hintKey)}</span>
+              </span>
+            </label>
+          ))}
+        </fieldset>
+        {message && <p className="m-0 text-bb-sm text-bb-success">{message}</p>}
+        {error && <p className="m-0 text-bb-sm text-bb-danger">{error}</p>}
+        <Button type="submit" size="sm" disabled={saving || deleting}>
+          {saving ? t('common.loading') : t('groups.saveSettings')}
+        </Button>
+      </form>
+
+      <section className="bb-card flex max-w-lg flex-col gap-3 border-[#f1c5c7] p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="m-0 text-bb-base font-semibold text-bb-heading">{t('groups.deleteTitle')}</h2>
+          <p className="m-0 mt-1 text-bb-sm text-bb-muted">{t('groups.deleteHelp')}</p>
+        </div>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={saving || deleting}
+          className="border-[#b01b22] text-[var(--bb-danger-color)] hover:border-[#8f161c] hover:bg-red-50 hover:text-[#8f161c]"
+          onClick={() => setDeleteOpen(true)}
+        >
+          {t('groups.delete')}
+        </Button>
+      </section>
+
+      <ConfirmDialog
+        open={deleteOpen}
+        title={t('groups.deleteConfirmTitle')}
+        body={t('groups.deleteConfirmBody', { name: group.name })}
+        confirmLabel={t('groups.delete')}
+        confirming={deleting}
+        onCancel={() => {
+          if (!deleting) setDeleteOpen(false)
+        }}
+        onConfirm={async () => {
+          setDeleting(true)
+          setError(null)
+          try {
+            await onDelete()
+          } catch (err) {
+            setError(err.message || t('groups.settingsFailed'))
+            setDeleteOpen(false)
+            setDeleting(false)
+          }
+        }}
+      />
     </div>
   )
 }

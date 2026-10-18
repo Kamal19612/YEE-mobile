@@ -1,13 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { IconSearch } from '../../components/icons'
 import { Button } from '../../components/ui/Button'
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { groupTypeFilters, groupVisibilityOptions } from '../../data/groupsData'
 import { useAuth } from '../../hooks/useAuth'
 import { useGroups } from '../../hooks/useGroups'
-import { useMyInstitutions } from '../../hooks/useInstitutions'
+import { useManagedInstitutions } from '../../hooks/useInstitutions'
 import { GroupCard } from './GroupCard'
 
 /** Annuaire des groupes — App API `/groups` */
@@ -16,6 +17,7 @@ export function GroupsPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
   const [view, setView] = useState('grid')
   const [createOpen, setCreateOpen] = useState(false)
@@ -25,12 +27,33 @@ export function GroupsPage() {
   const [creating, setCreating] = useState(false)
   const [formError, setFormError] = useState(null)
   const [busyId, setBusyId] = useState(null)
+  const [leaveTarget, setLeaveTarget] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300)
+    return () => clearTimeout(timer)
+  }, [search])
 
   const mine = typeFilter === 'mine'
-  const { groups, total, loading, error, actionError, createGroup, join, leave, respondToInvitation } =
-    useGroups({ search, mine })
-  const { isReferentSomewhere, loading: referentLoading } = useMyInstitutions(user?.id)
-  const canCreateGroup = Boolean(user && isReferentSomewhere)
+  const {
+    groups,
+    total,
+    loading,
+    error,
+    actionError,
+    createGroup,
+    join,
+    leave,
+    respondToInvitation,
+    removeGroup,
+  } = useGroups({ search: debouncedSearch, mine })
+  const { institutions: managedInstitutions, loading: referentLoading } = useManagedInstitutions(
+    Boolean(user) && !user?.isSiteAdmin,
+  )
+  const canCreateGroup = Boolean(
+    user && (user.isSiteAdmin || managedInstitutions.length > 0),
+  )
 
   const runAction = async (id, fn) => {
     setBusyId(id)
@@ -45,18 +68,18 @@ export function GroupsPage() {
 
   return (
     <div id="buddypress" className="buddypress-wrap w-full">
-      <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
+      <header className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
         <div>
           <h1 className="m-0 text-bb-xl font-semibold text-bb-heading">{t('groups.title')}</h1>
           <p className="m-0 mt-1 text-bb-sm text-bb-text">{t('groups.subtitle')}</p>
         </div>
-        {user && !referentLoading && canCreateGroup && (
-          <Button type="button" size="sm" onClick={() => setCreateOpen((v) => !v)}>
+        {user && (user.isSiteAdmin || !referentLoading) && canCreateGroup && (
+          <Button type="button" size="sm" className="w-full sm:w-auto" onClick={() => setCreateOpen((v) => !v)}>
             {t('groups.create')}
           </Button>
         )}
         {user && !referentLoading && !canCreateGroup && (
-          <p className="m-0 max-w-xs text-right text-bb-sm text-bb-muted">
+          <p className="m-0 w-full text-left text-bb-sm text-bb-muted bb:max-w-xs bb:text-right">
             {t('groups.createReferentOnly')}{' '}
             <Link to={user?.id ? `/members/${user.id}/institutions` : '/members'} className="text-bb-primary hover:underline">
               {t('groups.createReferentLink')}
@@ -162,8 +185,8 @@ export function GroupsPage() {
         <div className="bb-item-count text-bb-sm text-bb-text">
           {t(total === 1 ? 'groups.count_one' : 'groups.count_other', { count: total })}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="relative block min-w-0 w-full flex-1 sm:min-w-[180px]">
+        <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+          <label className="relative block w-full min-w-0 sm:min-w-[180px] sm:flex-1 bb:max-w-sm">
             <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-bb-muted" />
             <input
               type="search"
@@ -173,30 +196,32 @@ export function GroupsPage() {
               className="h-10 w-full rounded-bb-input border border-bb-border bg-bb-content py-1.5 pl-9 pr-3 text-bb-sm outline-none focus:border-bb-primary"
             />
           </label>
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="h-9 rounded-bb-input border border-bb-border bg-bb-content px-2 text-bb-sm"
-          >
-            {groupTypeFilters.map((f) => (
-              <option key={f.id} value={f.id}>
-                {t(f.labelKey)}
-              </option>
-            ))}
-          </select>
-          <div className="flex overflow-hidden rounded-bb-input border border-bb-border">
-            {['grid', 'list'].map((v) => (
-              <button
-                key={v}
-                type="button"
-                onClick={() => setView(v)}
-                className={`px-3 py-1.5 text-bb-xs font-medium ${
-                  view === v ? 'bg-bb-primary text-white' : 'bg-bb-content text-bb-text'
-                }`}
-              >
-                {t(v === 'grid' ? 'members.grid' : 'members.list')}
-              </button>
-            ))}
+          <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-start">
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="h-10 min-w-0 flex-1 rounded-bb-input border border-bb-border bg-bb-content px-2 text-bb-sm sm:flex-none"
+            >
+              {groupTypeFilters.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {t(f.labelKey)}
+                </option>
+              ))}
+            </select>
+            <div className="flex shrink-0 overflow-hidden rounded-bb-input border border-bb-border">
+              {['grid', 'list'].map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setView(v)}
+                  className={`min-h-10 px-3 py-1.5 text-bb-xs font-medium ${
+                    view === v ? 'bg-bb-primary text-white' : 'bg-bb-content text-bb-text'
+                  }`}
+                >
+                  {t(v === 'grid' ? 'members.grid' : 'members.list')}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -206,9 +231,9 @@ export function GroupsPage() {
       )}
 
       {loading && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 justify-start gap-3 sm:grid-cols-[repeat(auto-fill,minmax(12.5rem,14rem))]">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-56 animate-pulse rounded-bb border border-bb-border bg-bb-content" />
+            <div key={i} className="h-48 animate-pulse rounded-bb border border-bb-border bg-bb-content" />
           ))}
         </div>
       )}
@@ -227,7 +252,7 @@ export function GroupsPage() {
           className={clsx(
             'm-0 list-none p-0',
             view === 'grid'
-              ? 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'
+              ? 'grid grid-cols-1 justify-start gap-3 sm:grid-cols-[repeat(auto-fill,minmax(12.5rem,14rem))]'
               : 'flex flex-col gap-3',
           )}
         >
@@ -237,8 +262,10 @@ export function GroupsPage() {
               group={group}
               view={view}
               busy={busyId === group.id}
+              canDelete={Boolean(user?.isSiteAdmin)}
               onJoin={(id) => runAction(id, () => join(id))}
-              onLeave={(id) => runAction(id, () => leave(id))}
+              onLeave={(id) => setLeaveTarget(groups.find((g) => String(g.id) === String(id)) || { id })}
+              onDelete={(g) => setDeleteTarget(g)}
               onRespondInvitation={(id, accept) =>
                 runAction(id, () => respondToInvitation(id, accept))
               }
@@ -246,6 +273,38 @@ export function GroupsPage() {
           ))}
         </ul>
       )}
+
+      <ConfirmDialog
+        open={Boolean(leaveTarget)}
+        title={t('groups.leaveConfirmTitle')}
+        body={t('groups.leaveConfirmBody')}
+        confirmLabel={t('groups.leaveGroup')}
+        confirming={Boolean(leaveTarget && busyId === leaveTarget.id)}
+        onCancel={() => {
+          if (!busyId) setLeaveTarget(null)
+        }}
+        onConfirm={async () => {
+          if (!leaveTarget) return
+          await runAction(leaveTarget.id, () => leave(leaveTarget.id))
+          setLeaveTarget(null)
+        }}
+      />
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title={t('groups.deleteConfirmTitle')}
+        body={t('groups.deleteConfirmBody', { name: deleteTarget?.name || '' })}
+        confirmLabel={t('groups.delete')}
+        confirming={Boolean(deleteTarget && busyId === deleteTarget.id)}
+        onCancel={() => {
+          if (!busyId) setDeleteTarget(null)
+        }}
+        onConfirm={async () => {
+          if (!deleteTarget) return
+          await runAction(deleteTarget.id, () => removeGroup(deleteTarget.id))
+          setDeleteTarget(null)
+        }}
+      />
     </div>
   )
 }

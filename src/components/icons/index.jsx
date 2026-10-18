@@ -176,6 +176,16 @@ export function IconShare(props) {
   )
 }
 
+/** Flèche courbe — répondre à un commentaire. */
+export function IconReply(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M9 14L4 9l5-5" />
+      <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H13" />
+    </svg>
+  )
+}
+
 export function IconImage(props) {
   return (
     <svg {...base} {...props}>
@@ -199,6 +209,15 @@ export function IconGlobe(props) {
     <svg {...base} {...props}>
       <circle cx="12" cy="12" r="8" />
       <path d="M4 12h16M12 4c2.5 2.5 2.5 13 0 16M12 4c-2.5 2.5-2.5 13 0 16" />
+    </svg>
+  )
+}
+
+export function IconMapPin(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M12 21s-6-5.2-6-10a6 6 0 1 1 12 0c0 4.8-6 10-6 10z" />
+      <circle cx="12" cy="11" r="2.2" />
     </svg>
   )
 }
@@ -304,6 +323,47 @@ export function IconEyeOff(props) {
       <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
       <path d="M9.9 5.2A10.4 10.4 0 0 1 12 5c6.5 0 10 7 10 7a17.7 17.7 0 0 1-3.1 4.1" />
       <path d="M6.1 6.1C3.9 7.7 2 12 2 12s3.5 7 10 7a9.7 9.7 0 0 0 4.3-1" />
+    </svg>
+  )
+}
+
+export function IconDownload(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M12 4v10" />
+      <path d="M8 10l4 4 4-4" />
+      <path d="M5 19h14" />
+    </svg>
+  )
+}
+
+export function IconFile(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+      <path d="M14 3v5h5" />
+      <path d="M9 13h6M9 17h4" />
+    </svg>
+  )
+}
+
+/** Trombone — joindre un fichier / document. */
+export function IconPaperclip(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+    </svg>
+  )
+}
+
+/** Corbeille — supprimer. */
+export function IconTrash(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M3 6h18" />
+      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <path d="M10 11v6M14 11v6" />
     </svg>
   )
 }

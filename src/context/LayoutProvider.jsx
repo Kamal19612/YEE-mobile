@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { lockBodyScroll } from '../utils/bodyScrollLock'
 
 const LayoutContext = createContext(null)
 
@@ -33,12 +34,8 @@ export function LayoutProvider({ children }) {
   }, [closeDropdowns, closeSearch, closeMobilePanel])
 
   useEffect(() => {
-    const lock = mobilePanelOpen || searchOpen
-    const previous = document.body.style.overflow
-    if (lock) document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = previous
-    }
+    if (!(mobilePanelOpen || searchOpen)) return undefined
+    return lockBodyScroll()
   }, [mobilePanelOpen, searchOpen])
 
   const value = useMemo(

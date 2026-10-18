@@ -3,11 +3,10 @@ import { API_BASE, APP_API_BASE, API_TIMEOUT_MS, ENDPOINTS } from '../config/api
 /**
  * Client HTTP centralisé (fetch).
  *
- * - Access token App API : mémoire uniquement (XSS) — jamais localStorage
+ * - Access token : mémoire uniquement (XSS) — jamais localStorage
  * - Refresh : cookie httpOnly `app_refresh_token` (credentials: include)
  * - File d’attente sur 401 : une seule requête /auth/refresh à la fois
- * - Contrat App API : { success, data } | { success: false, error }
- * - Autres namespaces (BuddyPress, wp/v2) : corps JSON natif WP
+ * - Contrat API : { success, data } | { success: false, error }
  */
 
 let memoryAccessToken = null
@@ -33,24 +32,33 @@ export function clearToken() {
 }
 
 function resolveUrl(path, { appApi = false } = {}) {
-  if (!path) return appApi ? APP_API_BASE : API_BASE
+  if (!path) return appApi ? APP_API_BASE || '/api' : API_BASE || '/api'
   if (path.startsWith('http')) return path
 
-  if (appApi) {
-    if (path === APP_API_BASE || path.startsWith(`${APP_API_BASE}/`)) return path
-    return `${APP_API_BASE}${path.startsWith('/') ? path : `/${path}`}`
-  }
+  const base = appApi ? APP_API_BASE : API_BASE
 
-  if (path === API_BASE || path.startsWith(`${API_BASE}/`)) return path
+  if (path === base || path.startsWith(`${base}/`)) return path
   if (path.startsWith('/app/v1') || path.startsWith('app/v1')) {
     const rest = path.replace(/^\/?app\/v1/, '')
-    return `${APP_API_BASE}${rest.startsWith('/') ? rest : `/${rest}`}`
+    return `${base}${rest.startsWith('/') ? rest : `/${rest}`}`
   }
-  return `${API_BASE}${path.startsWith('/') ? path : `/${path}`}`
+  // Chemins déjà préfixés /api (médias, fichiers) → ne pas doubler
+  if (base === '/api' && (path === '/api' || path.startsWith('/api/'))) {
+    return path
+  }
+  return `${base}${path.startsWith('/') ? path : `/${path}`}`
 }
 
 function isAppApiUrl(url) {
-  return url.includes('/app/v1') || url.startsWith(APP_API_BASE)
+  if (!url) return false
+  const path = url.startsWith('http') ? new URL(url).pathname : url
+  if (APP_API_BASE && (url.startsWith(APP_API_BASE) || path.startsWith(APP_API_BASE))) {
+    return true
+  }
+  // Same-origin /api/* + avatars/covers hors préfixe
+  if (/^\/api(\/|$)/.test(path)) return true
+  if (/^\/media\/(?:avatars|covers)\//.test(path)) return true
+  return url.includes('/app/v1')
 }
 
 function parseErrorMessage(status, body, statusText) {
@@ -160,6 +168,8 @@ export async function refreshAccessToken() {
  *   suppressUnauthorized?: boolean,
  *   appApi?: boolean,
  *   _retry?: boolean,
+ *   timeoutMs?: number,
+ *   onUploadProgress?: (pct: number) => void,
  * }} [options]
  */
 export async function apiFetch(path, options = {}) {
@@ -170,7 +180,10 @@ export async function apiFetch(path, options = {}) {
     auth = null,
     suppressUnauthorized = false,
     appApi = false,
+    raw = false,
     _retry = false,
+    timeoutMs = API_TIMEOUT_MS,
+    onUploadProgress,
     ...rest
   } = options
 
@@ -190,41 +203,63 @@ export async function apiFetch(path, options = {}) {
   }
 
   const url = resolveUrl(path, { appApi })
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), API_TIMEOUT_MS)
-  if (rest.signal) {
-    rest.signal.addEventListener('abort', () => controller.abort(), { once: true })
+  const waitMs = Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : API_TIMEOUT_MS
+
+  const requestHeaders = {
+    ...(hasBody && !isFormData ? { 'Content-Type': 'application/json' } : {}),
+    ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+    ...headers,
   }
 
+  /** fetch ne expose pas la progression d’upload — XHR uniquement si callback fourni. */
+  const useXhrProgress =
+    typeof onUploadProgress === 'function' && isFormData && typeof XMLHttpRequest !== 'undefined'
+
   let res
+  let body
   try {
-    res = await fetch(url, {
-      ...rest,
-      signal: controller.signal,
-      credentials: 'include',
-      headers: {
-        ...(hasBody && !isFormData ? { 'Content-Type': 'application/json' } : {}),
-        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-        ...headers,
-      },
-    })
+    if (useXhrProgress) {
+      const xhrResult = await xhrFormUpload({
+        url,
+        method,
+        body: rest.body,
+        headers: requestHeaders,
+        timeoutMs: waitMs,
+        signal: rest.signal,
+        onUploadProgress,
+      })
+      res = { ok: xhrResult.status >= 200 && xhrResult.status < 300, status: xhrResult.status, statusText: xhrResult.statusText }
+      body = xhrResult.body
+      if (res.status === 204) return null
+    } else {
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), waitMs)
+      if (rest.signal) {
+        rest.signal.addEventListener('abort', () => controller.abort(), { once: true })
+      }
+      try {
+        res = await fetch(url, {
+          ...rest,
+          signal: controller.signal,
+          credentials: 'include',
+          headers: requestHeaders,
+        })
+      } finally {
+        clearTimeout(timer)
+      }
+      if (res.status === 204) return null
+      const contentType = res.headers.get('content-type') || ''
+      body = contentType.includes('application/json')
+        ? await res.json().catch(() => null)
+        : await res.text().catch(() => null)
+    }
   } catch (networkErr) {
-    clearTimeout(timer)
-    const aborted = networkErr.name === 'AbortError'
+    const aborted = networkErr.name === 'AbortError' || networkErr.code === 'timeout'
     const error = new Error(aborted ? 'Délai d’attente dépassé' : networkErr.message || 'Réseau indisponible')
     error.status = 0
     error.code = aborted ? 'timeout' : 'network_error'
     throw error
-  } finally {
-    clearTimeout(timer)
   }
-
-  if (res.status === 204) return null
-
-  const contentType = res.headers.get('content-type') || ''
-  const body = contentType.includes('application/json')
-    ? await res.json().catch(() => null)
-    : await res.text().catch(() => null)
 
   if (!res.ok) {
     const error = new Error(parseErrorMessage(res.status, body, res.statusText))
@@ -264,8 +299,11 @@ export async function apiFetch(path, options = {}) {
     throw error
   }
 
-  // Contrat App API : déballer data
+  // Contrat App API : déballer data (sauf raw → conserver meta)
   if (body && typeof body === 'object' && body.success === true && 'data' in body) {
+    if (raw) {
+      return { data: body.data, meta: body.meta || null }
+    }
     return body.data
   }
 
@@ -273,7 +311,84 @@ export async function apiFetch(path, options = {}) {
 }
 
 /**
- * Raccourci pour les routes /app/v1/*
+ * Upload FormData avec événements de progression (0–100).
+ * @returns {Promise<{ status: number, statusText: string, body: any }>}
+ */
+function xhrFormUpload({ url, method, body, headers, timeoutMs, signal, onUploadProgress }) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open(method || 'POST', url, true)
+    xhr.withCredentials = true
+    xhr.timeout = timeoutMs
+
+    Object.entries(headers || {}).forEach(([key, value]) => {
+      if (value != null && value !== '') xhr.setRequestHeader(key, String(value))
+    })
+
+    const onAbort = () => {
+      xhr.abort()
+      const err = new Error('Délai d’attente dépassé')
+      err.name = 'AbortError'
+      err.code = 'timeout'
+      reject(err)
+    }
+    if (signal) {
+      if (signal.aborted) {
+        onAbort()
+        return
+      }
+      signal.addEventListener('abort', onAbort, { once: true })
+    }
+
+    xhr.upload.onprogress = (event) => {
+      if (!event.lengthComputable || event.total <= 0) return
+      const pct = Math.min(100, Math.round((event.loaded / event.total) * 100))
+      onUploadProgress(pct)
+    }
+    xhr.upload.onload = () => onUploadProgress(100)
+
+    xhr.onload = () => {
+      signal?.removeEventListener('abort', onAbort)
+      if (xhr.status === 204) {
+        resolve({ status: 204, statusText: xhr.statusText, body: null })
+        return
+      }
+      const ct = xhr.getResponseHeader('content-type') || ''
+      let parsed = null
+      if (ct.includes('application/json')) {
+        try {
+          parsed = JSON.parse(xhr.responseText || 'null')
+        } catch {
+          parsed = null
+        }
+      } else {
+        parsed = xhr.responseText
+      }
+      resolve({ status: xhr.status, statusText: xhr.statusText, body: parsed })
+    }
+
+    xhr.onerror = () => {
+      signal?.removeEventListener('abort', onAbort)
+      const err = new Error('Réseau indisponible')
+      err.code = 'network_error'
+      reject(err)
+    }
+
+    xhr.ontimeout = () => {
+      signal?.removeEventListener('abort', onAbort)
+      const err = new Error('Délai d’attente dépassé')
+      err.name = 'AbortError'
+      err.code = 'timeout'
+      reject(err)
+    }
+
+    onUploadProgress(0)
+    xhr.send(body)
+  })
+}
+
+/**
+ * Raccourci pour les routes API Spring (auth, users, feed, …).
  */
 export function appApiFetch(path, options = {}) {
   return apiFetch(path, { ...options, appApi: true })

@@ -1,5 +1,6 @@
 import { ENDPOINTS } from '../config/api'
 import { appApiFetch, getToken } from './client'
+import { mapGroup } from './groups'
 
 /**
  * Users / Profile — App API `/app/v1/users/*`
@@ -10,6 +11,7 @@ function normalizeMediaUrl(url) {
   if (!url) return null
   let u = String(url).replace(/#038;/g, '&').replace(/&amp;/g, '&')
   if (u.startsWith('//')) u = `https:${u}`
+  u = u.replace(/^https?:\/\/(localhost|127\.0\.0\.1):\d+\/media(?=\/|$)/i, '/media')
   return u
 }
 
@@ -81,6 +83,9 @@ export function mapAppProfile(raw, opts = {}) {
     online: Boolean(raw.online),
     friendshipStatus,
     isFollowing,
+    whoCanMessage: raw.whoCanMessage || 'friends',
+    emailPrefMessages: Boolean(raw.emailPrefMessages),
+    canMessage: raw.canMessage,
     stats: {
       friends: followers,
       groups: raw.stats?.groups ?? 0,
@@ -319,8 +324,13 @@ function mapSearchUser(raw) {
   return {
     id: String(raw.id),
     displayName: raw.displayName || '',
+    mentionName: raw.mentionName || '',
     avatarUrl: normalizeMediaUrl(raw.avatarUrl || raw.avatar),
-    profession: raw.profession || '',
+    profession: String(raw.profession || '').trim(),
+    organization: String(raw.organization || '').trim(),
+    location: String(raw.location || '').trim(),
+    isFollowing: Boolean(raw.isFollowing),
+    friendshipStatus: raw.isFollowing ? 'is_friend' : 'not_friends',
   }
 }
 
@@ -329,6 +339,18 @@ function mapSearchUser(raw) {
  * Public. `appApiFetch` ne préserve pas `meta` → pagination dérivée (même limite que le feed).
  * @returns {{ users: Array<{id, displayName, avatarUrl, profession}>, meta: object }}
  */
+/** GET /users/summary — membres de l'annuaire et groupes visibles. */
+export async function fetchCommunitySummary() {
+  const data = await appApiFetch(ENDPOINTS.users.summary, {
+    auth: Boolean(getToken()),
+    skipAuth: !getToken(),
+  })
+  return {
+    members: Number(data?.members) || 0,
+    groups: Number(data?.groups) || 0,
+  }
+}
+
 export async function fetchUsersDirectory({
   search = '',
   institutionId,
@@ -345,7 +367,8 @@ export async function fetchUsersDirectory({
   }
 
   const data = await appApiFetch(`${ENDPOINTS.users.list}?${params.toString()}`, {
-    skipAuth: true,
+    auth: Boolean(getToken()),
+    skipAuth: !getToken(),
   })
   const list = Array.isArray(data) ? data : []
   const users = list.map(mapSearchUser).filter(Boolean)
@@ -373,4 +396,11 @@ export async function searchUsers(query) {
   })
   const list = Array.isArray(data) ? data : []
   return list.map(mapSearchUser).filter(Boolean)
+}
+
+/** GET /users/me/group-invites */
+export async function fetchMyGroupInvites() {
+  const data = await appApiFetch(ENDPOINTS.users.meGroupInvites, { auth: true })
+  const list = Array.isArray(data) ? data : []
+  return list.map(mapGroup).filter(Boolean)
 }

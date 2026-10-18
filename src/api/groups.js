@@ -11,6 +11,7 @@ function normalizeMediaUrl(url) {
   if (!url) return null
   let u = String(url).replace(/#038;/g, '&').replace(/&amp;/g, '&')
   if (u.startsWith('//')) u = `https:${u}`
+  u = u.replace(/^https?:\/\/(localhost|127\.0\.0\.1):\d+\/media(?=\/|$)/i, '/media')
   return u
 }
 
@@ -55,6 +56,7 @@ export function mapGroup(raw) {
     createdAt: raw.createdAt || raw.created || '',
     viewerStatus,
     viewerRole,
+    viewerIsCreator: Boolean(raw.viewerIsCreator),
   }
 }
 
@@ -63,10 +65,11 @@ export function mapMember(raw) {
   const role = VIEWER_ROLES.has(raw.role) ? raw.role : 'member'
   const status = MEMBER_STATUSES.has(raw.status) ? raw.status : 'active'
   return {
-    user: mapUser(raw.user),
+    user: mapUser(raw.user || raw),
     role,
     status,
     joinedAt: raw.joinedAt || '',
+    isCreator: Boolean(raw.isCreator),
   }
 }
 
@@ -75,11 +78,12 @@ function authOpts() {
   return token ? { auth: true } : { skipAuth: true }
 }
 
-/** GET /groups?search=&mine= */
-export async function fetchGroups({ search = '', mine = false } = {}) {
+/** GET /groups?search=&mine=&userId= */
+export async function fetchGroups({ search = '', mine = false, userId } = {}) {
   const params = new URLSearchParams()
   if (search) params.set('search', String(search))
   if (mine) params.set('mine', '1')
+  if (userId) params.set('userId', String(userId))
 
   const qs = params.toString()
   const path = qs ? `${ENDPOINTS.groups.list}?${qs}` : ENDPOINTS.groups.list

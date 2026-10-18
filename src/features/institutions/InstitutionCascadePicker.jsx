@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { fetchInstitution } from '../../api/institutions'
 import { useInstitutionTree } from '../../hooks/useInstitutions'
 
 /**
@@ -21,17 +22,50 @@ export function InstitutionCascadePicker({
   const [continentId, setContinentId] = useState('')
   const [countryId, setCountryId] = useState('')
   const [localId, setLocalId] = useState('')
-
   const continents = useInstitutionTree(null)
   const countries = useInstitutionTree(continentId || null, 'country')
   const locals = useInstitutionTree(countryId || null, 'local')
   const stopAtCountry = depth === 'country'
 
-  // Resync si value externe effacée
   useEffect(() => {
     if (!value) {
-      if (stopAtCountry) setCountryId('')
-      else setLocalId('')
+      setContinentId('')
+      setCountryId('')
+      setLocalId('')
+      return undefined
+    }
+    const current = stopAtCountry ? countryId : localId
+    if (String(current) === String(value)) return undefined
+
+    let cancelled = false
+    ;(async () => {
+      try {
+        const inst = await fetchInstitution(value)
+        if (cancelled || !inst) return
+        if (inst.type === 'continent') {
+          setContinentId(inst.id)
+          setCountryId('')
+          setLocalId('')
+        } else if (inst.type === 'country') {
+          setContinentId(inst.parentId || '')
+          setCountryId(inst.id)
+          setLocalId('')
+        } else {
+          setLocalId(inst.id)
+          setCountryId(inst.parentId || '')
+          if (inst.parentId) {
+            const country = await fetchInstitution(inst.parentId)
+            if (!cancelled) setContinentId(country?.parentId || '')
+          }
+        }
+      } catch {
+        /* ignore hydrate errors */
+      } finally {
+        /* hydrate done */
+      }
+    })()
+    return () => {
+      cancelled = true
     }
   }, [value, stopAtCountry])
 
@@ -71,7 +105,7 @@ export function InstitutionCascadePicker({
   return (
     <div className={className ? `${stackClass} ${className}` : stackClass}>
       <label className={compact ? 'block min-w-0 flex-1 sm:min-w-[160px]' : 'block'}>
-        <span className={labelClass}>{t('institutions.type.continent')}</span>
+          <span className={labelClass}>{t('institutions.type.continent')}</span>
         <select
           className={selectClass}
           disabled={disabled || continents.loading}
@@ -108,6 +142,11 @@ export function InstitutionCascadePicker({
         {countries.error && (
           <span className="mt-1 block text-bb-xs text-bb-danger">{countries.error}</span>
         )}
+        {!countries.loading && continentId && countries.institutions.length === 0 && (
+          <span className="mt-1 block text-bb-xs text-bb-muted">
+            {t('institutions.children.emptyCountries')}
+          </span>
+        )}
       </label>
 
       {!stopAtCountry && (
@@ -128,6 +167,11 @@ export function InstitutionCascadePicker({
           </select>
           {locals.error && (
             <span className="mt-1 block text-bb-xs text-bb-danger">{locals.error}</span>
+          )}
+          {!locals.loading && countryId && locals.institutions.length === 0 && (
+            <span className="mt-1 block text-bb-xs text-bb-muted">
+              {t('institutions.children.emptyLocals')}
+            </span>
           )}
         </label>
       )}

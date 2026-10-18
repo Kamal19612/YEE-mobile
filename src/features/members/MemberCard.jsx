@@ -20,7 +20,13 @@ export function MemberCard({
   const { t } = useTranslation()
 
   if (variant === 'directory') {
-    return <DirectoryMemberCard member={member} view={view} />
+    return (
+      <DirectoryMemberCard
+        member={member}
+        view={view}
+        onFriendToggle={onFriendToggle}
+      />
+    )
   }
 
   const langLabel =
@@ -121,69 +127,86 @@ export function MemberCard({
   )
 }
 
-function DirectoryMemberCard({ member, view }) {
+function filled(value) {
+  return typeof value === 'string' && value.trim() !== ''
+}
+
+function DirectorySecondaryInfo({ member, compact = false }) {
+  const profession = filled(member.profession) ? member.profession.trim() : ''
+  const organization = filled(member.organization) ? member.organization.trim() : ''
+  const location = filled(member.location) ? member.location.trim() : ''
+  if (!profession && !organization && !location) return null
+
+  const meta = [organization, location].filter(Boolean).join(' · ')
+
+  if (compact) {
+    return (
+      <div className="mt-1.5 flex w-full flex-col items-center gap-0.5">
+        {profession ? (
+          <p className="m-0 line-clamp-2 w-full text-bb-xs leading-snug text-bb-text">{profession}</p>
+        ) : null}
+        {meta ? <p className="m-0 line-clamp-1 text-[11px] text-bb-muted">{meta}</p> : null}
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-1.5 flex flex-col items-start gap-0.5 text-left">
+      {profession ? <p className="m-0 line-clamp-2 text-bb-sm text-bb-text">{profession}</p> : null}
+      {meta ? <p className="m-0 line-clamp-1 text-bb-xs text-bb-muted">{meta}</p> : null}
+    </div>
+  )
+}
+
+function DirectoryMemberCard({ member, view, onFriendToggle }) {
   const { t } = useTranslation()
   const avatarSrc = member.avatarUrl || member.avatar
-  const profession = member.profession || ''
+  const showFollow = Boolean(onFriendToggle) && member.friendshipStatus !== 'self'
+  const actions = (
+    <div className="flex flex-wrap items-center justify-center gap-1.5">
+      <Button as={Link} to={`/members/${member.id}`} variant="outline" size="sm">
+        {t('members.viewProfile')}
+      </Button>
+      {showFollow ? (
+        <FriendButton member={member} onFriendToggle={onFriendToggle} compact />
+      ) : null}
+    </div>
+  )
 
   if (view === 'list') {
     return (
       <li className="flex list-none flex-col gap-3 rounded-bb border border-bb-border bg-bb-content p-3 shadow-card transition-shadow duration-200 ease-bb hover:shadow-card-hover sm:flex-row sm:items-center sm:gap-4 sm:p-4">
         <Link to={`/members/${member.id}`} className="shrink-0 self-start">
-          <Avatar name={member.displayName} src={avatarSrc} size="xl" />
+          <Avatar name={member.displayName} src={avatarSrc} size="lg" />
         </Link>
         <div className="min-w-0 flex-1">
           <Link
             to={`/members/${member.id}`}
-            className="break-words text-bb-lg font-medium text-bb-heading hover:text-bb-primary"
+            className="break-words text-bb-md font-medium text-bb-heading hover:text-bb-primary"
           >
             {member.displayName}
           </Link>
-          {profession ? (
-            <p className="m-0 mt-1 line-clamp-2 text-bb-sm text-bb-text">{profession}</p>
-          ) : (
-            <p className="m-0 mt-1 text-bb-sm text-bb-muted">{t('members.noProfession')}</p>
-          )}
+          <DirectorySecondaryInfo member={member} />
         </div>
-        <Button
-          as={Link}
-          to={`/members/${member.id}`}
-          variant="outline"
-          size="sm"
-          className="min-h-10 w-full touch-manipulation sm:w-auto"
-        >
-          {t('members.viewProfile')}
-        </Button>
+        <div className="shrink-0">{actions}</div>
       </li>
     )
   }
 
   return (
-    <li className="list-none overflow-hidden rounded-bb border border-bb-border bg-bb-content text-center shadow-card transition-shadow duration-200 ease-bb hover:shadow-card-hover">
-      <div className="flex flex-col items-center px-4 py-6">
+    <li className="list-none w-full overflow-hidden rounded-bb border border-bb-border bg-bb-content text-center shadow-card transition-shadow duration-200 ease-bb hover:shadow-card-hover sm:max-w-[14rem]">
+      <div className="flex flex-col items-center px-4 py-5">
         <Link to={`/members/${member.id}`} className="inline-block">
           <Avatar name={member.displayName} src={avatarSrc} size="xl" className="ring-2 ring-bb-border/60" />
         </Link>
         <Link
           to={`/members/${member.id}`}
-          className="mt-3 line-clamp-2 text-bb-md font-medium text-bb-heading hover:text-bb-primary"
+          className="mt-2.5 line-clamp-2 text-bb-sm font-medium text-bb-heading hover:text-bb-primary"
         >
           {member.displayName}
         </Link>
-        {profession ? (
-          <p className="m-0 mt-1.5 line-clamp-2 text-bb-sm text-bb-text">{profession}</p>
-        ) : (
-          <p className="m-0 mt-1.5 text-bb-sm text-bb-muted">{t('members.noProfession')}</p>
-        )}
-        <Button
-          as={Link}
-          to={`/members/${member.id}`}
-          variant="outline"
-          size="sm"
-          className="mt-4 min-h-10 w-full touch-manipulation"
-        >
-          {t('members.viewProfile')}
-        </Button>
+        <DirectorySecondaryInfo member={member} compact />
+        <div className="mt-3">{actions}</div>
       </div>
     </li>
   )
@@ -203,11 +226,12 @@ function OnlineDot() {
   )
 }
 
-function FriendButton({ member, onFriendToggle }) {
+function FriendButton({ member, onFriendToggle, compact = false }) {
   const { t } = useTranslation()
+  const wideClass = compact ? undefined : 'min-h-10 w-full touch-manipulation sm:w-auto'
   if (member.friendshipStatus === 'self') {
     return (
-      <Button as={Link} to={`/members/${member.id}`} variant="outline" size="sm" className="min-h-10 w-full touch-manipulation sm:w-auto">
+      <Button as={Link} to={`/members/${member.id}`} variant="outline" size="sm" className={wideClass}>
         {t('members.viewProfile')}
       </Button>
     )
@@ -227,7 +251,7 @@ function FriendButton({ member, onFriendToggle }) {
       type="button"
       variant={variant}
       size="sm"
-      className={clsx('min-h-10 w-full touch-manipulation sm:w-auto', member.friendshipStatus === 'pending' && 'opacity-80')}
+      className={clsx(wideClass, member.friendshipStatus === 'pending' && 'opacity-80')}
       onClick={() => onFriendToggle?.(member.id)}
     >
       {label}

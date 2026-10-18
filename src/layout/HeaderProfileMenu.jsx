@@ -25,12 +25,14 @@ export function HeaderProfileMenu({ mode = 'name_and_avatar' }) {
 
   const items = useMemo(() => {
     if (!user?.id) return []
-    return profileMenuDefs.map((item) => {
-      if (item.id === 'logout') return item
-      const href = item.href.replace(/\/members\/(?:me|\d+)/, `/members/${user.id}`)
-      return { ...item, href }
-    })
-  }, [user?.id])
+    return profileMenuDefs
+      .filter((item) => !item.adminOnly || user.isSiteAdmin)
+      .map((item) => {
+        if (item.id === 'logout' || item.adminOnly) return item
+        const href = item.href.replace(/\/members\/(?:me|\d+)/, `/members/${user.id}`)
+        return { ...item, href }
+      })
+  }, [user?.id, user?.isSiteAdmin])
 
   useEffect(() => {
     if (!open) return undefined

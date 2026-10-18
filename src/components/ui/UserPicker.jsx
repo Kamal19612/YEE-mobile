@@ -106,7 +106,7 @@ export function UserPicker({
   const showList = open && !disabled && (loading || searched)
 
   return (
-    <div ref={rootRef} className={clsx('relative min-w-[180px] flex-1', className)}>
+    <div ref={rootRef} className={clsx('relative min-w-0 w-full flex-1 sm:min-w-[180px]', className)}>
       <div className="flex gap-1">
         <input
           type="search"

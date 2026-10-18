@@ -1,5 +1,5 @@
 import { ENDPOINTS } from '../config/api'
-import { appApiFetch } from './client'
+import { API_BASE, appApiFetch, getToken, refreshAccessToken } from './client'
 
 const NOTIFICATION_TYPES = new Set([
   'new_follower',
@@ -12,12 +12,15 @@ const NOTIFICATION_TYPES = new Set([
   'institution_affiliation_rejected',
   'post_like',
   'post_comment',
+  'comment_reply',
+  'new_message',
 ])
 
 function normalizeMediaUrl(url) {
   if (!url) return null
   let u = String(url).replace(/#038;/g, '&').replace(/&amp;/g, '&')
   if (u.startsWith('//')) u = `https:${u}`
+  u = u.replace(/^https?:\/\/(localhost|127\.0\.0\.1):\d+\/media(?=\/|$)/i, '/media')
   return u
 }
 
@@ -43,7 +46,9 @@ function mapSubject(raw) {
         ? 'group'
         : typeRaw === 'post'
           ? 'post'
-          : null
+          : typeRaw === 'conversation'
+            ? 'conversation'
+            : null
   if (!type) return null
   const id = raw.id ?? raw.ID ?? raw.objectId ?? raw.object_id
   if (id == null || id === '') return null
@@ -62,6 +67,8 @@ export function mapNotification(raw) {
   if (id == null || id === '') return null
 
   const typeRaw = String(raw.type || raw.notificationType || raw.notification_type || '')
+  // Les messages ont leur propre badge : on ne les affiche pas dans Notifications.
+  if (typeRaw === 'new_message') return null
   const type = NOTIFICATION_TYPES.has(typeRaw) ? typeRaw : typeRaw || 'new_follower'
 
   let isRead = false
@@ -88,11 +95,16 @@ export function mapNotification(raw) {
         })
       : null)
 
+  const targetRaw = raw.targetId ?? raw.target_id ?? raw.subject?.targetId ?? raw.subject?.target_id
+  const targetId =
+    targetRaw != null && String(targetRaw).trim() !== '' ? String(targetRaw) : null
+
   return {
     id: String(id),
     type: NOTIFICATION_TYPES.has(type) ? type : 'new_follower',
     actor,
     subject: mapSubject(raw.subject || raw.object),
+    targetId,
     isRead,
     unread: !isRead,
     createdAt:
@@ -173,4 +185,113 @@ export async function markAllNotificationsRead() {
     method: 'POST',
     auth: true,
   })
+}
+
+/**
+ * Ouvre un flux SSE authentifié (Bearer via fetch — EventSource ne peut pas).
+ * @param {{
+ *   onEvent?: (payload: object) => void,
+ *   onError?: (err: Error) => void,
+ *   signal?: AbortSignal,
+ * }} [opts]
+ */
+export async function openNotificationStream({ onEvent, onError, signal } = {}) {
+  const url = `${API_BASE || ''}${ENDPOINTS.notifications.stream}`
+
+  async function connectOnce(token) {
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Accept: 'text/event-stream',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      credentials: 'include',
+      signal,
+    })
+    if (!res.ok || !res.body) {
+      const err = new Error(`SSE ${res.status}`)
+      err.status = res.status
+      throw err
+    }
+    return res.body.getReader()
+  }
+
+  let token = getToken()
+  let reader
+  try {
+    reader = await connectOnce(token)
+  } catch (err) {
+    if (err?.status === 401) {
+      try {
+        await refreshAccessToken()
+        token = getToken()
+        reader = await connectOnce(token)
+      } catch (refreshErr) {
+        onError?.(refreshErr)
+        throw refreshErr
+      }
+    } else {
+      onError?.(err)
+      throw err
+    }
+  }
+
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let eventName = 'message'
+  let dataLines = []
+
+  const flushEvent = () => {
+    if (dataLines.length === 0) {
+      eventName = 'message'
+      return
+    }
+    const raw = dataLines.join('\n')
+    dataLines = []
+    const name = eventName
+    eventName = 'message'
+    if (name !== 'notification' && name !== 'connected' && name !== 'message' && name !== 'feed' && name !== 'sync') return
+
+    let parsed = null
+    try {
+      parsed = JSON.parse(raw)
+      // Si le serveur a double-encodé une string JSON
+      if (typeof parsed === 'string') parsed = JSON.parse(parsed)
+    } catch {
+      if (name === 'notification') parsed = { type: 'notification.created' }
+      else if (name === 'connected') parsed = { type: 'connected' }
+    }
+    if (parsed && typeof parsed === 'object') {
+      if (name === 'connected' && !parsed.type) parsed = { ...parsed, type: 'connected' }
+      onEvent?.(parsed)
+    }
+  }
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      const parts = buffer.split(/\r?\n/)
+      buffer = parts.pop() ?? ''
+      for (const line of parts) {
+        if (line === '') {
+          flushEvent()
+          continue
+        }
+        if (line.startsWith(':')) continue
+        if (line.startsWith('event:')) {
+          eventName = line.slice(6).trim()
+          continue
+        }
+        if (line.startsWith('data:')) {
+          dataLines.push(line.slice(5).trimStart())
+        }
+      }
+    }
+  } catch (err) {
+    if (signal?.aborted) return
+    onError?.(err)
+    throw err
+  }
 }

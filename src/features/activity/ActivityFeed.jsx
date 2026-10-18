@@ -2,8 +2,10 @@ import { useTranslation } from 'react-i18next'
 import { useFeed } from '../../hooks/useFeed'
 import { Button } from '../../components/ui/Button'
 import { FeedComposer } from './FeedComposer'
+import { FeedNewActivityHandler } from './FeedNewActivityHandler'
 import { FeedPostCard } from './FeedPostCard'
 import { ActivityPlaceholder } from './ActivityPlaceholder'
+import { scrollFeedToTop } from './scrollFeedToTop'
 
 /** Fil d’actualité — App API `/feed` (Sprint 3). */
 export function ActivityFeed() {
@@ -21,11 +23,29 @@ export function ActivityFeed() {
     loadComments,
     addComment,
     removeComment,
+    pendingNewCount,
+    refreshingPending,
+    applyPendingRefresh,
+    dismissPending,
+    resetNewActivityBanner,
   } = useFeed({ perPage: 10 })
+
+  const handleCreatePost = async (payload) => {
+    const created = await createPost(payload)
+    scrollFeedToTop()
+    return created
+  }
 
   return (
     <div id="buddypress" className="buddypress-wrap w-full max-w-content">
-      <FeedComposer onSubmit={createPost} />
+      <FeedNewActivityHandler
+        pendingNewCount={pendingNewCount}
+        refreshingPending={refreshingPending}
+        applyPendingRefresh={applyPendingRefresh}
+        dismissPending={dismissPending}
+        resetNewActivityBanner={resetNewActivityBanner}
+      />
+      <FeedComposer onSubmit={handleCreatePost} />
 
       <div className="screen-content">
         <div id="activity-stream" className="activity" data-bp-list="activity">

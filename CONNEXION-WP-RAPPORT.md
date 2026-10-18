@@ -1,32 +1,32 @@
-# Connexion WordPress ↔ React — livrable Partie B
+# Connexion front ↔ API — AfrEA-YEE
 
-## Fait
+Mise à jour : 1er octobre 2026.
 
-| Étape | Détail |
+Le branchement WordPress décrit plus bas (Partie B, JWT `wp-json`, `VITE_USE_MOCK`, `sessionStorage`) n’est plus celui du dépôt. `src/config/api.js` ignore les anciennes bases `wp-json`. Ne pas réactiver ce parcours.
+
+## Branchement actuel
+
+| Sujet | Fait |
 |---|---|
-| `.env` / `.env.example` | `VITE_WP_API_URL`, `VITE_JWT_AUTH_ENDPOINT`, `VITE_USE_MOCK` |
-| `src/config/api.js` | Source unique URL / mock flag |
-| `src/api/client.js` | Bearer auto, 401 → logout + `/login` |
-| `src/api/auth.js` | login / logout / getCurrentUser |
-| `src/hooks/useAuth.js` + `AuthProvider` | user, isAuthenticated, login, logout |
-| `src/api/recits.js` | CPT récits (ACF + draft/pending/publish) |
-| Clients domaine | members, groups, forums, messages, notifications, moderation |
-| Header profil | nom/avatar réels, lien `/members/:id`, déconnexion |
-| Page `/login` | formulaire JWT |
-| Hooks | `USE_MOCK` centralisé ; erreurs API visibles (plus de fallback silencieux en live) |
+| API | Spring Boot, chemins `/auth`, `/users`, `/feed`, `/groups`, `/institutions`, `/notifications`, `/conversations`, `/media`, `/admin` |
+| Dev | `VITE_API_URL` vide, proxy Vite vers l’API (`VITE_API_PROXY_TARGET`) |
+| Prod front | `VITE_API_URL` = URL absolue de l’API, sans slash final |
+| Access token | Mémoire uniquement (`src/api/client.js`) |
+| Refresh | Cookie httpOnly `app_refresh_token`, path `/auth` |
+| Indicateur local | `localStorage` clé `app_had_session` seulement (pas le JWT) |
+| Pages | `/login`, `/register`, `/verify-email`, `/forgot-password`, `/reset-password` |
+| Garde | `ProtectedLayout` renvoie les invités vers `/login` |
 
-## Token
+Démarrage documenté dans `README.md` : Supabase (Postgres), puis API Spring, puis Vite. Les scripts `stack:start` sont en PowerShell ; sur ce serveur Linux il faut les équivalents shell, sans copier les secrets d’exemple en profil `dev` si l’instance est exposée.
 
-Stockage : **mémoire + sessionStorage** (`afrea_jwt`).  
-Limitation XSS documentée dans `src/config/api.js` — cookie httpOnly à prévoir plus tard.
+Sécurité de session et d’e-mail : `AUDIT-SECURITE-2026-10-01.txt`.
 
-## Activer le backend réel
+## Archive — livrable Partie B (WordPress, périmé)
 
-1. Terminer **Partie A** du guide (plugins, CPT, CORS, curl JWT OK).
-2. Dans `.env` : `VITE_USE_MOCK=false` (+ URLs correctes).
-3. Redémarrer Vite (`npm run dev`).
-4. Se connecter via `/login` et vérifier Network → `/index.php/wp-json/…` + header `Authorization`.
+Ce bloc est historique. Il ne faut plus le suivre.
 
-## Mock par défaut
+- Variables alors prévues : `VITE_WP_API_URL`, `VITE_JWT_AUTH_ENDPOINT`, `VITE_USE_MOCK`.
+- Token alors prévu : mémoire + `sessionStorage` (`afrea_jwt`).
+- Activation alors prévue : plugins WP, CORS, `VITE_USE_MOCK=false`, appels `/wp-json/…`.
 
-`.env` local garde `VITE_USE_MOCK=true` tant que le JWT WP n’est pas validé — l’UI reste utilisable hors ligne.
+Tout cela a été remplacé par l’API Spring ci-dessus.

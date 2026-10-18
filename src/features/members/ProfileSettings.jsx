@@ -1,14 +1,15 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { changePassword, deleteMyAccount } from '../../api/users'
+import { changePassword, deleteMyAccount, updateMyProfile } from '../../api/users'
 import { Button } from '../../components/ui/Button'
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { useAuth } from '../../hooks/useAuth'
+import { invalidate, QueryKeys } from '../../lib/queryEvents'
 
 const SETTINGS_TABS = [
   { id: 'general', labelKey: 'members.settingsTabs.general' },
   { id: 'profile', labelKey: 'members.settingsTabs.privacy' },
-  { id: 'notifications', labelKey: 'members.settingsTabs.email' },
   { id: 'danger', labelKey: 'members.settingsTabs.danger' },
 ]
 
@@ -30,22 +31,33 @@ export function ProfileSettings({ member }) {
   const [deleteConfirm, setDeleteConfirm] = useState(false)
   const [deleteBusy, setDeleteBusy] = useState(false)
   const [deleteError, setDeleteError] = useState(null)
+  const [deleteOpen, setDeleteOpen] = useState(false)
 
   const [privacy, setPrivacy] = useState({
     whoCanSee: 'everyone',
-    whoCanMessage: 'friends',
-  })
-  const [emailPrefs, setEmailPrefs] = useState({
-    activity: true,
-    messages: true,
-    friends: true,
+    whoCanMessage: member?.whoCanMessage || 'friends',
   })
   const [prefsSaved, setPrefsSaved] = useState(false)
+  const [prefsError, setPrefsError] = useState(null)
 
-  const savePrefs = (e) => {
+  useEffect(() => {
+    setPrivacy((p) => ({ ...p, whoCanMessage: member?.whoCanMessage || 'friends' }))
+  }, [member?.whoCanMessage])
+
+  const savePrefs = async (e) => {
     e.preventDefault()
-    setPrefsSaved(true)
-    setTimeout(() => setPrefsSaved(false), 2000)
+    setPrefsError(null)
+    try {
+      // Pas de notifications e-mail métier : seuls vérification + reset mdp restent côté API.
+      await updateMyProfile({
+        whoCanMessage: privacy.whoCanMessage,
+        emailPrefMessages: false,
+      })
+      setPrefsSaved(true)
+      setTimeout(() => setPrefsSaved(false), 2000)
+    } catch (err) {
+      setPrefsError(err.message || t('members.saveFailed'))
+    }
   }
 
   const onChangePassword = async (e) => {
@@ -82,7 +94,7 @@ export function ProfileSettings({ member }) {
     }
   }
 
-  const onDeleteAccount = async (e) => {
+  const requestDelete = (e) => {
     e.preventDefault()
     setDeleteError(null)
     if (!deleteConfirm) {
@@ -93,14 +105,21 @@ export function ProfileSettings({ member }) {
       setDeleteError(t('members.deletePasswordRequired'))
       return
     }
+    setDeleteOpen(true)
+  }
 
+  const onDeleteAccount = async () => {
     setDeleteBusy(true)
+    setDeleteError(null)
     try {
       await deleteMyAccount(deletePassword)
+      invalidate(QueryKeys.members, { reason: 'deleteAccount', authorId: member.id })
+      invalidate(QueryKeys.feed, { reason: 'deleteAccount', authorId: member.id })
       await logout({ redirect: false })
-      navigate('/login', { replace: true, state: { reason: 'account_deactivated' } })
+      navigate('/login', { replace: true, state: { reason: 'account_deleted' } })
     } catch (err) {
       setDeleteError(err.message || t('members.deleteFailed'))
+      setDeleteOpen(false)
       setDeleteBusy(false)
     }
   }
@@ -141,6 +160,11 @@ export function ProfileSettings({ member }) {
         {prefsSaved && (
           <div className="mb-4 rounded-bb-inner bg-[rgba(var(--bb-primary-color-rgb),0.1)] px-3 py-2 text-bb-sm text-bb-primary">
             {t('members.settingsSaved')}
+          </div>
+        )}
+        {prefsError && (
+          <div className="mb-4 rounded-bb-inner border border-red-200 bg-red-50 px-3 py-2 text-bb-sm text-bb-danger" role="alert">
+            {prefsError}
           </div>
         )}
 
@@ -225,26 +249,8 @@ export function ProfileSettings({ member }) {
           </form>
         )}
 
-        {tab === 'notifications' && (
-          <form className="space-y-3" onSubmit={savePrefs}>
-            {Object.entries(emailPrefs).map(([key, value]) => (
-              <label key={key} className="flex items-center gap-2 text-bb-sm text-bb-heading">
-                <input
-                  type="checkbox"
-                  checked={value}
-                  onChange={(e) => setEmailPrefs((p) => ({ ...p, [key]: e.target.checked }))}
-                />
-                {t(`members.emailPrefs.${key}`)}
-              </label>
-            ))}
-            <Button type="submit" size="sm" className="mt-2">
-              {t('members.saveChanges')}
-            </Button>
-          </form>
-        )}
-
         {tab === 'danger' && (
-          <form className="space-y-4" onSubmit={onDeleteAccount}>
+          <form className="space-y-4" onSubmit={requestDelete}>
             <div className="rounded-bb-inner border border-red-200 bg-red-50 px-3 py-3">
               <h2 className="m-0 mb-1 text-bb-base font-semibold text-red-800">
                 {t('members.deleteAccountTitle')}
@@ -285,6 +291,18 @@ export function ProfileSettings({ member }) {
             </Button>
           </form>
         )}
+
+        <ConfirmDialog
+          open={deleteOpen}
+          title={t('members.deleteAccountDialogTitle')}
+          body={t('members.deleteAccountDialogBody')}
+          confirmLabel={t('members.deleteAccount')}
+          confirming={deleteBusy}
+          onCancel={() => {
+            if (!deleteBusy) setDeleteOpen(false)
+          }}
+          onConfirm={onDeleteAccount}
+        />
       </div>
 
       <style>{`
@@ -295,7 +313,7 @@ export function ProfileSettings({ member }) {
           border: 1px solid var(--bb-content-border-color);
           background: var(--bb-content-background-color);
           padding: 0 0.75rem;
-          font-size: 0.875rem;
+          font-size: 1rem;
           outline: none;
         }
         .field-input:focus { border-color: var(--bb-primary-color); }

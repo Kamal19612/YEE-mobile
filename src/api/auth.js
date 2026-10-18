@@ -175,6 +175,15 @@ export async function register({ email, password, displayName }) {
   })
 }
 
+export async function resendVerification(email) {
+  return appApiFetch(ENDPOINTS.auth.resendVerification, {
+    method: 'POST',
+    skipAuth: true,
+    suppressUnauthorized: true,
+    body: JSON.stringify({ email }),
+  })
+}
+
 export async function verifyEmail(token) {
   return appApiFetch(ENDPOINTS.auth.verifyEmail, {
     method: 'POST',

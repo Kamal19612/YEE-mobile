@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { fetchMembers } from '../api/members'
+import { useCallback, useEffect, useState } from 'react'
+import i18n from '../i18n'
 import {
   fetchFollowingIds,
   fetchMyProfile,
@@ -11,58 +11,12 @@ import {
   uploadCover,
   validateProfileImage,
 } from '../api/users'
-import { mapWithSessionMedia, sameUserId, withSessionMedia } from '../utils/sessionMedia'
+import { invalidate, nudgeNotifications, QueryKeys } from '../lib/queryEvents'
+import { useBackgroundSync } from '../lib/useBackgroundSync'
+import { sameUserId, withSessionMedia } from '../utils/sessionMedia'
 import { useAuth } from './useAuth'
 
-function activityTimestamp(value) {
-  if (!value) return 0
-  const time = new Date(value).getTime()
-  return Number.isFinite(time) ? time : 0
-}
-
-function sortMembers(list, sort) {
-  const copy = [...list]
-  if (sort === 'newest') {
-    return copy.sort((a, b) => activityTimestamp(b.joined) - activityTimestamp(a.joined))
-  }
-  if (sort === 'alphabetical') {
-    return copy.sort((a, b) => a.displayName.localeCompare(b.displayName, undefined, { sensitivity: 'base' }))
-  }
-  // Activité récente : plus récents d'abord ; sans date → en bas
-  return copy.sort((a, b) => {
-    const diff = activityTimestamp(b.lastActive) - activityTimestamp(a.lastActive)
-    if (diff !== 0) return diff
-    return a.displayName.localeCompare(b.displayName, undefined, { sensitivity: 'base' })
-  })
-}
-
-function filterMembers(list, { search, typeFilter, country, region, language, thematic }) {
-  let result = list
-  if (typeFilter === 'online') result = result.filter((m) => m.online)
-  if (typeFilter === 'friends') {
-    result = result.filter(
-      (m) => m.friendshipStatus === 'is_friend' || m.isFollowing || m.friendshipStatus === 'self',
-    )
-  }
-  if (country) result = result.filter((m) => m.country === country)
-  if (region) result = result.filter((m) => m.region === region)
-  if (language) result = result.filter((m) => m.language === language)
-  if (thematic) result = result.filter((m) => m.thematic === thematic)
-  const q = search.trim().toLowerCase()
-  if (q) {
-    result = result.filter(
-      (m) =>
-        m.displayName.toLowerCase().includes(q) ||
-        m.mentionName.toLowerCase().includes(q) ||
-        (m.location || '').toLowerCase().includes(q) ||
-        (m.country || '').toLowerCase().includes(q) ||
-        (m.thematic || '').toLowerCase().includes(q),
-    )
-  }
-  return result
-}
-
-/** Applique le statut follow App API (pas BuddyPress friends). */
+/** Applique le statut follow App API. */
 function applyFollowState(member, followingIds, currentUserId) {
   if (!member) return member
   if (sameUserId(member.id, currentUserId)) {
@@ -76,113 +30,6 @@ function applyFollowState(member, followingIds, currentUserId) {
   }
 }
 
-export function useMembers({
-  sort = 'alphabetical',
-  typeFilter = 'all',
-  search = '',
-  country = '',
-  region = '',
-  language = '',
-  thematic = '',
-} = {}) {
-  const { user } = useAuth()
-  const [members, setMembers] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [followError, setFollowError] = useState(null)
-
-  const load = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      let list = mapWithSessionMedia(await fetchMembers({ type: sort, search }), user)
-      if (user?.id) {
-        try {
-          const followingIds = await fetchFollowingIds(user.id)
-          list = list.map((m) => applyFollowState(m, followingIds, user.id))
-        } catch {
-          /* liste utilisable même si follow status indisponible */
-        }
-      }
-      setMembers(list)
-    } catch (err) {
-      setError(err.message || 'Failed to load members')
-    } finally {
-      setLoading(false)
-    }
-  }, [sort, search, user])
-
-  useEffect(() => {
-    load()
-  }, [load])
-
-  const visible = useMemo(
-    () =>
-      sortMembers(
-        filterMembers(members, { search, typeFilter, country, region, language, thematic }),
-        sort,
-      ),
-    [members, search, typeFilter, sort, country, region, language, thematic],
-  )
-
-  const toggleFriend = useCallback(
-    async (id) => {
-      setFollowError(null)
-      const target = members.find((m) => sameUserId(m.id, id))
-      if (!target || target.friendshipStatus === 'self') return
-
-      const wasFollowing = Boolean(target.isFollowing || target.friendshipStatus === 'is_friend')
-      const snapshot = members
-
-      setMembers((prev) =>
-        prev.map((m) => {
-          if (!sameUserId(m.id, id)) return m
-          if (wasFollowing) {
-            return {
-              ...m,
-              isFollowing: false,
-              friendshipStatus: 'not_friends',
-              stats: {
-                ...m.stats,
-                friends: Math.max(0, (m.stats?.friends || 0) - 1),
-                followers: Math.max(0, (m.stats?.followers || 0) - 1),
-              },
-            }
-          }
-          return {
-            ...m,
-            isFollowing: true,
-            friendshipStatus: 'is_friend',
-            stats: {
-              ...m.stats,
-              friends: (m.stats?.friends || 0) + 1,
-              followers: (m.stats?.followers || 0) + 1,
-            },
-          }
-        }),
-      )
-
-      try {
-        if (wasFollowing) await unfollowUser(id)
-        else await followUser(id)
-      } catch (err) {
-        setMembers(snapshot)
-        setFollowError(err.message || 'Impossible de mettre à jour le suivi')
-      }
-    },
-    [members],
-  )
-
-  return {
-    members: visible,
-    total: visible.length,
-    loading,
-    error: error || followError,
-    toggleFriend,
-    reload: load,
-  }
-}
-
 export function useMember(id) {
   const { user, patchUser } = useAuth()
   const [member, setMember] = useState(null)
@@ -192,11 +39,15 @@ export function useMember(id) {
   const [mediaBusy, setMediaBusy] = useState(null)
   const [mediaError, setMediaError] = useState(null)
 
-  useEffect(() => {
-    let alive = true
-    async function run() {
-      setLoading(true)
-      setError(null)
+  const load = useCallback(
+    async ({ silent = false } = {}) => {
+      if (id == null || id === '') {
+        setMember(null)
+        setLoading(false)
+        return
+      }
+      if (!silent) setLoading(true)
+      if (!silent) setError(null)
       try {
         const isSelf = Boolean(user && sameUserId(user.id, id))
         let data = isSelf ? await fetchMyProfile() : await fetchPublicProfile(id)
@@ -213,37 +64,37 @@ export function useMember(id) {
             friendshipStatus: data.isFollowing ? 'is_friend' : 'not_friends',
           }
         }
-        if (alive) setMember(withSessionMedia(data, user))
+        setMember(withSessionMedia(data, user))
+        if (silent) setError(null)
       } catch (err) {
-        if (alive) {
-          try {
-            const { fetchMember } = await import('../api/members')
-            const data = await fetchMember(id)
-            if (alive) {
-              let m = withSessionMedia(data, user)
-              if (user?.id && !sameUserId(user.id, id)) {
-                try {
-                  const followingIds = await fetchFollowingIds(user.id)
-                  m = applyFollowState(m, followingIds, user.id)
-                } catch {
-                  /* ignore */
-                }
-              }
-              setMember(m)
-            }
-          } catch {
-            setError(err.message || 'Member not found')
-          }
-        }
+        if (silent) return
+        setMember(null)
+        setError(err.message || 'Member not found')
       } finally {
-        if (alive) setLoading(false)
+        if (!silent) setLoading(false)
+        else setLoading(false)
       }
-    }
-    run()
-    return () => {
-      alive = false
-    }
-  }, [id, user])
+    },
+    [id, user],
+  )
+
+  useEffect(() => {
+    load({ silent: false })
+  }, [load])
+
+  const silentReload = useCallback(() => load({ silent: true }), [load])
+  const onMemberSync = useCallback(
+    (detail) => {
+      if (detail?.reason === 'deleteAccount' && String(detail.authorId) === String(id)) {
+        setMember(null)
+        setError(null)
+        return
+      }
+      return silentReload()
+    },
+    [id, silentReload],
+  )
+  useBackgroundSync(QueryKeys.members, onMemberSync, { enabled: Boolean(id) })
 
   const updateProfile = useCallback((patch) => {
     setMember((prev) => (prev ? { ...prev, ...patch } : prev))
@@ -271,10 +122,11 @@ export function useMember(id) {
     try {
       const updated = await updateProfileField(fieldId, value)
       setMember(updated)
+      invalidate(QueryKeys.members, { reason: 'profileUpdate', userId: id })
     } catch {
       /* garde l’UI optimiste */
     }
-  }, [])
+  }, [id])
 
   const toggleFriend = useCallback(async () => {
     setFollowError(null)
@@ -303,9 +155,11 @@ export function useMember(id) {
     try {
       if (wasFollowing) await unfollowUser(id)
       else await followUser(id)
+      invalidate(QueryKeys.members, { reason: 'follow', userId: id })
+      if (!wasFollowing) nudgeNotifications({ reason: 'follow', userId: id })
     } catch (err) {
       setMember(snapshot)
-      setFollowError(err.message || 'Impossible de mettre à jour le suivi')
+      setFollowError(err.message || i18n.t('members.connectError'))
     }
   }, [id])
 
@@ -322,6 +176,7 @@ export function useMember(id) {
         const { url } = await uploadAvatar(file)
         setMember((prev) => (prev ? { ...prev, avatar: url } : prev))
         patchUser?.({ avatar: url })
+        invalidate(QueryKeys.members, { reason: 'avatar', userId: id })
         return { url }
       } catch (err) {
         setMediaError(err.message || 'Échec de l’upload avatar')
@@ -330,7 +185,7 @@ export function useMember(id) {
         setMediaBusy(null)
       }
     },
-    [patchUser],
+    [patchUser, id],
   )
 
   const changeCover = useCallback(
@@ -346,6 +201,7 @@ export function useMember(id) {
         const { url } = await uploadCover(file)
         setMember((prev) => (prev ? { ...prev, cover: url } : prev))
         patchUser?.({ cover: url })
+        invalidate(QueryKeys.members, { reason: 'cover', userId: id })
         return { url }
       } catch (err) {
         setMediaError(err.message || 'Échec de l’upload couverture')
@@ -354,7 +210,7 @@ export function useMember(id) {
         setMediaBusy(null)
       }
     },
-    [patchUser],
+    [patchUser, id],
   )
 
   return {
@@ -368,5 +224,7 @@ export function useMember(id) {
     toggleFriend,
     changeAvatar,
     changeCover,
+    reload: () => load({ silent: false }),
+    silentReload,
   }
 }

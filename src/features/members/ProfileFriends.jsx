@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { fetchFollowers, fetchFollowing } from '../../api/users'
 import { Avatar } from '../../components/ui/Avatar'
+import { QueryKeys } from '../../lib/queryEvents'
+import { useBackgroundSync } from '../../lib/useBackgroundSync'
 
 /**
  * Liste followers / following (follow asymétrique App API).
@@ -16,32 +18,48 @@ export function ProfileFriends({ member }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  useEffect(() => {
-    let alive = true
-    async function run() {
+  const load = useCallback(
+    async ({ silent = false } = {}) => {
       if (!member?.id) return
-      setLoading(true)
-      setError(null)
+      if (!silent) setLoading(true)
+      if (!silent) setError(null)
       try {
         const [f1, f2] = await Promise.all([
           fetchFollowers(member.id, { page: 1, perPage: 50 }),
           fetchFollowing(member.id, { page: 1, perPage: 50 }),
         ])
-        if (alive) {
-          setFollowers(f1)
-          setFollowing(f2)
-        }
+        setFollowers(f1)
+        setFollowing(f2)
+        if (silent) setError(null)
       } catch (err) {
-        if (alive) setError(err.message || t('members.followListError'))
+        if (silent) return
+        setError(err.message || t('members.followListError'))
       } finally {
-        if (alive) setLoading(false)
+        if (!silent) setLoading(false)
+        else setLoading(false)
       }
-    }
-    run()
-    return () => {
-      alive = false
-    }
-  }, [member?.id, t])
+    },
+    [member?.id, t],
+  )
+
+  useEffect(() => {
+    load({ silent: false })
+  }, [load])
+
+  const silentReload = useCallback(() => load({ silent: true }), [load])
+  const onSync = useCallback(
+    (detail) => {
+      if (detail?.reason === 'deleteAccount' && detail.authorId) {
+        const gone = String(detail.authorId)
+        setFollowers((prev) => prev.filter((p) => String(p.id) !== gone))
+        setFollowing((prev) => prev.filter((p) => String(p.id) !== gone))
+        return
+      }
+      return silentReload()
+    },
+    [silentReload],
+  )
+  useBackgroundSync(QueryKeys.members, onSync, { enabled: Boolean(member?.id) })
 
   const list = tab === 'followers' ? followers : following
 

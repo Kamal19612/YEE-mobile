@@ -6,6 +6,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { Button } from '../../components/ui/Button'
 import { PasswordInput } from '../../components/ui/PasswordInput'
 import { AuthShell } from './AuthShell'
+import { ResendVerification } from './ResendVerification'
 
 /**
  * Inscription App API — POST /app/v1/auth/register
@@ -37,6 +38,9 @@ export function RegisterPage() {
   const [submitting, setSubmitting] = useState(false)
   const [localError, setLocalError] = useState(null)
   const [successMessage, setSuccessMessage] = useState(null)
+  const [verificationUrl, setVerificationUrl] = useState(null)
+  const [resendWait, setResendWait] = useState(0)
+  const [registeredEmail, setRegisteredEmail] = useState('')
 
   if (isBootstrapping) {
     return (
@@ -54,6 +58,7 @@ export function RegisterPage() {
     e.preventDefault()
     setLocalError(null)
     setSuccessMessage(null)
+    setVerificationUrl(null)
     setSubmitting(true)
 
     try {
@@ -63,6 +68,13 @@ export function RegisterPage() {
         displayName: displayName.trim(),
       })
       setSuccessMessage(data?.message || t('auth.registerSuccess'))
+      setRegisteredEmail(email.trim())
+      const wait = Number(data?.retryAfterSeconds)
+      setResendWait(Number.isFinite(wait) && wait > 0 ? wait : 0)
+      // Présent seulement si l'API tourne en profil dev (pas de SMTP local).
+      if (data?.verificationUrl) {
+        setVerificationUrl(data.verificationUrl)
+      }
     } catch (err) {
       const fieldMsg = formatFieldErrors(err.body?.error?.details, t)
       setLocalError(fieldMsg || err.message || t('auth.registerFailed'))
@@ -87,7 +99,18 @@ export function RegisterPage() {
         >
           {successMessage}
         </p>
-        <p className="m-0 mb-4 text-bb-sm text-bb-muted">{t('auth.verifyEmailHint')}</p>
+        {verificationUrl ? (
+          <div className="mb-6 rounded-bb-inner border border-amber-200 bg-amber-50 px-3 py-3 text-bb-sm text-amber-950">
+            <p className="m-0 mb-2 font-medium">{t('auth.devVerifyTitle')}</p>
+            <p className="m-0 mb-3 text-bb-xs text-amber-900/80">{t('auth.devVerifyHint')}</p>
+            <Button as="a" href={verificationUrl} variant="primary" className="w-full">
+              {t('auth.devVerifyCta')}
+            </Button>
+          </div>
+        ) : (
+          <p className="m-0 mb-4 text-bb-sm text-bb-muted">{t('auth.verifyEmailHint')}</p>
+        )}
+        <ResendVerification email={registeredEmail} initialWaitSeconds={resendWait} />
         <Button as={Link} to="/login" variant="primary" className="w-full">
           {t('auth.signin')}
         </Button>
@@ -163,6 +186,10 @@ export function RegisterPage() {
           {submitting ? t('auth.registering') : t('auth.createAccount')}
         </Button>
       </form>
+
+      <div className="mt-6 border-t border-bb-border pt-4">
+        <ResendVerification email={email.trim()} hint={t('auth.resendVerificationFormHint')} />
+      </div>
     </AuthShell>
   )
 }

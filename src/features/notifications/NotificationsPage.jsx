@@ -4,6 +4,7 @@ import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { Avatar } from '../../components/ui/Avatar'
 import { Button } from '../../components/ui/Button'
+import { PushEnableCard } from '../../components/ui/PushEnableCard'
 import { useNotifications } from '../../hooks/useNotifications'
 import { formatTimeSince } from '../activity/utils'
 import { formatNotificationMessage, notificationHref } from './utils'
@@ -49,6 +50,8 @@ export function NotificationsPage() {
           {t('notifications.markAllRead')}
         </Button>
       </header>
+
+      <PushEnableCard />
 
       <div className="mb-4 flex gap-1">
         {filters.map((f) => (

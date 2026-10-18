@@ -1,16 +1,17 @@
-import { IconSidebar } from '../components/icons'
-import { useTranslation } from 'react-i18next'
 import { useLayout } from '../context/LayoutProvider'
 import { HeaderAside } from './HeaderAside'
 import { HeaderSearch } from './HeaderSearch'
+import { SiteLogo } from './SiteLogo'
 
 /**
  * Header desktop — sticky dans la colonne contenu (à droite du BuddyPanel).
- * Même --bb-header-height et breakpoint bb: que la sidebar.
+ *
+ * Règle de marque (logo ovale horizontal) :
+ * - Panel ouvert  → logo dans BuddyPanel uniquement (pas ici)
+ * - Panel replié  → logo ici seulement ; le symbole sidebar reste dans le rail
  */
 export function Header() {
-  const { t } = useTranslation()
-  const { togglePanel, panelOpen } = useLayout()
+  const { panelOpen } = useLayout()
 
   return (
     <>
@@ -19,18 +20,13 @@ export function Header() {
         className="site-header site-header--bb sticky top-0 z-header hidden h-header border-b border-bb-border bb-surface-glass bb:block"
       >
         <div className="bb-container flex h-header items-center gap-3">
-          {!panelOpen && (
-            <button
-              type="button"
-              className="bb-toggle-panel flex h-10 w-10 shrink-0 items-center justify-center rounded-bb-inner text-bb-header-link hover:bg-bb-alt hover:text-bb-primary"
-              onClick={togglePanel}
-              aria-label={t('panel.open')}
-              aria-expanded={false}
-            >
-              <IconSidebar />
-            </button>
+          {!panelOpen ? (
+            <div className="flex h-10 min-w-0 flex-1 items-center overflow-hidden">
+              <SiteLogo fill className="h-full w-auto max-w-[min(100%,12rem)]" />
+            </div>
+          ) : (
+            <div className="min-w-0 flex-1" aria-hidden="true" />
           )}
-          <div className="min-w-0 flex-1" aria-hidden="true" />
           <HeaderAside />
         </div>
       </header>

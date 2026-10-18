@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../hooks/useAuth'
 import { PasswordInput } from '../../components/ui/PasswordInput'
 import { AuthShell } from './AuthShell'
+import { ResendVerification } from './ResendVerification'
 
 const passwordInputClass =
   'bb-auth-input h-12 w-full rounded-[10px] border border-bb-border bg-white py-2 pl-3.5 pr-11 text-bb-base text-bb-heading outline-none'
@@ -18,10 +19,12 @@ export function LoginPage() {
   const [rememberMe, setRememberMe] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [localError, setLocalError] = useState(null)
+  const [needsVerification, setNeedsVerification] = useState(false)
 
   const from = location.state?.from?.pathname || '/'
   const expired = location.state?.reason === 'session_expired'
   const deactivated = location.state?.reason === 'account_deactivated'
+  const deleted = location.state?.reason === 'account_deleted'
   const passwordChanged = location.state?.reason === 'password_changed'
 
   if (isBootstrapping) {
@@ -39,6 +42,7 @@ export function LoginPage() {
   const onSubmit = async (e) => {
     e.preventDefault()
     setLocalError(null)
+    setNeedsVerification(false)
     setSubmitting(true)
     try {
       await login(email.trim(), password, { rememberMe })
@@ -46,6 +50,7 @@ export function LoginPage() {
     } catch (err) {
       const code = err.code || err.body?.error?.code
       if (code === 'email_not_verified') {
+        setNeedsVerification(true)
         setLocalError(err.message || t('auth.emailNotVerified'))
       } else {
         setLocalError(err.message || t('auth.loginFailed'))
@@ -66,18 +71,20 @@ export function LoginPage() {
         </p>
       }
     >
-      {(expired || deactivated || passwordChanged || authError || localError) && (
+      {(expired || deactivated || deleted || passwordChanged || authError || localError) && (
         <p
           className="mb-5 rounded-[10px] border border-red-200 bg-red-50 px-3 py-2.5 text-bb-sm text-red-700"
           role="alert"
         >
           {localError ||
             authError ||
-            (deactivated
-              ? t('auth.accountDeactivated')
-              : passwordChanged
-                ? t('auth.passwordChangedRelogin')
-                : t('auth.sessionExpired'))}
+            (deleted
+              ? t('auth.accountDeleted')
+              : deactivated
+                ? t('auth.accountDeactivated')
+                : passwordChanged
+                  ? t('auth.passwordChangedRelogin')
+                  : t('auth.sessionExpired'))}
         </p>
       )}
 
@@ -110,7 +117,7 @@ export function LoginPage() {
           />
         </label>
 
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col gap-2 min-[400px]:flex-row min-[400px]:items-center min-[400px]:justify-between min-[400px]:gap-3">
           <label className="flex cursor-pointer items-center gap-2 text-bb-sm text-bb-muted">
             <input
               type="checkbox"
@@ -133,6 +140,11 @@ export function LoginPage() {
           {!submitting ? <span aria-hidden="true">→</span> : null}
         </button>
       </form>
+      {needsVerification && (
+        <div className="mt-5">
+          <ResendVerification email={email.trim()} />
+        </div>
+      )}
     </AuthShell>
   )
 }

@@ -1,6 +1,7 @@
 import clsx from 'clsx'
 
 const sizes = {
+  xs: 'h-6 w-6 text-[0.65rem]',
   sm: 'h-8 w-8',
   md: 'h-10 w-10',
   lg: 'h-12 w-12',

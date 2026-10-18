@@ -10,6 +10,8 @@ export const NOTIFICATION_I18N_KEYS = {
   institution_affiliation_rejected: 'notifications.types.instRejected',
   post_like: 'notifications.types.postLike',
   post_comment: 'notifications.types.postComment',
+  comment_reply: 'notifications.types.commentReply',
+  new_message: 'notifications.types.newMessage',
 }
 
 /**
@@ -51,16 +53,31 @@ export function notificationHref(notification) {
         ? `/groups/${notification.subject.id}`
         : '/groups'
     case 'institution_affiliation_request':
+      return notification.subject?.id
+        ? `/institutions/${notification.subject.id}?tab=referent`
+        : '/institutions'
     case 'institution_affiliation_approved':
     case 'institution_affiliation_rejected':
       return notification.subject?.id
         ? `/institutions/${notification.subject.id}`
         : '/institutions'
     case 'post_like':
+      return notification.subject?.id
+        ? `/feed/${notification.subject.id}`
+        : '/'
     case 'post_comment':
       return notification.subject?.id
         ? `/feed/${notification.subject.id}`
         : '/'
+    case 'new_message':
+      return notification.subject?.id ? `/messages/${notification.subject.id}` : '/messages'
+    case 'comment_reply': {
+      if (!notification.subject?.id) return '/'
+      const commentId = notification.targetId
+      return commentId
+        ? `/feed/${notification.subject.id}?comment=${encodeURIComponent(commentId)}`
+        : `/feed/${notification.subject.id}?comments=1`
+    }
     default:
       return '/notifications'
   }

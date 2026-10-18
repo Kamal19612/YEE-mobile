@@ -35,7 +35,7 @@ export function Dropdown({
     >
       <button
         type="button"
-        className="notification-link relative flex h-10 w-10 items-center justify-center text-bb-header-link hover:text-bb-header-link-hover"
+        className="notification-link relative flex h-11 w-11 items-center justify-center text-bb-header-link touch-manipulation hover:text-bb-header-link-hover"
         aria-expanded={open}
         aria-haspopup="true"
         onClick={(e) => {
@@ -50,8 +50,8 @@ export function Dropdown({
         <section
           className={clsx(
             'notification-dropdown z-dropdown overflow-hidden rounded-bb border border-bb-border bg-bb-content shadow-dropdown',
-            'fixed inset-x-2.5 top-[calc(var(--bb-header-height)+8px)] w-auto max-h-[min(72vh,520px)] overflow-y-auto',
-            'bb:inset-x-auto bb:top-[calc(var(--bb-header-height)+8px)] bb:max-h-[min(70vh,480px)]',
+            'fixed inset-x-2.5 top-[calc(var(--bb-header-height)+8px)] w-auto max-h-[min(72dvh,520px)] overflow-y-auto',
+            'bb:inset-x-auto bb:top-[calc(var(--bb-header-height)+8px)] bb:max-h-[min(70dvh,480px)]',
             width,
             align === 'right' ? 'bb:right-4' : 'bb:left-4',
             panelClassName,

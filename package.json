@@ -5,8 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:fresh": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/dev.ps1",
-    "dev:kill": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/dev.ps1 -KillOnly",
+    "dev:fresh": "bash ./scripts/dev.sh",
+    "dev:kill": "bash ./scripts/dev.sh --kill-only",
+    "stack:start": "bash ./scripts/start-stack.sh",
+    "stack:stop": "bash ./scripts/stop-stack.sh",
+    "supabase:start": "npx supabase start",
+    "supabase:stop": "npx supabase stop",
+    "supabase:status": "npx supabase status -o env",
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview"
@@ -14,6 +19,7 @@
   "dependencies": {
     "clsx": "^2.1.1",
     "i18next": "^26.3.6",
+    "pdfjs-dist": "^4.10.38",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-i18next": "^17.0.11",
@@ -26,6 +32,7 @@
     "autoprefixer": "^10.5.4",
     "oxlint": "^1.75.0",
     "postcss": "^8.5.25",
+    "supabase": "^2.113.0",
     "tailwindcss": "^3.4.19",
     "vite": "^8.2.0"
   }

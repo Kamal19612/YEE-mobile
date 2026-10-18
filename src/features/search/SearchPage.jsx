@@ -67,7 +67,7 @@ export function SearchPage() {
   return (
     <div id="buddypress" className="bp-search-page buddypress-wrap w-full">
       <header className="search-results-header mb-4">
-        <h1 className="entry-title m-0 text-bb-xl font-semibold text-bb-heading">{title}</h1>
+        <h1 className="entry-title m-0 break-words text-bb-lg font-semibold text-bb-heading sm:text-bb-xl">{title}</h1>
       </header>
 
       <form onSubmit={submit} className="relative mb-3 max-w-xl" role="search">

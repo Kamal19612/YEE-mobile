@@ -3,6 +3,7 @@ import {
   approveMember as apiApproveMember,
   changeMemberRole as apiChangeMemberRole,
   createGroup as apiCreateGroup,
+  deleteGroup as apiDeleteGroup,
   fetchGroup,
   fetchGroupMembers,
   fetchGroups,
@@ -11,7 +12,10 @@ import {
   rejectMember as apiRejectMember,
   removeMember as apiRemoveMember,
   respondToInvitation as apiRespondToInvitation,
+  updateGroup as apiUpdateGroup,
 } from '../api/groups'
+import { invalidate, invalidateMany, nudgeNotifications, QueryKeys } from '../lib/queryEvents'
+import { useBackgroundSync } from '../lib/useBackgroundSync'
 
 /**
  * Applique un statut viewer optimiste + ajustement membersCount.
@@ -37,16 +41,19 @@ export function useGroups({ search = '', mine = false } = {}) {
   const [error, setError] = useState(null)
   const [actionError, setActionError] = useState(null)
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    setError(null)
+  const load = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true)
+    if (!silent) setError(null)
     try {
       setGroups(await fetchGroups({ search, mine }))
+      if (silent) setError(null)
     } catch (err) {
+      if (silent) return
       setError(err.message || 'Impossible de charger les groupes')
       setGroups([])
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
+      else setLoading(false)
     }
   }, [search, mine])
 
@@ -54,11 +61,25 @@ export function useGroups({ search = '', mine = false } = {}) {
     load()
   }, [load])
 
+  const silentReload = useCallback(() => load({ silent: true }), [load])
+  const onGroupsSync = useCallback(
+    (detail) => {
+      if (detail?.reason === 'deleteGroup' && detail.groupId) {
+        setGroups((prev) => prev.filter((g) => String(g.id) !== String(detail.groupId)))
+        return
+      }
+      return silentReload()
+    },
+    [silentReload],
+  )
+  useBackgroundSync(QueryKeys.groups, onGroupsSync)
+
   const createGroup = useCallback(async ({ name, description, visibility = 'public' }) => {
     setActionError(null)
     try {
       const created = await apiCreateGroup({ name, description, visibility })
       setGroups((prev) => [created, ...prev.filter((g) => String(g.id) !== String(created.id))])
+      invalidate(QueryKeys.groups, { reason: 'create', groupId: created?.id })
       return created
     } catch (err) {
       const code = err.code || err.body?.error?.code
@@ -109,6 +130,8 @@ export function useGroups({ search = '', mine = false } = {}) {
               : g,
           ),
         )
+        invalidateMany([QueryKeys.groups, QueryKeys.groupMembers], { reason: 'join', groupId: id })
+        if (status === 'pending') nudgeNotifications({ reason: 'groupJoinRequest', groupId: id })
         return res
       } catch (err) {
         setGroups(snapshot)
@@ -123,7 +146,7 @@ export function useGroups({ search = '', mine = false } = {}) {
     async (id) => {
       setActionError(null)
       const target = groups.find((g) => String(g.id) === String(id))
-      if (!target) return
+      if (!target || target.viewerIsCreator) return
 
       const snapshot = groups
       setGroups((prev) =>
@@ -135,7 +158,12 @@ export function useGroups({ search = '', mine = false } = {}) {
       )
 
       try {
-        return await apiLeaveGroup(id)
+        const res = await apiLeaveGroup(id)
+        invalidateMany([QueryKeys.groups, QueryKeys.groupMembers, QueryKeys.feed], {
+          reason: 'leave',
+          groupId: id,
+        })
+        return res
       } catch (err) {
         setGroups(snapshot)
         setActionError(err.message || 'Impossible de quitter le groupe')
@@ -165,7 +193,14 @@ export function useGroups({ search = '', mine = false } = {}) {
       )
 
       try {
-        return await apiRespondToInvitation(id, accept)
+        const res = await apiRespondToInvitation(id, accept)
+        invalidateMany([QueryKeys.groups, QueryKeys.groupMembers], {
+          reason: 'inviteResponse',
+          groupId: id,
+          accept,
+        })
+        nudgeNotifications({ reason: 'inviteResponse', groupId: id })
+        return res
       } catch (err) {
         setGroups(snapshot)
         setActionError(err.message || 'Impossible de répondre à l’invitation')
@@ -174,6 +209,23 @@ export function useGroups({ search = '', mine = false } = {}) {
     },
     [groups],
   )
+
+  const removeGroup = useCallback(async (id) => {
+    setActionError(null)
+    const snapshot = groups
+    setGroups((prev) => prev.filter((g) => String(g.id) !== String(id)))
+    try {
+      await apiDeleteGroup(id)
+      invalidateMany([QueryKeys.groups, QueryKeys.groupMembers, QueryKeys.feed], {
+        reason: 'deleteGroup',
+        groupId: id,
+      })
+    } catch (err) {
+      setGroups(snapshot)
+      setActionError(err.message || 'Impossible de supprimer le groupe')
+      throw err
+    }
+  }, [groups])
 
   return {
     groups,
@@ -185,7 +237,9 @@ export function useGroups({ search = '', mine = false } = {}) {
     join,
     leave,
     respondToInvitation,
-    reload: load,
+    removeGroup,
+    reload: () => load({ silent: false }),
+    silentReload,
   }
 }
 
@@ -195,22 +249,25 @@ export function useGroup(id) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async ({ silent = false } = {}) => {
     if (id == null || id === '') {
       setGroup(null)
       setLoading(false)
       setError(null)
       return
     }
-    setLoading(true)
-    setError(null)
+    if (!silent) setLoading(true)
+    if (!silent) setError(null)
     try {
       setGroup(await fetchGroup(id))
+      if (silent) setError(null)
     } catch (err) {
+      if (silent) return
       setGroup(null)
       setError(err.message || 'Groupe introuvable')
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
+      else setLoading(false)
     }
   }, [id])
 
@@ -218,7 +275,63 @@ export function useGroup(id) {
     load()
   }, [load])
 
-  return { group, setGroup, loading, error, reload: load }
+  const silentReload = useCallback(() => load({ silent: true }), [load])
+  const onGroupSync = useCallback(
+    (detail) => {
+      if (detail?.reason === 'deleteGroup' && String(detail.groupId) === String(id)) {
+        setGroup(null)
+        setError(null)
+        return
+      }
+      return silentReload()
+    },
+    [id, silentReload],
+  )
+  useBackgroundSync([QueryKeys.groups, QueryKeys.groupMembers], onGroupSync, {
+    enabled: id != null && id !== '',
+  })
+
+  return { group, setGroup, loading, error, reload: () => load({ silent: false }), silentReload }
+}
+
+export function useGroupAdmin(id, { group, setGroup } = {}) {
+  const [actionError, setActionError] = useState(null)
+
+  const updateGroup = useCallback(
+    async (payload) => {
+      setActionError(null)
+      if (!id) return
+      const snapshot = group
+      try {
+        const next = await apiUpdateGroup(id, payload)
+        setGroup?.(next)
+        invalidate(QueryKeys.groups, { reason: 'update', groupId: id })
+        return next
+      } catch (err) {
+        if (snapshot) setGroup?.(snapshot)
+        setActionError(err.message || 'Impossible de modifier le groupe')
+        throw err
+      }
+    },
+    [id, group, setGroup],
+  )
+
+  const deleteGroup = useCallback(async () => {
+    setActionError(null)
+    if (!id) return
+    try {
+      await apiDeleteGroup(id)
+      invalidateMany([QueryKeys.groups, QueryKeys.groupMembers, QueryKeys.feed], {
+        reason: 'deleteGroup',
+        groupId: id,
+      })
+    } catch (err) {
+      setActionError(err.message || 'Impossible de supprimer le groupe')
+      throw err
+    }
+  }, [id])
+
+  return { updateGroup, deleteGroup, actionError, clearActionError: () => setActionError(null) }
 }
 
 /**
@@ -255,6 +368,11 @@ export function useGroupMembership(id, { group, setGroup } = {}) {
           },
         ),
       )
+      invalidateMany([QueryKeys.groups, QueryKeys.groupMembers, QueryKeys.feed], {
+        reason: 'join',
+        groupId: id,
+      })
+      if (status === 'pending') nudgeNotifications({ reason: 'groupJoinRequest', groupId: id })
       return res
     } catch (err) {
       setGroup(snapshot)
@@ -265,13 +383,18 @@ export function useGroupMembership(id, { group, setGroup } = {}) {
 
   const leave = useCallback(async () => {
     setActionError(null)
-    if (!group || !setGroup) return
+    if (!group || !setGroup || group.viewerIsCreator) return
 
     const snapshot = group
     setGroup(withViewerStatus(group, 'none', { deltaMembers: -1, nextRole: null }))
 
     try {
-      return await apiLeaveGroup(id)
+      const res = await apiLeaveGroup(id)
+      invalidateMany([QueryKeys.groups, QueryKeys.groupMembers, QueryKeys.feed], {
+        reason: 'leave',
+        groupId: id,
+      })
+      return res
     } catch (err) {
       setGroup(snapshot)
       setActionError(err.message || 'Impossible de quitter le groupe')
@@ -294,7 +417,14 @@ export function useGroupMembership(id, { group, setGroup } = {}) {
       )
 
       try {
-        return await apiRespondToInvitation(id, accept)
+        const res = await apiRespondToInvitation(id, accept)
+        invalidateMany([QueryKeys.groups, QueryKeys.groupMembers, QueryKeys.feed], {
+          reason: 'inviteResponse',
+          groupId: id,
+          accept,
+        })
+        nudgeNotifications({ reason: 'inviteResponse', groupId: id })
+        return res
       } catch (err) {
         setGroup(snapshot)
         setActionError(err.message || 'Impossible de répondre à l’invitation')
@@ -317,21 +447,24 @@ export function useGroupMembers(id, status = 'active') {
   const [error, setError] = useState(null)
   const [actionError, setActionError] = useState(null)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async ({ silent = false } = {}) => {
     if (id == null || id === '') {
       setMembers([])
       setLoading(false)
       return
     }
-    setLoading(true)
-    setError(null)
+    if (!silent) setLoading(true)
+    if (!silent) setError(null)
     try {
       setMembers(await fetchGroupMembers(id, { status }))
+      if (silent) setError(null)
     } catch (err) {
+      if (silent) return
       setMembers([])
       setError(err.message || 'Impossible de charger les membres')
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
+      else setLoading(false)
     }
   }, [id, status])
 
@@ -339,13 +472,25 @@ export function useGroupMembers(id, status = 'active') {
     load()
   }, [load])
 
+  const silentReload = useCallback(() => load({ silent: true }), [load])
+  useBackgroundSync(QueryKeys.groupMembers, silentReload, {
+    enabled: id != null && id !== '',
+  })
+
   const approve = useCallback(
     async (userId) => {
       setActionError(null)
       const snapshot = members
       setMembers((prev) => prev.filter((m) => String(m.user.id) !== String(userId)))
       try {
-        return await apiApproveMember(id, userId)
+        const res = await apiApproveMember(id, userId)
+        invalidateMany([QueryKeys.groupMembers, QueryKeys.groups], {
+          reason: 'approve',
+          groupId: id,
+          userId,
+        })
+        nudgeNotifications({ reason: 'approve', groupId: id, userId })
+        return res
       } catch (err) {
         setMembers(snapshot)
         setActionError(err.message || 'Impossible d’approuver')
@@ -361,7 +506,14 @@ export function useGroupMembers(id, status = 'active') {
       const snapshot = members
       setMembers((prev) => prev.filter((m) => String(m.user.id) !== String(userId)))
       try {
-        return await apiRejectMember(id, userId)
+        const res = await apiRejectMember(id, userId)
+        invalidateMany([QueryKeys.groupMembers, QueryKeys.groups], {
+          reason: 'reject',
+          groupId: id,
+          userId,
+        })
+        nudgeNotifications({ reason: 'reject', groupId: id, userId })
+        return res
       } catch (err) {
         setMembers(snapshot)
         setActionError(err.message || 'Impossible de rejeter')
@@ -377,7 +529,13 @@ export function useGroupMembers(id, status = 'active') {
       const snapshot = members
       setMembers((prev) => prev.filter((m) => String(m.user.id) !== String(userId)))
       try {
-        return await apiRemoveMember(id, userId)
+        const res = await apiRemoveMember(id, userId)
+        invalidateMany([QueryKeys.groupMembers, QueryKeys.groups], {
+          reason: 'remove',
+          groupId: id,
+          userId,
+        })
+        return res
       } catch (err) {
         setMembers(snapshot)
         setActionError(err.message || 'Impossible d’exclure')
@@ -397,7 +555,9 @@ export function useGroupMembers(id, status = 'active') {
         ),
       )
       try {
-        return await apiChangeMemberRole(id, userId, role)
+        const res = await apiChangeMemberRole(id, userId, role)
+        invalidate(QueryKeys.groupMembers, { reason: 'changeRole', groupId: id, userId, role })
+        return res
       } catch (err) {
         setMembers(snapshot)
         setActionError(err.message || 'Impossible de changer le rôle')
@@ -416,6 +576,7 @@ export function useGroupMembers(id, status = 'active') {
     reject,
     remove,
     changeRole,
-    reload: load,
+    reload: () => load({ silent: false }),
+    silentReload,
   }
 }

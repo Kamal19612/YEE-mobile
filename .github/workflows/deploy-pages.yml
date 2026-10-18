@@ -29,9 +29,9 @@ jobs:
       - run: npm run build
         env:
           VITE_BASE: /YEE/
-          # GitHub Pages n'a pas de proxy Vite : URLs absolues vers WordPress
-          VITE_WP_API_URL: https://wp.socialracine.com/wp-json
-          VITE_APP_API_URL: https://wp.socialracine.com/wp-json/app/v1
+          # Local / same-origin : laisser vide (proxy Vite en dev).
+          # En build Pages sans API publique, ne pas pointer vers un ancien domaine.
+          VITE_API_URL: ""
           VITE_API_TIMEOUT: "15000"
       - name: Add .nojekyll and SPA fallback
         run: |

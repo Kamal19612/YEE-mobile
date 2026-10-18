@@ -1,5 +1,11 @@
 # Rapport UX Sidebar / Header — AfrEA-YEE
 
+Mise à jour : 1er octobre 2026.
+
+Ce rapport reste un relevé de layout. Il n’est pas un audit de sécurité. Les constats d’octobre sont dans `AUDIT-SECURITE-2026-10-01.txt`.
+
+Contrôle de code le 1er octobre 2026 : les tokens cités plus bas sont toujours la source de vérité (`src/styles/tokens.css` : `--bb-panel-width`, `--bb-panel-width-open`, `--bb-z-header` ; `tailwind.config.js` consomme `w-panel` / `z-header`). Aucune revue visuelle navigateur n’a été refaite à cette date.
+
 ## Diagnostic (problèmes réels uniquement)
 
 1. **Panel replié désaligné** — `BuddyPanel.jsx` : logo AY + bouton toggle empilés dans `h-header` → hauteur incohérente avec le header sticky.

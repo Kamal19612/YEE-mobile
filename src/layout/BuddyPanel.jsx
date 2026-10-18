@@ -3,16 +3,19 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   IconActivity,
-  IconBell,
+  IconBook,
+  IconCalendar,
   IconClose,
   IconGlobe,
   IconGroup,
+  IconShield,
   IconSidebar,
   IconUsers,
 } from '../components/icons'
 import { useLayout } from '../context/LayoutProvider'
-import { useUnreadCount } from '../hooks/useNotifications'
+import { useAuth } from '../hooks/useAuth'
 import { panelItemDefs } from '../data/layoutData'
+import { LanguageSwitcher } from '../components/ui/LanguageSwitcher'
 import { SiteLogo } from './SiteLogo'
 
 const iconMap = {
@@ -20,11 +23,13 @@ const iconMap = {
   users: IconUsers,
   group: IconGroup,
   globe: IconGlobe,
-  bell: IconBell,
+  calendar: IconCalendar,
+  book: IconBook,
+  shield: IconShield,
 }
 
-const PRIMARY_IDS = ['stories', 'members', 'groups', 'institutions']
-const SECONDARY_IDS = ['notifications']
+const PRIMARY_IDS = ['stories', 'members', 'groups', 'institutions', 'events', 'resources']
+const ADMIN_IDS = ['admin-accounts']
 
 function isItemActive(pathname, href) {
   if (href === '/') return pathname === '/'
@@ -52,13 +57,11 @@ export function BuddyPanel({ items = panelItemDefs }) {
   const { t } = useTranslation()
   const { panelOpen, togglePanel, mobilePanelOpen, closeMobilePanel } = useLayout()
   const { pathname } = useLocation()
-  const { unreadCount } = useUnreadCount()
+  const { user } = useAuth()
 
-  const withCounts = items.map((item) =>
-    item.id === 'notifications' ? { ...item, count: unreadCount } : item,
-  )
-  const primary = withCounts.filter((i) => PRIMARY_IDS.includes(i.id))
-  const secondary = withCounts.filter((i) => SECONDARY_IDS.includes(i.id))
+  const visibleItems = items.filter((item) => !item.adminOnly || user?.isSiteAdmin)
+  const primary = visibleItems.filter((i) => PRIMARY_IDS.includes(i.id))
+  const admin = visibleItems.filter((i) => ADMIN_IDS.includes(i.id))
 
   const renderItem = (item, { onNavigate, forceExpanded = false } = {}) => {
     const Icon = iconMap[item.icon] || IconActivity
@@ -108,10 +111,14 @@ export function BuddyPanel({ items = panelItemDefs }) {
       <NavSection title={t('panel.sectionMain')} expanded={opts?.forceExpanded || panelOpen}>
         {primary.map((item) => renderItem(item, opts))}
       </NavSection>
-      {(opts?.forceExpanded || panelOpen) && <div className="mx-3 mb-3 border-t border-bb-border" />}
-      <NavSection title={t('panel.sectionAccount')} expanded={opts?.forceExpanded || panelOpen}>
-        {secondary.map((item) => renderItem(item, opts))}
-      </NavSection>
+      {admin.length > 0 && (
+        <>
+          {(opts?.forceExpanded || panelOpen) && <div className="mx-3 mb-3 border-t border-bb-border" />}
+          <NavSection title={t('panel.sectionAdmin')} expanded={opts?.forceExpanded || panelOpen}>
+            {admin.map((item) => renderItem(item, opts))}
+          </NavSection>
+        </>
+      )}
     </>
   )
 
@@ -128,13 +135,14 @@ export function BuddyPanel({ items = panelItemDefs }) {
         <header
           className={clsx(
             'panel-head flex h-header shrink-0 items-center border-b border-bb-border',
-            panelOpen ? 'gap-2 px-3' : 'justify-center px-1',
+            panelOpen ? 'gap-1.5 px-3' : 'justify-center px-1',
           )}
         >
           {panelOpen ? (
             <>
-              <div className="min-w-0 flex-1">
-                <SiteLogo />
+              {/* Logo lisible uniquement panel ouvert (ovale ~2:1 incompatible avec le rail 68px). */}
+              <div className="flex h-10 min-h-0 min-w-0 flex-1 items-center overflow-hidden">
+                <SiteLogo fill className="h-full w-full max-w-[10.5rem]" />
               </div>
               <button
                 type="button"
@@ -149,13 +157,13 @@ export function BuddyPanel({ items = panelItemDefs }) {
           ) : (
             <button
               type="button"
-              className="flex h-full w-full items-center justify-center text-bb-sidenav-text hover:opacity-90"
+              className="bb-toggle-panel flex h-10 w-10 items-center justify-center rounded-bb-inner text-bb-sidenav-text hover:bg-bb-sidenav-hover hover:text-bb-primary"
               onClick={togglePanel}
               aria-label={t('panel.open')}
               aria-expanded={false}
-              title={t('app.name')}
+              title={t('panel.open')}
             >
-              <SiteLogo compact as="span" />
+              <IconSidebar />
             </button>
           )}
         </header>
@@ -186,18 +194,19 @@ export function BuddyPanel({ items = panelItemDefs }) {
             onClick={closeMobilePanel}
           />
           <aside
-            className="buddypanel fixed bottom-0 left-0 top-0 z-mobile-panel flex w-[min(100vw-3rem,260px)] max-w-[85vw] flex-col bb-surface-glass shadow-panel"
+            className="buddypanel fixed bottom-0 left-0 top-0 z-mobile-panel flex w-[min(100%-3rem,260px)] max-w-[85%] flex-col bb-surface-glass shadow-panel"
+            style={{ paddingTop: 'var(--bb-safe-top)' }}
             role="dialog"
             aria-modal="true"
             aria-label={t('panel.mainNav')}
           >
-            <header className="panel-head flex h-header shrink-0 items-center justify-between gap-2 border-b border-bb-border bg-bb-header px-3">
-              <div className="min-w-0 flex-1">
-                <SiteLogo />
+            <header className="panel-head flex h-14 shrink-0 items-center gap-2 border-b border-bb-border bg-bb-header px-3">
+              <div className="flex h-9 min-h-0 min-w-0 flex-1 items-center overflow-hidden">
+                <SiteLogo fill className="h-full w-full" />
               </div>
               <button
                 type="button"
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-bb-inner text-bb-sidenav-text hover:bg-bb-sidenav-hover"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-bb-inner text-bb-sidenav-text touch-manipulation hover:bg-bb-sidenav-hover"
                 onClick={closeMobilePanel}
                 aria-label={t('panel.close')}
               >
@@ -207,6 +216,9 @@ export function BuddyPanel({ items = panelItemDefs }) {
             <div className="side-panel-inner flex-1 overflow-y-auto overscroll-contain px-2 pt-3 pb-4">
               {navBody({ onNavigate: closeMobilePanel, forceExpanded: true })}
             </div>
+            <footer className="shrink-0 border-t border-bb-border px-4 pt-3 pb-[max(0.75rem,var(--bb-safe-bottom))] min-[400px]:hidden">
+              <LanguageSwitcher />
+            </footer>
           </aside>
         </div>
       )}

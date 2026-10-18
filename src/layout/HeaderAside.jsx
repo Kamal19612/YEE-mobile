@@ -6,6 +6,7 @@ import { LanguageSwitcher } from '../components/ui/LanguageSwitcher'
 import { useLayout } from '../context/LayoutProvider'
 import { useAuth } from '../hooks/useAuth'
 import { HeaderProfileMenu } from './HeaderProfileMenu'
+import { MessagesDropdown } from './MessagesDropdown'
 import { NotificationDropdown } from './NotificationDropdown'
 
 export function HeaderAside() {
@@ -28,6 +29,7 @@ export function HeaderAside() {
               <IconSearch />
             </button>
             <span className="bb-separator hidden h-6 w-px bg-bb-border bb:block" />
+            <MessagesDropdown />
             <NotificationDropdown />
             <HeaderProfileMenu />
           </>

@@ -1,9 +1,10 @@
-/** Bibliothèque Ressources & Guides — remplace Courses (TDR §4.v, §5.vii) */
+/** Constantes bibliothèque de ressources — AfrEA-YEE */
 
-export const RESOURCE_TYPES = [
-  { id: 'all', labelKey: 'resources.types.all' },
-  { id: 'guide', labelKey: 'resources.types.guide' },
-  { id: 'video', labelKey: 'resources.types.video' },
-  { id: 'document', labelKey: 'resources.types.document' },
-  { id: 'toolkit', labelKey: 'resources.types.toolkit' },
+export const RESOURCE_LANGUAGES = [
+  { code: 'fr', labelKey: 'resources.languages.fr' },
+  { code: 'en', labelKey: 'resources.languages.en' },
+  { code: 'ar', labelKey: 'resources.languages.ar' },
+  { code: 'pt', labelKey: 'resources.languages.pt' },
 ]
+
+export const RESOURCE_DOCUMENT_ACCEPT = 'application/pdf,.pdf'

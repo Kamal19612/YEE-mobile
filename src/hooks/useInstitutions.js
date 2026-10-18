@@ -14,8 +14,9 @@ import {
   removeReferent as apiRemoveReferent,
   requestAffiliation as apiRequestAffiliation,
   updateInstitution as apiUpdateInstitution,
-  withInferredReferents,
 } from '../api/institutions'
+import { invalidate, invalidateMany, nudgeNotifications, QueryKeys } from '../lib/queryEvents'
+import { useBackgroundSync } from '../lib/useBackgroundSync'
 
 function withAffiliationStatus(institution, nextStatus, { deltaMembers = 0 } = {}) {
   if (!institution) return institution
@@ -95,6 +96,20 @@ export function useInstitution(id) {
     load()
   }, [load])
 
+  const silentReload = useCallback(() => {
+    if (id == null || id === '') return Promise.resolve()
+    return fetchInstitution(id)
+      .then((next) => {
+        setInstitution(next)
+        setError(null)
+      })
+      .catch(() => {})
+  }, [id])
+
+  useBackgroundSync([QueryKeys.institutions, QueryKeys.institutionMembers], silentReload, {
+    enabled: Boolean(id),
+  })
+
   return { institution, setInstitution, loading, error, reload: load }
 }
 
@@ -122,6 +137,11 @@ export function useInstitutionAffiliation(id, { institution, setInstitution } = 
       const res = await apiRequestAffiliation(id)
       const status = res?.status || 'pending'
       setInstitution(withAffiliationStatus(snapshot, status))
+      invalidateMany([QueryKeys.institutions, QueryKeys.institutionMembers], {
+        reason: 'requestAffiliation',
+        institutionId: id,
+      })
+      nudgeNotifications({ reason: 'requestAffiliation', institutionId: id })
       return res
     } catch (err) {
       setInstitution(snapshot)
@@ -155,6 +175,10 @@ export function useInstitutionAffiliation(id, { institution, setInstitution } = 
           deltaMembers: wasActive && status === 'none' ? -1 : 0,
         }),
       )
+      invalidateMany([QueryKeys.institutions, QueryKeys.institutionMembers], {
+        reason: 'cancelAffiliation',
+        institutionId: id,
+      })
       return res
     } catch (err) {
       setInstitution(snapshot)
@@ -182,25 +206,27 @@ export function useInstitutionAffiliations(id, status = 'pending') {
   const [error, setError] = useState(null)
   const [actionError, setActionError] = useState(null)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async ({ silent = false } = {}) => {
     if (id == null || id === '') {
       setAffiliations([])
       setLoading(false)
       return
     }
-    setLoading(true)
-    setError(null)
+    if (!silent) {
+      setLoading(true)
+      setError(null)
+    }
     try {
       const list = await fetchAffiliations(id, { status })
-      const initial = status === 'active' ? withInferredReferents(list) : list
-      setAffiliations(initial)
-      setLoading(false)
+      setAffiliations(list)
+      if (silent) setError(null)
+      if (!silent) setLoading(false)
 
-      if (status === 'active' && initial.length > 0) {
-        const enriched = withInferredReferents(await enrichAffiliationMedia(initial))
-        setAffiliations(enriched)
+      if (status === 'active' && list.length > 0) {
+        setAffiliations(await enrichAffiliationMedia(list))
       }
     } catch (err) {
+      if (silent) return
       setAffiliations([])
       setError(err.message || 'Impossible de charger les affiliations')
       setLoading(false)
@@ -211,13 +237,23 @@ export function useInstitutionAffiliations(id, status = 'pending') {
     load()
   }, [load])
 
+  const silentReload = useCallback(() => load({ silent: true }), [load])
+  useBackgroundSync(QueryKeys.institutionMembers, silentReload, { enabled: Boolean(id) })
+
   const approve = useCallback(
     async (userId) => {
       setActionError(null)
       const snapshot = affiliations
       setAffiliations((prev) => prev.filter((a) => String(a.user.id) !== String(userId)))
       try {
-        return await apiApproveAffiliation(id, userId)
+        const res = await apiApproveAffiliation(id, userId)
+        invalidateMany([QueryKeys.institutions, QueryKeys.institutionMembers, QueryKeys.members], {
+          reason: 'approveAffiliation',
+          institutionId: id,
+          userId,
+        })
+        nudgeNotifications({ reason: 'approveAffiliation', institutionId: id })
+        return res
       } catch (err) {
         setAffiliations(snapshot)
         setActionError(err.message || 'Impossible d’approuver')
@@ -233,7 +269,14 @@ export function useInstitutionAffiliations(id, status = 'pending') {
       const snapshot = affiliations
       setAffiliations((prev) => prev.filter((a) => String(a.user.id) !== String(userId)))
       try {
-        return await apiRejectAffiliation(id, userId)
+        const res = await apiRejectAffiliation(id, userId)
+        invalidateMany([QueryKeys.institutions, QueryKeys.institutionMembers], {
+          reason: 'rejectAffiliation',
+          institutionId: id,
+          userId,
+        })
+        nudgeNotifications({ reason: 'rejectAffiliation', institutionId: id })
+        return res
       } catch (err) {
         setAffiliations(snapshot)
         setActionError(err.message || 'Impossible de rejeter')
@@ -247,7 +290,9 @@ export function useInstitutionAffiliations(id, status = 'pending') {
     async (userId) => {
       setActionError(null)
       try {
-        return await apiAddReferent(id, userId)
+        const res = await apiAddReferent(id, userId)
+        invalidate(QueryKeys.institutionMembers, { reason: 'addReferent', institutionId: id, userId })
+        return res
       } catch (err) {
         setActionError(err.message || 'Impossible de nommer le référent')
         throw err
@@ -260,7 +305,9 @@ export function useInstitutionAffiliations(id, status = 'pending') {
     async (userId) => {
       setActionError(null)
       try {
-        return await apiRemoveReferent(id, userId)
+        const res = await apiRemoveReferent(id, userId)
+        invalidate(QueryKeys.institutionMembers, { reason: 'removeReferent', institutionId: id, userId })
+        return res
       } catch (err) {
         setActionError(err.message || 'Impossible de retirer le référent')
         throw err
@@ -275,7 +322,13 @@ export function useInstitutionAffiliations(id, status = 'pending') {
       const snapshot = affiliations
       setAffiliations((prev) => prev.filter((a) => String(a.user.id) !== String(userId)))
       try {
-        return await apiRemoveMember(id, userId)
+        const res = await apiRemoveMember(id, userId)
+        invalidateMany([QueryKeys.institutions, QueryKeys.institutionMembers, QueryKeys.members], {
+          reason: 'removeMember',
+          institutionId: id,
+          userId,
+        })
+        return res
       } catch (err) {
         setAffiliations(snapshot)
         setActionError(err.message || 'Impossible de retirer le membre')
@@ -295,41 +348,48 @@ export function useInstitutionAffiliations(id, status = 'pending') {
     addReferent,
     removeReferent,
     removeMember,
-    reload: load,
+    reload: () => load(),
   }
 }
 
 /**
- * Affiliations actives d’un utilisateur — GET /institutions?userId=
- * Sert aussi à détecter si le viewer est référent d’au moins une institution.
+ * Affiliations d’un utilisateur — GET /institutions?userId=&status=
+ * `status=all` pour profil (actives + demandes). Défaut : actives.
  */
-export function useMyInstitutions(userId) {
+export function useMyInstitutions(userId, { status = 'active' } = {}) {
   const [institutions, setInstitutions] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async ({ silent = false } = {}) => {
     if (userId == null || userId === '') {
       setInstitutions([])
       setLoading(false)
       setError(null)
       return
     }
-    setLoading(true)
-    setError(null)
+    if (!silent) {
+      setLoading(true)
+      setError(null)
+    }
     try {
-      setInstitutions(await fetchInstitutions({ userId }))
+      setInstitutions(await fetchInstitutions({ userId, status }))
+      if (silent) setError(null)
     } catch (err) {
+      if (silent) return
       setInstitutions([])
       setError(err.message || 'Impossible de charger les institutions')
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
-  }, [userId])
+  }, [userId, status])
 
   useEffect(() => {
     load()
   }, [load])
+
+  const silentReload = useCallback(() => load({ silent: true }), [load])
+  useBackgroundSync(QueryKeys.institutions, silentReload, { enabled: Boolean(userId) })
 
   const isReferentSomewhere = institutions.some((i) => i.viewerIsReferent)
 
@@ -338,7 +398,7 @@ export function useMyInstitutions(userId) {
     loading,
     error,
     isReferentSomewhere,
-    reload: load,
+    reload: () => load(),
   }
 }
 
@@ -351,39 +411,65 @@ export function useClubs({ search = '' } = {}) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [actionError, setActionError] = useState(null)
+  const [debouncedSearch, setDebouncedSearch] = useState(search)
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    setError(null)
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search), 300)
+    return () => window.clearTimeout(timer)
+  }, [search])
+
+  const load = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) {
+      setLoading(true)
+      setError(null)
+    }
     try {
-      setClubs(await fetchInstitutions({ type: 'local', search }))
+      setClubs(await fetchInstitutions({ type: 'local', search: debouncedSearch }))
+      if (silent) setError(null)
     } catch (err) {
+      if (silent) return
       setClubs([])
       setError(err.message || 'Impossible de charger les clubs')
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
-  }, [search])
+  }, [debouncedSearch])
 
   useEffect(() => {
-    load()
+    load({ silent: clubs.length > 0 })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- first paint vs search refresh
   }, [load])
+
+  const silentReload = useCallback(() => load({ silent: true }), [load])
+  useBackgroundSync(QueryKeys.institutions, (detail) => {
+    if (detail?.reason === 'deleteInstitution' && detail.institutionId) {
+      setClubs((prev) => prev.filter((c) => String(c.id) !== String(detail.institutionId)))
+      return
+    }
+    return silentReload()
+  })
 
   const createClub = useCallback(async ({ name, parentId, description, countryName, continentName }) => {
     setActionError(null)
-    const created = await apiCreateInstitution({
-      name,
-      type: 'local',
-      parentId,
-      description,
-    })
-    const club = {
-      ...created,
-      countryName: created.countryName ?? countryName ?? null,
-      continentName: created.continentName ?? continentName ?? null,
+    try {
+      const created = await apiCreateInstitution({
+        name,
+        type: 'local',
+        parentId,
+        description,
+      })
+      const club = {
+        ...created,
+        countryName: created.countryName ?? countryName ?? null,
+        continentName: created.continentName ?? continentName ?? null,
+      }
+      setClubs((prev) => [club, ...prev.filter((c) => c.id !== club.id)])
+      invalidate(QueryKeys.institutions, { reason: 'createClub', institutionId: club.id })
+      return club
+    } catch (err) {
+      setActionError(err.message || 'Impossible de créer le club')
+      throw err
     }
-    setClubs((prev) => [club, ...prev.filter((c) => c.id !== club.id)])
-    return club
   }, [])
 
   const updateClub = useCallback(
@@ -415,6 +501,7 @@ export function useClubs({ search = '' } = {}) {
               : c,
           ),
         )
+        invalidate(QueryKeys.institutions, { reason: 'updateClub', institutionId: id })
         return updated
       } catch (err) {
         setClubs(snapshot)
@@ -431,7 +518,12 @@ export function useClubs({ search = '' } = {}) {
       const snapshot = clubs
       setClubs((prev) => prev.filter((c) => String(c.id) !== String(id)))
       try {
-        return await apiDeleteInstitution(id)
+        const res = await apiDeleteInstitution(id)
+        invalidateMany([QueryKeys.institutions, QueryKeys.institutionMembers], {
+          reason: 'deleteInstitution',
+          institutionId: id,
+        })
+        return res
       } catch (err) {
         setClubs(snapshot)
         setActionError(err.message || 'Impossible de supprimer le club')
@@ -449,7 +541,7 @@ export function useClubs({ search = '' } = {}) {
     createClub,
     updateClub,
     deleteClub,
-    reload: load,
+    reload: () => load(),
     clearActionError: () => setActionError(null),
   }
 }
@@ -470,7 +562,8 @@ export function useReferentCountries(enabled = true) {
     setLoading(true)
     setError(null)
     try {
-      setCountries(await fetchInstitutions({ type: 'country', referentOnly: true }))
+      const list = await fetchInstitutions({ type: 'country', referentOnly: true })
+      setCountries(list.filter((c) => c.type === 'country'))
     } catch (err) {
       setCountries([])
       setError(err.message || 'Impossible de charger les pays référents')
@@ -487,12 +580,18 @@ export function useReferentCountries(enabled = true) {
 }
 
 /** Tous les pays — GET /institutions?type=country */
-export function useCountries() {
+export function useCountries(enabled = true) {
   const [countries, setCountries] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(Boolean(enabled))
   const [error, setError] = useState(null)
 
   const load = useCallback(async () => {
+    if (!enabled) {
+      setCountries([])
+      setLoading(false)
+      setError(null)
+      return
+    }
     setLoading(true)
     setError(null)
     try {
@@ -503,11 +602,81 @@ export function useCountries() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [enabled])
 
   useEffect(() => {
     load()
   }, [load])
 
   return { countries, loading, error, reload: load }
+}
+
+/** Continents — GET /institutions?type=continent */
+export function useContinents(enabled = true) {
+  const [continents, setContinents] = useState([])
+  const [loading, setLoading] = useState(Boolean(enabled))
+  const [error, setError] = useState(null)
+
+  const load = useCallback(async () => {
+    if (!enabled) {
+      setContinents([])
+      setLoading(false)
+      setError(null)
+      return
+    }
+    setLoading(true)
+    setError(null)
+    try {
+      setContinents(await fetchInstitutions({ type: 'continent' }))
+    } catch (err) {
+      setContinents([])
+      setError(err.message || 'Impossible de charger les continents')
+    } finally {
+      setLoading(false)
+    }
+  }, [enabled])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  return { continents, loading, error, reload: load }
+}
+
+/** Institutions que le viewer peut gérer — GET /institutions?referentOnly=1 */
+export function useManagedInstitutions(enabled = true) {
+  const [institutions, setInstitutions] = useState([])
+  const [loading, setLoading] = useState(Boolean(enabled))
+  const [error, setError] = useState(null)
+
+  const load = useCallback(async ({ silent = false } = {}) => {
+    if (!enabled) {
+      setInstitutions([])
+      setLoading(false)
+      setError(null)
+      return
+    }
+    if (!silent) {
+      setLoading(true)
+      setError(null)
+    }
+    try {
+      setInstitutions(await fetchInstitutions({ referentOnly: true }))
+      if (silent) setError(null)
+    } catch (err) {
+      if (silent) return
+      setInstitutions([])
+      setError(err.message || 'Impossible de charger les institutions')
+    } finally {
+      if (!silent) setLoading(false)
+    }
+  }, [enabled])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  useBackgroundSync(QueryKeys.institutions, () => load({ silent: true }), { enabled })
+
+  return { institutions, loading, error, reload: load }
 }

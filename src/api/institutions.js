@@ -2,7 +2,7 @@ import { ENDPOINTS } from '../config/api'
 import { appApiFetch, getToken } from './client'
 
 /**
- * Institutions — App API `/app/v1/institutions/*`
+ * Institutions — API Spring `/institutions/*`
  * Hiérarchie continent → pays → club local ; affiliation validée par référents.
  */
 
@@ -10,6 +10,7 @@ function normalizeMediaUrl(url) {
   if (!url) return null
   let u = String(url).replace(/#038;/g, '&').replace(/&amp;/g, '&')
   if (u.startsWith('//')) u = `https:${u}`
+  u = u.replace(/^https?:\/\/(localhost|127\.0\.0\.1):\d+\/media(?=\/|$)/i, '/media')
   return u
 }
 
@@ -109,6 +110,7 @@ function pickAffiliationRole(raw) {
 export function mapAffiliation(raw) {
   if (!raw || typeof raw !== 'object') return null
   const status = LIST_AFFILIATION_STATUSES.has(raw.status) ? raw.status : 'pending'
+  const source = raw.user && typeof raw.user === 'object' ? raw.user : raw
   const roleRaw = pickAffiliationRole(raw)
   const isReferentFlag =
     raw.isReferent ??
@@ -125,40 +127,13 @@ export function mapAffiliation(raw) {
       roleRaw.includes('referent'),
   )
   return {
-    user: mapUser(raw.user),
+    user: mapUser(source),
     status,
     isReferent,
     role: isReferent ? 'referent' : roleRaw && roleRaw !== 'member' ? roleRaw : 'member',
     requestedAt: raw.requestedAt || raw.requested_at || '',
     decidedAt: raw.decidedAt || raw.decided_at || null,
   }
-}
-
-/**
- * Si l’API n’envoie pas isReferent, marque le plus ancien affilié actif comme référent
- * (souvent le créateur / premier validé).
- */
-export function withInferredReferents(affiliations) {
-  const list = Array.isArray(affiliations) ? affiliations.map((a) => ({ ...a })) : []
-  if (!list.length) return list
-  if (list.some((a) => a.isReferent)) return list
-
-  const stamp = (a) => {
-    const iso = a.decidedAt || a.requestedAt
-    const t = iso ? Date.parse(iso) : NaN
-    return Number.isFinite(t) ? t : Number.MAX_SAFE_INTEGER
-  }
-
-  let oldestIdx = 0
-  for (let i = 1; i < list.length; i += 1) {
-    if (stamp(list[i]) < stamp(list[oldestIdx])) oldestIdx = i
-  }
-  list[oldestIdx] = {
-    ...list[oldestIdx],
-    isReferent: true,
-    role: 'referent',
-  }
-  return list
 }
 
 function authOpts() {
@@ -176,6 +151,7 @@ export async function fetchInstitutions({
   type,
   search = '',
   userId,
+  status,
   referentOnly = false,
 } = {}) {
   const params = new URLSearchParams()
@@ -183,6 +159,7 @@ export async function fetchInstitutions({
   if (type) params.set('type', String(type))
   if (search) params.set('search', String(search))
   if (userId != null && userId !== '') params.set('userId', String(userId))
+  if (status) params.set('status', String(status))
   if (referentOnly) params.set('referentOnly', '1')
 
   const qs = params.toString()
@@ -245,27 +222,24 @@ export async function requestAffiliation(id) {
 }
 
 /**
- * DELETE /institutions/{id}/affiliation
- * Sans userId : le viewer quitte l’institution.
- * Avec userId : un référent retire ce membre (query ?userId=).
+ * DELETE /institutions/{id}/affiliation — le viewer quitte ou annule sa demande.
  * @returns {{ status: string }}
  */
-export async function cancelAffiliation(id, { userId } = {}) {
-  const params = new URLSearchParams()
-  if (userId != null && userId !== '') params.set('userId', String(userId))
-  const qs = params.toString()
-  const base = ENDPOINTS.institutions.affiliation(String(id))
-  const path = qs ? `${base}?${qs}` : base
-  const data = await appApiFetch(path, {
+export async function cancelAffiliation(id) {
+  const data = await appApiFetch(ENDPOINTS.institutions.affiliation(String(id)), {
     method: 'DELETE',
     auth: true,
   })
   return data && typeof data === 'object' ? data : { status: 'none' }
 }
 
-/** Référent retire un membre — DELETE /affiliation?userId= */
+/** Référent retire un membre — DELETE /institutions/{id}/affiliations/{userId} */
 export async function removeMember(id, userId) {
-  return cancelAffiliation(id, { userId })
+  const data = await appApiFetch(ENDPOINTS.institutions.removeMember(String(id), String(userId)), {
+    method: 'DELETE',
+    auth: true,
+  })
+  return data && typeof data === 'object' ? data : { status: 'none' }
 }
 
 /**

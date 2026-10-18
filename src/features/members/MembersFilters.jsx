@@ -24,8 +24,8 @@ export function MembersFilters({
       <div className="flex flex-col gap-3 bb:flex-row bb:items-center bb:justify-between">
         <div className="bb-item-count text-bb-sm text-bb-text">{countLabel}</div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="relative block min-w-0 w-full flex-1 sm:min-w-[200px] bb:flex-none bb:w-auto">
+        <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+          <label className="relative block w-full min-w-0 sm:min-w-[200px] sm:flex-1 bb:max-w-sm">
             <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-bb-muted" />
             <input
               type="search"
@@ -36,17 +36,17 @@ export function MembersFilters({
             />
           </label>
 
-          <div className="grid-filters flex overflow-hidden rounded-bb-input border border-bb-border">
+          <div className="grid-filters flex w-full overflow-hidden rounded-bb-input border border-bb-border sm:w-auto">
             <button
               type="button"
-              className={`px-3 py-2 text-bb-xs font-medium ${view === 'grid' ? 'bg-bb-primary text-white' : 'bg-bb-content text-bb-text'}`}
+              className={`min-h-10 flex-1 px-3 py-2 text-bb-xs font-medium sm:flex-none ${view === 'grid' ? 'bg-bb-primary text-white' : 'bg-bb-content text-bb-text'}`}
               onClick={() => onViewChange('grid')}
             >
               {t('members.grid')}
             </button>
             <button
               type="button"
-              className={`px-3 py-2 text-bb-xs font-medium ${view === 'list' ? 'bg-bb-primary text-white' : 'bg-bb-content text-bb-text'}`}
+              className={`min-h-10 flex-1 px-3 py-2 text-bb-xs font-medium sm:flex-none ${view === 'list' ? 'bg-bb-primary text-white' : 'bg-bb-content text-bb-text'}`}
               onClick={() => onViewChange('list')}
             >
               {t('members.list')}

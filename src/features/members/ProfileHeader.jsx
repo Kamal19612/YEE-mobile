@@ -1,10 +1,12 @@
-import { useId } from 'react'
-import { Link } from 'react-router-dom'
+import { useId, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { createThread } from '../../api/messages'
 import { PROFILE_IMAGE_ACCEPT } from '../../api/users'
 import { IconImage } from '../../components/icons'
 import { Avatar } from '../../components/ui/Avatar'
 import { Button } from '../../components/ui/Button'
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { MEMBER_LANGUAGES } from '../../data/membersData'
 import { formatTimeSince } from '../activity/utils'
 
@@ -112,13 +114,18 @@ export function ProfileHeader({
                 <label
                   htmlFor={avatarInputId}
                   className={[
-                    'absolute bottom-1 right-1 inline-flex min-h-8 min-w-8 cursor-pointer items-center justify-center rounded-full border border-bb-border bg-bb-content px-2 py-1 text-[11px] font-medium text-bb-heading shadow-sm touch-manipulation',
+                    'absolute bottom-1 right-1 inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-bb-border bg-bb-content text-bb-heading shadow-sm touch-manipulation',
                     'hover:border-bb-primary hover:text-bb-primary',
                     mediaBusy === 'avatar' ? 'pointer-events-none opacity-60' : '',
                   ].join(' ')}
+                  aria-label={t('members.changeAvatar')}
                   aria-busy={mediaBusy === 'avatar'}
                 >
-                  {mediaBusy === 'avatar' ? '…' : t('members.changeAvatar')}
+                  {mediaBusy === 'avatar' ? (
+                    <span aria-hidden="true">…</span>
+                  ) : (
+                    <IconImage className="h-4 w-4" aria-hidden="true" />
+                  )}
                 </label>
               </>
             )}
@@ -180,6 +187,7 @@ export function ProfileHeader({
             ) : (
               <>
                 <FriendAction member={member} onFriendToggle={onFriendToggle} />
+                <MessageAction member={member} />
               </>
             )}
           </div>
@@ -212,19 +220,66 @@ function Stat({ label, value }) {
   )
 }
 
+function MessageAction({ member }) {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const [busy, setBusy] = useState(false)
+  const allowed = member.canMessage !== false
+
+  const onClick = async () => {
+    if (!allowed || busy) return
+    setBusy(true)
+    try {
+      const thread = await createThread({ recipientId: member.id })
+      if (thread?.id) navigate(`/messages/${thread.id}`)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Button
+      type="button"
+      variant="secondary"
+      size="sm"
+      className="min-h-10 flex-1 touch-manipulation sm:flex-none"
+      disabled={!allowed || busy}
+      title={!allowed ? t('messages.cannotMessage') : undefined}
+      onClick={onClick}
+    >
+      {t('messages.messageUser')}
+    </Button>
+  )
+}
+
 function FriendAction({ member, onFriendToggle }) {
   const { t } = useTranslation()
+  const [confirmOpen, setConfirmOpen] = useState(false)
+
   if (member.friendshipStatus === 'is_friend') {
     return (
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="min-h-10 flex-1 touch-manipulation sm:flex-none"
-        onClick={() => onFriendToggle?.(member.id)}
-      >
-        {t('members.disconnect')}
-      </Button>
+      <>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="min-h-10 flex-1 touch-manipulation sm:flex-none"
+          onClick={() => setConfirmOpen(true)}
+        >
+          {t('members.disconnect')}
+        </Button>
+        <ConfirmDialog
+          open={confirmOpen}
+          title={t('members.unfollowConfirmTitle')}
+          body={t('members.unfollowConfirmBody', { name: member.displayName })}
+          confirmLabel={t('members.disconnect')}
+          onCancel={() => setConfirmOpen(false)}
+          onConfirm={() => {
+            setConfirmOpen(false)
+            onFriendToggle?.(member.id)
+          }}
+        />
+      </>
     )
   }
   if (member.friendshipStatus === 'pending') {

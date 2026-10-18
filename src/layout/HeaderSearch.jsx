@@ -42,27 +42,33 @@ export function HeaderSearch() {
       <div
         ref={panelRef}
         className="header-search-wrap relative border-b border-bb-border bg-bb-header shadow-dropdown"
+        style={{ paddingTop: 'var(--bb-safe-top)' }}
       >
-        <form onSubmit={submit} className="bb-container flex h-header items-center gap-2 sm:gap-3" role="search">
-          <IconSearch className="shrink-0 text-bb-muted" />
+        <form
+          onSubmit={submit}
+          className="bb-container flex h-14 items-center gap-2 sm:gap-3"
+          role="search"
+        >
+          <IconSearch className="hidden shrink-0 text-bb-muted min-[381px]:block" />
           <input
             type="search"
             autoFocus
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder={t('search.placeholder')}
-            className="h-10 min-w-0 w-full rounded-bb-input border border-bb-border bg-bb-content px-3 text-bb-base text-bb-heading outline-none focus:border-bb-primary"
+            className="h-11 min-w-0 w-full rounded-bb-input border border-bb-border bg-bb-content px-3 text-bb-base text-bb-heading outline-none focus:border-bb-primary"
           />
           <button
             type="submit"
-            className="inline-flex shrink-0 rounded-bb-btn bg-bb-primary px-3 py-2 text-bb-sm font-medium text-white"
+            className="inline-flex h-11 shrink-0 items-center rounded-bb-btn bg-bb-primary px-3 text-bb-sm font-medium text-white touch-manipulation"
           >
-            {t('nav.search')}
+            <span className="max-[380px]:sr-only">{t('nav.search')}</span>
+            <IconSearch className="h-4 w-4 min-[381px]:hidden" />
           </button>
           <button
             type="button"
             onClick={closeSearch}
-            className="flex h-10 w-10 shrink-0 items-center justify-center text-bb-header-link hover:text-bb-primary"
+            className="flex h-11 w-11 shrink-0 items-center justify-center text-bb-header-link touch-manipulation hover:text-bb-primary"
             aria-label={t('search.close')}
           >
             <IconClose />

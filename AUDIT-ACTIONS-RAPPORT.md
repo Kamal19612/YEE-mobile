@@ -1,116 +1,39 @@
 # Audit actions interactives — AfrEA-YEE
 
-Date : 2026-08-04 · Projet : `Buddyboss-push`
+Date d’origine : 2026-08-04 · Projet d’alors : interface mock `Buddyboss-push`
 
-## Corrections layout (préalable)
+Mise à jour : 2 octobre 2026, revue de code (pas de clic navigateur).
 
-- Marque **AfrEA-YEE** rattachée à la **sidebar** (pastille AY + titre/tagline)
-- Header desktop sans marque ni menu central
-- Sidebar : sections Navigation / Espace perso, footer tagline
-- `overflow-x-hidden` déplacé hors de `#page` (dropdowns plus clipés)
+Le tableau d’août est conservé en annexe. Il ne décrit plus l’application : l’API Spring est branchée, l’auth n’est plus un mock, les forums / la modération / les ressources ne sont plus des parcours.
 
-## Tableaux de suivi
+Référence sécurité : `AUDIT-SECURITE-2026-10-01.txt`.
 
-### Header / Navigation
+## État au 2 octobre 2026
 
-| Action | Handler ? | API ? | Erreur/loading ? | Avant | Correction | Après |
-|---|---|---|---|---|---|---|
-| Dropdown profil ouverture | oui | n/a | n/a | Coupe / clic mort (overflow) | Dropdown `fixed` + stopPropagation | OK |
-| Items profil (profil/réglages) | Link | mock | n/a | Peu fiable | navigate + close | OK |
-| Déconnexion | non | — | — | Lien mort `/` | alert mock + navigate | OK mock |
-| Dropdown messages | Link | mock | — | OK nav | inchangé | OK |
-| Dropdown notifications + mark read | oui local | mock | — | OK local | inchangé | OK local |
-| Recherche header | oui | n/a | — | OK | inchangé | OK |
-| Nav sidebar | NavLink | n/a | — | OK | sections UI | OK |
-| Menu mobile hamburger | oui | n/a | — | OK | inchangé | OK |
+| Zone | Branchement | Écart restant |
+|---|---|---|
+| Login, inscription, verify, reset, logout | API `/auth` + cookie refresh | SMTP dès `SPRING_MAIL_HOST`. Sans hôte : pas d’envoi ; en dev le lien peut encore être dans le JSON |
+| Fil publier, like, commentaire, média | API `/feed` | Fil et fichiers private/secret réservés aux membres. URL publique seulement pour le fil global et les groupes public |
+| Annuaire, profil, follow, réglages | API `/users` | Export de données toujours absent |
+| Groupes créer, rejoindre, invitations | API `/groups` | Roster private/secret réservé aux membres actifs. La fiche private reste un résumé |
+| Institutions / clubs | API `/institutions` | — |
+| Messages | API `/conversations` + SSE | Pièces via `/conversations/{id}/media/{mediaId}`, participant seulement |
+| Notifications | API + SSE | — |
+| Admin comptes | API `/admin` + garde UI | Pas de modération éditoriale. 2FA retirée (V17) |
+| Base | Flyway V1–V19, RLS V15 et V18 | L’exemple se connecte encore en `postgres`, qui contourne le RLS |
+| Débit | Table `rate_limit_buckets` | Commun aux instances. Les tests restent en mémoire |
+| Recherche | Page routée | Le client historique BuddyPress ne couvre pas le contrat Spring |
+| Forums, ressources, modération, shop, cours, jobs, events | Retirés du dépôt | Catch-all `*` vers `/` |
+| Pied de page | `/legal/about|privacy|terms|contact` | Textes provisoires ; rédaction juridique AfrEA à venir |
 
-### Membres / Profils
+## Annexe — relevé du 4 août 2026 (obsolète)
 
-| Action | Handler ? | API ? | Erreur/loading ? | Avant | Correction | Après |
-|---|---|---|---|---|---|---|
-| Carte → profil | Link | mock | loading | OK | — | OK |
-| Onglets profil | NavLink | n/a | — | OK | — | OK |
-| Connecter (profil) | partiel | mock | non | État non mis à jour | `useMember.toggleFriend` | OK |
-| Filtres annuaire | oui | mock | — | OK | — | OK |
-| Settings save | oui | mock toast | oui | OK | — | OK |
-| Request Export | non | — | — | Mort | alert mock | OK mock |
-| Timeline like/comment | partiel | mock | — | status manquant / nest cassé | helpers + status | OK |
+À cette date, presque toutes les actions étaient mock. Points alors ouverts, et ce qu’il en est :
 
-### Fil de récits
+1. Store messages / notifications header ↔ page : le header lit désormais les hooks API (`useMessages`, notifications).
+2. Deep-link récit `#activity-:id` : le fil live est `/feed/:postId`, plus une ancre.
+3. Auth réelle : faite (Spring), plus WordPress JWT.
+4. Upload vers la médiathèque WordPress : remplacé par stockage local ou Supabase.
+5. Join privé en attente : implémenté (`pending` si visibilité `private`).
 
-| Action | Handler ? | API ? | Erreur/loading ? | Avant | Correction | Après |
-|---|---|---|---|---|---|---|
-| Publier / brouillon | oui | mock | submitting | OK | — | OK |
-| Consentement | oui | n/a | erreur UI | OK | — | OK |
-| Media preview | oui | local blob | — | OK | — | OK |
-| Like / comment | oui | mock | — | OK feed | — | OK |
-| Share | partiel | n/a | silencieux | Mort desktop | clipboard fallback | OK |
-| Filtres / Load more | oui | mock | loading | OK | — | OK |
-| Liens auteur | `<a>` | — | — | reload | `Link` | OK |
-
-### Groupes
-
-| Action | Handler ? | API ? | Erreur/loading ? | Avant | Correction | Après |
-|---|---|---|---|---|---|---|
-| Carte → groupe | Link | mock | — | OK | — | OK |
-| Join/Leave | oui | mock | — | OK | — | OK |
-| Créer cohorte | absent | — | — | Manquant | formulaire + `createGroup` | OK |
-| Invite | UI | mock | — | OK | — | OK |
-| Fil groupe actions | partiel | mock | — | status / nest | helpers | OK |
-
-### Forums
-
-| Action | Handler ? | API ? | Erreur/loading ? | Avant | Correction | Après |
-|---|---|---|---|---|---|---|
-| Forum → sujets | Link | mock | — | OK | — | OK |
-| Sujet → réponses | Link | mock | — | OK | — | OK |
-| Répondre / Nouveau sujet | oui | mock | — | OK | — | OK |
-
-### Messages
-
-| Action | Handler ? | API ? | Erreur/loading ? | Avant | Correction | Après |
-|---|---|---|---|---|---|---|
-| Ouvrir thread | Link | mock | — | OK | — | OK |
-| Envoyer | oui | mock | — | OK | — | OK |
-| Nouvelle conversation | absent | — | — | Manquant | compose + `createThread` | OK |
-
-### Notifications
-
-| Action | Handler ? | API ? | Erreur/loading ? | Avant | Correction | Après |
-|---|---|---|---|---|---|---|
-| Clic → navigation | Link | mock | — | OK | — | OK |
-| Mark read / all | oui | mock | — | OK page | — | OK |
-| Sync dropdown↔page | non | — | — | Silo | **reste** (store partagé) | Partiel |
-
-### Modération
-
-| Action | Handler ? | API ? | Erreur/loading ? | Avant | Correction | Après |
-|---|---|---|---|---|---|---|
-| Approuver / Rejeter | oui | mock | actingId | OK | — | OK |
-| Commentaire rejet | oui | mock | required | OK | — | OK |
-
-### Ressources
-
-| Action | Handler ? | API ? | Erreur/loading ? | Avant | Correction | Après |
-|---|---|---|---|---|---|---|
-| Ouvrir | `href="#"` | — | — | Mort | PDF demo + `target=_blank` | OK mock |
-| Filtres | oui | local | — | OK | — | OK |
-
-### Recherche
-
-| Action | Handler ? | API ? | Erreur/loading ? | Avant | Correction | Après |
-|---|---|---|---|---|---|---|
-| Soumettre / onglets / filtres | oui | mock | loading | OK | — | OK |
-| Deep-link récit | vers `/` | — | — | Faible | **reste** | Partiel |
-
-## Reste (backend headless / suite)
-
-1. Store partagé messages/notifications pour sync header ↔ pages
-2. Deep-link vers `#activity-:id` depuis recherche/notifications
-3. Auth réelle (Sign in/up actuellement hors flux logged-in)
-4. Upload média vers WP Media Library
-5. Statut « Request Join » privé réellement pending côté API
-
-## Projet de travail recommandé
-
-`C:\Users\DEV\Documents\apprentissage\Buddyboss-push` (clone Git sain).
+Le chemin Windows `Buddyboss-push` cité en 2026-08-04 n’est plus le projet de travail. Le dépôt servi ici est `/var/www/html/YEE`.

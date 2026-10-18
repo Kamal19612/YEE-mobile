@@ -2,7 +2,12 @@ import { Link } from 'react-router-dom'
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { Avatar } from '../../components/ui/Avatar'
+import { Button } from '../../components/ui/Button'
 import { countryFlagUrl } from './countryFlag'
+
+/** Grille cards moyenne — même rythme que groupes / annuaire. */
+export const INSTITUTION_CARD_GRID =
+  'm-0 grid list-none grid-cols-1 justify-start gap-3 p-0 sm:grid-cols-[repeat(auto-fill,minmax(12.5rem,14rem))]'
 
 /** Couvertures géo — distinctes par institution, sans photo de profil. */
 const COVER_PALETTES = [
@@ -44,7 +49,7 @@ export function institutionLocation(institution, { separator = ' · ' } = {}) {
 }
 
 /**
- * Aperçu club — card transparente carrée : drapeau, logo, nom / pays / membres.
+ * Aperçu institution — card moyenne (même gabarit que groupes / membres).
  */
 export function InstitutionCard({
   institution,
@@ -53,6 +58,7 @@ export function InstitutionCard({
 }) {
   const { t } = useTranslation()
   const loc = institutionLocation(institution, { separator: ', ' })
+  const typeLabel = t(`institutions.type.${institution.type || 'local'}`)
   const membersLabel = t(
     institution.membersCount === 1
       ? 'institutions.membersCount_one'
@@ -66,48 +72,54 @@ export function InstitutionCard({
     : ''
 
   return (
-    <li className={clsx('list-none flex w-full flex-col', className)}>
-      <Link
-        to={`/institutions/${institution.id}`}
-        className="relative flex aspect-square w-full flex-col items-center overflow-hidden rounded-bb border border-bb-border bg-bb-content/40 px-4 pb-5 pt-6 text-center shadow-card outline-none backdrop-blur-md transition-[transform,box-shadow,border-color,background-color] duration-200 ease-bb hover:-translate-y-0.5 hover:border-bb-border hover:bg-bb-content/55 hover:shadow-card-hover focus-visible:ring-2 focus-visible:ring-bb-primary focus-visible:ring-offset-2"
-      >
-        {flagUrl ? (
-          <img
-            src={flagUrl}
-            alt={flagAlt}
-            title={institution.countryName || undefined}
-            width={36}
-            height={24}
-            loading="lazy"
-            decoding="async"
-            className="absolute right-3 top-3 z-10 h-5 w-7 rounded-[2px] object-cover shadow-[0_1px_4px_rgba(18,26,43,0.18)]"
-          />
-        ) : institution.countryName ? (
-          <span
-            className="absolute right-3 top-3 z-10 h-5 w-7 rounded-[2px] bg-bb-alt"
-            title={institution.countryName}
-            aria-label={flagAlt}
-          />
-        ) : null}
-
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-center">
+    <li
+      className={clsx(
+        'list-none w-full overflow-hidden rounded-bb border border-bb-border bg-bb-content text-center shadow-card transition-shadow duration-200 ease-bb hover:shadow-card-hover sm:max-w-[14rem]',
+        className,
+      )}
+    >
+      <div className="flex flex-col items-center px-4 py-5">
+        <Link to={`/institutions/${institution.id}`} className="relative inline-block">
           <Avatar
             name={institution.name || '?'}
             src={logoSrc}
             size="xl"
-            className="h-20 w-20 text-bb-md ring-2 ring-white/80 sm:h-24 sm:w-24"
+            className="ring-2 ring-bb-border/60"
           />
-          <h3 className="m-0 mt-4 line-clamp-2 max-w-full text-bb-md font-bold leading-snug text-bb-heading">
-            {institution.name || t('institutions.clubs.unnamed')}
-          </h3>
-          {loc ? (
-            <p className="m-0 mt-1 line-clamp-1 max-w-full text-bb-sm text-bb-text">{loc}</p>
+          {flagUrl ? (
+            <img
+              src={flagUrl}
+              alt={flagAlt}
+              title={institution.countryName || undefined}
+              width={22}
+              height={15}
+              loading="lazy"
+              decoding="async"
+              className="absolute -bottom-0.5 -right-1 h-3.5 w-5 rounded-[2px] object-cover shadow-[0_1px_3px_rgba(18,26,43,0.2)] ring-1 ring-bb-content"
+            />
           ) : null}
-          <p className="m-0 mt-0.5 text-bb-sm text-bb-text">{membersLabel}</p>
+        </Link>
+        <Link
+          to={`/institutions/${institution.id}`}
+          className="mt-2.5 line-clamp-2 text-bb-sm font-medium text-bb-heading hover:text-bb-primary"
+        >
+          {institution.name || t('institutions.clubs.unnamed')}
+        </Link>
+        <div className="mt-1.5 flex w-full flex-col items-center gap-0.5">
+          {loc ? (
+            <p className="m-0 line-clamp-1 w-full text-bb-xs leading-snug text-bb-text">{loc}</p>
+          ) : null}
+          <p className="m-0 line-clamp-1 text-[11px] text-bb-muted">
+            {[typeLabel, membersLabel].filter(Boolean).join(' · ')}
+          </p>
         </div>
-      </Link>
-
-      {actions ? <div className="mt-2">{actions}</div> : null}
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
+          <Button as={Link} to={`/institutions/${institution.id}`} variant="outline" size="sm">
+            {t('common.visit')}
+          </Button>
+          {actions}
+        </div>
+      </div>
     </li>
   )
 }
@@ -231,5 +243,11 @@ function Stat({ label, value }) {
 }
 
 export function InstitutionCardActions({ children }) {
-  return <div className="flex flex-wrap items-center justify-center gap-2">{children}</div>
+  return <>{children}</>
+}
+
+export function InstitutionCardSkeleton() {
+  return (
+    <li className="list-none h-[16.25rem] w-full animate-pulse rounded-bb border border-bb-border/50 bg-bb-alt sm:max-w-[14rem]" />
+  )
 }

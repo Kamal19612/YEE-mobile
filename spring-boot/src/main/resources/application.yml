@@ -1,0 +1,137 @@
+spring:
+  application:
+    name: yee-api
+  profiles:
+    # prod si la variable d'environnement est absente : pas de SQL en clair,
+    # pas de lien de vérification dans le JSON. Le poste local active dev
+    # via SPRING_PROFILES_ACTIVE (spring-boot/.env.example).
+    default: prod
+  datasource:
+    # Runtime visé : rôle yee_api (pas superuser), créé par V15.
+    # Le premier passage Flyway peut encore utiliser postgres pour créer ce rôle.
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  mvc:
+    async:
+      request-timeout: -1
+  servlet:
+    multipart:
+      # Spring coupe sinon à 1 Mo, avant ImageUploadValidator (5 Mo),
+      # AudioUploadValidator (20 Mo) et DocumentUploadValidator (15 Mo).
+      # Une publication : 4 images, ou 1 audio, ou 1 PDF.
+      max-file-size: 20MB
+      max-request-size: 45MB
+  # JavaMailSender n'est créé que si SPRING_MAIL_HOST est défini.
+  # Ne pas mettre host: '' ici : une chaîne vide activerait quand même le bean.
+  mail:
+    port: ${SPRING_MAIL_PORT:587}
+    username: ${SPRING_MAIL_USERNAME:}
+    password: ${SPRING_MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${SPRING_MAIL_SMTP_AUTH:false}
+          starttls:
+            enable: ${SPRING_MAIL_SMTP_STARTTLS:false}
+            required: ${SPRING_MAIL_SMTP_STARTTLS:false}
+          # Port 465 (SMTPS) : activer via SPRING_MAIL_SMTP_SSL=true
+          ssl:
+            enable: ${SPRING_MAIL_SMTP_SSL:false}
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
+
+server:
+  port: ${SERVER_PORT:8080}
+
+app:
+  allowed-origins: ${APP_ALLOWED_ORIGINS:}
+  frontend-url: ${APP_FRONTEND_URL:}
+  mail:
+    from: ${APP_MAIL_FROM:}
+  jwt:
+    secret: ${APP_JWT_SECRET}
+    issuer: ${APP_JWT_ISSUER:yee-api}
+    access-ttl-seconds: 900
+  cookie:
+    same-site: ${APP_COOKIE_SAMESITE:Lax}
+    secure: ${APP_COOKIE_SECURE:true}
+  storage:
+    provider: ${APP_STORAGE_PROVIDER:local}
+    local-root: ${APP_STORAGE_LOCAL_ROOT:./data/storage}
+    local-public-base-url: ${APP_STORAGE_LOCAL_PUBLIC_BASE_URL:/media}
+    supabase-url: ${SUPABASE_URL:}
+    supabase-service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:}
+  link-preview:
+    blocked-hosts: ${APP_LINK_PREVIEW_BLOCKED_HOSTS:}
+  retention:
+    cron: ${APP_RETENTION_CRON:0 30 3 * * *}
+  dev:
+    expose-email-links: ${APP_DEV_EXPOSE_EMAIL_LINKS:false}
+  # Seules ces adresses peuvent renseigner X-Forwarded-For (Apache local).
+  # Une connexion directe est notée avec l'adresse TCP, même si l'en-tête est présent.
+  trusted-proxies: ${APP_TRUSTED_PROXIES:127.0.0.1,::1}
+  # Web Push (PWA iOS écran d’accueil + Android Chrome). Vide = push désactivé.
+  vapid:
+    public-key: ${APP_VAPID_PUBLIC_KEY:}
+    private-key: ${APP_VAPID_PRIVATE_KEY:}
+    subject: ${APP_VAPID_SUBJECT:mailto:noreply@yee.local}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  jpa:
+    show-sql: true
+
+app:
+  dev:
+    # Le poste de dev n'a pas de SMTP : le lien peut revenir dans le JSON
+    # d'inscription. Ne pas activer ce drapeau sur un serveur exposé.
+    expose-email-links: ${APP_DEV_EXPOSE_EMAIL_LINKS:true}
+
+logging:
+  level:
+    com.afrea.yee: DEBUG
+    org.springframework.security: INFO
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+  jpa:
+    show-sql: false
+  datasource:
+    # Pooling via Supabase PgBouncer (port 6543, transaction mode).
+    # prepareThreshold=0 désactive les prepared statements côté client.
+    hikari:
+      maximum-pool-size: ${APP_DB_POOL_SIZE:10}
+      minimum-idle: ${APP_DB_POOL_MIN_IDLE:2}
+      data-source-properties:
+        prepareThreshold: 0
+
+app:
+  dev:
+    # Prod : jamais de lien verify/reset dans le JSON, même si
+    # APP_DEV_EXPOSE_EMAIL_LINKS est encore à true dans l'environnement.
+    expose-email-links: false
+
+logging:
+  level:
+    com.afrea.yee: INFO
+    org.springframework.security: WARN

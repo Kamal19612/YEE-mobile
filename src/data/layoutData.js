@@ -5,6 +5,8 @@ export const navItemDefs = [
   { id: 'members', href: '/members', labelKey: 'nav.members' },
   { id: 'groups', href: '/groups', labelKey: 'nav.groups' },
   { id: 'institutions', href: '/institutions', labelKey: 'nav.institutions' },
+  { id: 'events', href: '/events', labelKey: 'nav.events' },
+  { id: 'resources', href: '/resources', labelKey: 'nav.resources' },
 ]
 
 export const panelItemDefs = [
@@ -12,21 +14,31 @@ export const panelItemDefs = [
   { id: 'members', href: '/members', icon: 'users', count: 0, labelKey: 'panel.members' },
   { id: 'groups', href: '/groups', icon: 'group', count: 0, labelKey: 'panel.groups' },
   { id: 'institutions', href: '/institutions', icon: 'globe', count: 0, labelKey: 'panel.institutions' },
-  { id: 'notifications', href: '/notifications', icon: 'bell', count: 0, labelKey: 'panel.notifications' },
+  { id: 'events', href: '/events', icon: 'calendar', count: 0, labelKey: 'panel.events' },
+  { id: 'resources', href: '/resources', icon: 'book', count: 0, labelKey: 'panel.resources' },
+  {
+    id: 'admin-accounts',
+    href: '/admin/accounts',
+    icon: 'shield',
+    count: 0,
+    labelKey: 'panel.adminAccounts',
+    adminOnly: true,
+  },
 ]
 
 export const profileMenuDefs = [
   { id: 'profile', href: '/members/me', labelKey: 'profile.profile' },
   { id: 'account', href: '/members/me/profile', labelKey: 'profile.account' },
   { id: 'settings', href: '/members/me/settings', labelKey: 'profile.settings' },
+  { id: 'admin-accounts', href: '/admin/accounts', labelKey: 'profile.adminAccounts', adminOnly: true },
   { id: 'logout', href: '/', labelKey: 'profile.logout' },
 ]
 
 export const footerLinkDefs = [
-  { id: 'about', href: '#', labelKey: 'footer.about' },
-  { id: 'privacy', href: '#', labelKey: 'footer.privacy' },
-  { id: 'terms', href: '#', labelKey: 'footer.terms' },
-  { id: 'contact', href: '#', labelKey: 'footer.contact' },
+  { id: 'about', href: '/legal/about', labelKey: 'footer.about' },
+  { id: 'privacy', href: '/legal/privacy', labelKey: 'footer.privacy' },
+  { id: 'terms', href: '/legal/terms', labelKey: 'footer.terms' },
+  { id: 'contact', href: '/legal/contact', labelKey: 'footer.contact' },
 ]
 
 /** @deprecated Use navItemDefs + i18n */

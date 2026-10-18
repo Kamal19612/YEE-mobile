@@ -14,33 +14,21 @@ export function ActivityActions({
   const { t } = useTranslation()
 
   return (
-    <div className="activity-meta flex items-center gap-1 border-t border-bb-border pt-2">
+    <div className="activity-meta flex items-center gap-0.5 border-t border-bb-border pt-2 sm:gap-1">
       <ActionBtn active={favorited} onClick={onLike} label={t('stories.actions.like')}>
-        <IconLike filled={favorited} className="h-5 w-5" />
-        <span>
-          {favoriteCount > 0
-            ? t(favoriteCount === 1 ? 'stories.actions.likeCount_one' : 'stories.actions.likeCount_other', {
-                count: favoriteCount,
-              })
-            : t('stories.actions.like')}
-        </span>
+        <IconLike filled={favorited} className="h-5 w-5 shrink-0" />
+        {favoriteCount > 0 ? (
+          <span className="tabular-nums">{favoriteCount}</span>
+        ) : null}
       </ActionBtn>
       <ActionBtn active={commentsOpen} onClick={onToggleComments} label={t('stories.actions.comment')}>
-        <IconComment className="h-5 w-5" />
-        <span>
-          {commentCount > 0
-            ? t(
-                commentCount === 1
-                  ? 'stories.actions.commentCount_one'
-                  : 'stories.actions.commentCount_other',
-                { count: commentCount },
-              )
-            : t('stories.actions.comment')}
-        </span>
+        <IconComment className="h-5 w-5 shrink-0" />
+        {commentCount > 0 ? (
+          <span className="tabular-nums">{commentCount}</span>
+        ) : null}
       </ActionBtn>
       <ActionBtn onClick={onShare} label={t('stories.actions.share')}>
-        <IconShare className="h-5 w-5" />
-        <span>{t('stories.actions.share')}</span>
+        <IconShare className="h-5 w-5 shrink-0" />
       </ActionBtn>
     </div>
   )
@@ -51,9 +39,10 @@ function ActionBtn({ children, onClick, active, label }) {
     <button
       type="button"
       aria-label={label}
+      title={label}
       onClick={onClick}
       className={clsx(
-        'inline-flex flex-1 items-center justify-center gap-1.5 rounded-bb-inner px-2 py-2 text-bb-sm font-medium transition-all duration-150 ease-bb',
+        'inline-flex min-w-0 flex-1 items-center justify-center gap-1 rounded-bb-inner px-1.5 py-2.5 text-bb-xs font-medium transition-all duration-150 ease-bb sm:gap-1.5 sm:px-2 sm:text-bb-sm',
         active
           ? 'bg-[rgba(47,91,255,0.08)] text-bb-primary'
           : 'text-bb-text hover:bg-bb-alt hover:text-bb-heading',
@@ -64,26 +53,43 @@ function ActionBtn({ children, onClick, active, label }) {
   )
 }
 
-export function ActivityState({ favoriteCount, commentCount }) {
+export function ActivityState({ favoriteCount, commentCount, onOpenLikers }) {
   const { t } = useTranslation()
   if (!favoriteCount && !commentCount) return null
+  const likesLabel = t(
+    favoriteCount === 1 ? 'stories.actions.likeCount_one' : 'stories.actions.likeCount_other',
+    { count: favoriteCount },
+  )
+  const commentsLabel = t(
+    commentCount === 1
+      ? 'stories.actions.commentCount_one'
+      : 'stories.actions.commentCount_other',
+    { count: commentCount },
+  )
   return (
     <div className="activity-state mb-2 flex items-center gap-3 text-bb-xs text-bb-muted">
-      {favoriteCount > 0 && (
-        <span>
-          {t(favoriteCount === 1 ? 'stories.actions.likeCount_one' : 'stories.actions.likeCount_other', {
-            count: favoriteCount,
-          })}
-        </span>
-      )}
+      {favoriteCount > 0 &&
+        (onOpenLikers ? (
+          <button
+            type="button"
+            className="inline-flex min-h-[32px] items-center gap-1 font-medium hover:text-bb-primary"
+            title={likesLabel}
+            aria-label={likesLabel}
+            onClick={onOpenLikers}
+          >
+            <IconLike filled className="h-3.5 w-3.5" />
+            <span className="tabular-nums">{favoriteCount}</span>
+          </button>
+        ) : (
+          <span className="inline-flex items-center gap-1" title={likesLabel}>
+            <IconLike filled className="h-3.5 w-3.5" />
+            <span className="tabular-nums">{favoriteCount}</span>
+          </span>
+        ))}
       {commentCount > 0 && (
-        <span>
-          {t(
-            commentCount === 1
-              ? 'stories.actions.commentCount_one'
-              : 'stories.actions.commentCount_other',
-            { count: commentCount },
-          )}
+        <span className="inline-flex items-center gap-1" title={commentsLabel} aria-label={commentsLabel}>
+          <IconComment className="h-3.5 w-3.5" />
+          <span className="tabular-nums">{commentCount}</span>
         </span>
       )}
     </div>

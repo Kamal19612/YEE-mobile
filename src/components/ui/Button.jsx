@@ -11,9 +11,9 @@ const variants = {
 }
 
 const sizes = {
-  sm: 'px-3 py-1.5 text-bb-sm',
-  md: 'px-4 py-2 text-bb-base',
-  lg: 'px-5 py-2.5 text-bb-md',
+  sm: 'min-h-10 px-3 py-1.5 text-bb-sm',
+  md: 'min-h-10 px-4 py-2 text-bb-base',
+  lg: 'min-h-11 px-5 py-2.5 text-bb-md',
 }
 
 export function Button({

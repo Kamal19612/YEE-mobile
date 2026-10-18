@@ -4,18 +4,30 @@ import {
   fetchUnreadCount,
   markAllNotificationsRead as apiMarkAllRead,
   markNotificationRead as apiMarkRead,
+  openNotificationStream,
 } from '../api/notifications'
+import { applyMessageUnread } from './useMessages'
+import { publishMessageRealtime } from '../lib/messageRealtime'
+import { invalidate, QueryKeys, subscribe } from '../lib/queryEvents'
+import { presentMessageToast, presentNotificationToast, ensureNotificationPermission } from '../lib/presentLiveToast'
+import { platformAllowsPush } from '../lib/pwaInstall'
+import { enableWebPush, wasPushEnabledLocally } from '../lib/webPush'
 import { useAuth } from './useAuth'
 
-const POLL_MS = 30_000
+/** Poll de secours (SSE prioritaire). Court pour rester « quasi instantané » si le flux coupe. */
+const POLL_MS = 4_000
 const DEFAULT_PER_PAGE = 20
 
-/** Compteur non-lu partagé (un seul poll pour toute l’app). */
+/** Compteur non-lu partagé (un seul poll + un flux SSE pour toute l’app). */
 const unreadListeners = new Set()
 const listReloadListeners = new Set()
 let sharedUnread = 0
 let pollTimer = null
 let pollAlive = false
+let streamAbort = null
+let streamLoop = 0
+let unreadHookMounts = 0
+let visibilityBound = false
 
 function publishUnread(count) {
   const next = Math.max(0, Number(count) || 0)
@@ -69,6 +81,12 @@ function ensurePolling(intervalMs = POLL_MS) {
   pollAlive = true
   pollTick()
   pollTimer = setInterval(pollTick, intervalMs)
+  if (typeof document !== 'undefined' && !visibilityBound) {
+    visibilityBound = true
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && pollAlive) pollTick()
+    })
+  }
 }
 
 function stopPolling() {
@@ -77,11 +95,133 @@ function stopPolling() {
     clearInterval(pollTimer)
     pollTimer = null
   }
-  publishUnread(0)
+}
+
+function stopStream() {
+  if (streamAbort) {
+    streamAbort.abort()
+    streamAbort = null
+  }
+  streamLoop += 1
+}
+
+function ensureStream() {
+  if (streamAbort) return
+  const ac = new AbortController()
+  streamAbort = ac
+  const generation = streamLoop
+
+  const run = async () => {
+    let delay = 1000
+    while (streamAbort === ac && !ac.signal.aborted && generation === streamLoop) {
+      try {
+        await openNotificationStream({
+          signal: ac.signal,
+          onEvent: (payload) => {
+            if (!payload || typeof payload !== 'object') return
+            if (payload.type === 'sync' && payload.area) {
+              if (payload.area === 'feed') invalidate(QueryKeys.feed, { reason: 'sync' })
+              if (payload.area === 'groups') {
+                invalidate(QueryKeys.groups, { reason: 'sync' })
+                invalidate(QueryKeys.groupMembers, { reason: 'sync' })
+              }
+              if (payload.area === 'members') invalidate(QueryKeys.members, { reason: 'sync' })
+              if (payload.area === 'institutions') {
+                invalidate(QueryKeys.institutions, { reason: 'sync' })
+                invalidate(QueryKeys.institutionMembers, { reason: 'sync' })
+              }
+              if (payload.area === 'resources') invalidate(QueryKeys.resources, { reason: 'sync' })
+              if (payload.area === 'events') invalidate(QueryKeys.events, { reason: 'sync' })
+              return
+            }
+            if (payload.type === 'feed.post_deleted' && payload.postId) {
+              const detail = {
+                reason: 'deletePost',
+                postId: payload.postId,
+                groupId: payload.groupId,
+                authorId: payload.authorId,
+              }
+              invalidate(QueryKeys.feed, detail)
+              invalidate(QueryKeys.members, detail)
+              return
+            }
+            if (payload.type === 'feed.account_deleted' && payload.authorId) {
+              const detail = {
+                reason: 'deleteAccount',
+                authorId: payload.authorId,
+              }
+              invalidate(QueryKeys.feed, detail)
+              invalidate(QueryKeys.members, detail)
+              return
+            }
+            if (payload.type === 'groups.deleted' && payload.groupId) {
+              const detail = {
+                reason: 'deleteGroup',
+                groupId: payload.groupId,
+              }
+              invalidate(QueryKeys.groups, detail)
+              invalidate(QueryKeys.groupMembers, detail)
+              invalidate(QueryKeys.feed, detail)
+              return
+            }
+            if (payload.type === 'institutions.deleted' && payload.institutionId) {
+              const detail = {
+                reason: 'deleteInstitution',
+                institutionId: payload.institutionId,
+              }
+              invalidate(QueryKeys.institutions, detail)
+              invalidate(QueryKeys.institutionMembers, detail)
+              invalidate(QueryKeys.members, detail)
+              return
+            }
+            if (
+              payload.type === 'message.created' ||
+              payload.type === 'message.read' ||
+              payload.type === 'message.typing' ||
+              payload.type === 'message.deleted'
+            ) {
+              publishMessageRealtime(payload)
+              if (payload.type === 'message.created') {
+                if (typeof payload.unreadCount === 'number') applyMessageUnread(payload.unreadCount)
+                invalidate(QueryKeys.messages, { reason: 'message.created', conversationId: payload.conversationId })
+                presentMessageToast(payload)
+              }
+              return
+            }
+            if (payload.type === 'notification.created' && typeof payload.unreadCount === 'number') {
+              publishUnread(payload.unreadCount)
+              requestNotificationsReload()
+              presentNotificationToast(payload)
+              return
+            }
+            if (payload.type === 'notification.created') {
+              pollTick()
+              requestNotificationsReload()
+              presentNotificationToast(payload)
+            }
+          },
+        })
+        // Stream fermé proprement → reconnect rapide
+        delay = 1000
+      } catch (err) {
+        if (ac.signal.aborted || generation !== streamLoop) return
+        await new Promise((r) => setTimeout(r, delay))
+        delay = Math.min(15_000, delay * 2)
+      }
+    }
+  }
+
+  run()
+}
+
+function stopRealtime({ clearBadge = false } = {}) {
+  stopStream()
+  stopPolling()
+  if (clearBadge) publishUnread(0)
 }
 
 /**
- * Badge non-lu — poll ~30s unique tant qu’au moins un hook est monté + user connecté.
+ * Badge non-lu — SSE temps réel + poll de secours tant qu’un hook est monté.
  */
 export function useUnreadCount({ intervalMs = POLL_MS } = {}) {
   const { isAuthenticated, isBootstrapping } = useAuth()
@@ -97,12 +237,21 @@ export function useUnreadCount({ intervalMs = POLL_MS } = {}) {
   useEffect(() => {
     if (isBootstrapping) return undefined
     if (!isAuthenticated) {
-      stopPolling()
+      stopRealtime({ clearBadge: true })
       return undefined
     }
+    unreadHookMounts += 1
     ensurePolling(intervalMs)
+    ensureStream()
+    // Soft ask — les navigateurs peuvent ignorer hors geste utilisateur.
+    ensureNotificationPermission().catch(() => {})
+    // Renouveler l’abonnement push si déjà activé (geste préalable).
+    if (wasPushEnabledLocally() && platformAllowsPush()) {
+      enableWebPush().catch(() => {})
+    }
     return () => {
-      if (unreadListeners.size === 0) stopPolling()
+      unreadHookMounts = Math.max(0, unreadHookMounts - 1)
+      if (unreadHookMounts === 0) stopRealtime({ clearBadge: false })
     }
   }, [isAuthenticated, isBootstrapping, intervalMs])
 
@@ -115,6 +264,14 @@ export function useUnreadCount({ intervalMs = POLL_MS } = {}) {
     publishUnread(n)
     return n
   }, [isAuthenticated])
+
+  // Mutations sociales (like, comment, follow…) → rafraîchir le badge en silence
+  useEffect(() => {
+    if (!isAuthenticated || isBootstrapping) return undefined
+    return subscribe(QueryKeys.notifications, () => {
+      refresh().catch(() => {})
+    })
+  }, [isAuthenticated, isBootstrapping, refresh])
 
   return { count, unreadCount: count, refresh }
 }
@@ -135,7 +292,7 @@ export function useNotificationsList({
   const [error, setError] = useState(null)
   const reloadRef = useRef(null)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async ({ silent = false } = {}) => {
     if (isBootstrapping) return
     if (!enabled || !isAuthenticated) {
       setItems([])
@@ -143,17 +300,20 @@ export function useNotificationsList({
       setError(null)
       return
     }
-    setLoading(true)
-    setError(null)
+    if (!silent) setLoading(true)
+    if (!silent) setError(null)
     try {
       const result = await fetchNotifications({ unreadOnly, page, perPage })
       setItems(result.notifications)
       setMeta(result.meta)
+      if (silent) setError(null)
     } catch (err) {
+      if (silent) return
       setItems([])
       setError(err.message || 'Impossible de charger les notifications')
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
+      else setLoading(false)
     }
   }, [enabled, isAuthenticated, isBootstrapping, unreadOnly, page, perPage])
 
@@ -166,19 +326,35 @@ export function useNotificationsList({
   // Rechargement quand le badge change (poll) ou sur demande (ouverture dropdown).
   useEffect(() => {
     const onReload = () => {
-      reloadRef.current?.()
+      reloadRef.current?.({ silent: true })
     }
     listReloadListeners.add(onReload)
     return () => listReloadListeners.delete(onReload)
   }, [])
 
+  // Invalidations croisées (queryEvents) → liste sans spinner
+  useEffect(() => {
+    return subscribe(QueryKeys.notifications, () => {
+      reloadRef.current?.({ silent: true })
+    })
+  }, [])
+
   // Rechargement au retour sur l’onglet.
   useEffect(() => {
     const onFocus = () => {
-      if (isAuthenticated && !isBootstrapping) reloadRef.current?.()
+      if (isAuthenticated && !isBootstrapping) reloadRef.current?.({ silent: true })
+    }
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible' && isAuthenticated && !isBootstrapping) {
+        reloadRef.current?.({ silent: true })
+      }
     }
     window.addEventListener('focus', onFocus)
-    return () => window.removeEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
   }, [isAuthenticated, isBootstrapping])
 
   const markRead = useCallback(async (id) => {

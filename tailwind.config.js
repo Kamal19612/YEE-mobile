@@ -115,6 +115,15 @@ export default {
       transitionTimingFunction: {
         bb: 'cubic-bezier(0.22, 1, 0.36, 1)',
       },
+      keyframes: {
+        feedNewPulse: {
+          '0%, 100%': { opacity: '1', boxShadow: '0 4px 14px rgba(47, 91, 255, 0.35)' },
+          '50%': { opacity: '0.88', boxShadow: '0 4px 22px rgba(47, 91, 255, 0.55)' },
+        },
+      },
+      animation: {
+        feedNewPulse: 'feedNewPulse 1.4s ease-in-out infinite',
+      },
     },
   },
   plugins: [],

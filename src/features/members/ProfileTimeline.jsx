@@ -2,8 +2,10 @@ import { useTranslation } from 'react-i18next'
 import { useFeed } from '../../hooks/useFeed'
 import { Button } from '../../components/ui/Button'
 import { FeedComposer } from '../activity/FeedComposer'
+import { FeedNewActivityHandler } from '../activity/FeedNewActivityHandler'
 import { FeedPostCard } from '../activity/FeedPostCard'
 import { ActivityPlaceholder } from '../activity/ActivityPlaceholder'
+import { scrollFeedToTop } from '../activity/scrollFeedToTop'
 
 /** Timeline profil — même App API `/feed` filtrée par `authorId`. */
 export function ProfileTimeline({ member, isOwn }) {
@@ -21,11 +23,29 @@ export function ProfileTimeline({ member, isOwn }) {
     loadComments,
     addComment,
     removeComment,
+    pendingNewCount,
+    refreshingPending,
+    applyPendingRefresh,
+    dismissPending,
+    resetNewActivityBanner,
   } = useFeed({ perPage: 10, authorId: member?.id })
 
+  const handleCreatePost = async (payload) => {
+    const created = await createPost(payload)
+    scrollFeedToTop()
+    return created
+  }
+
   return (
-    <div>
-      {isOwn && <FeedComposer onSubmit={createPost} />}
+    <div id="profile-activity-stream">
+      <FeedNewActivityHandler
+        pendingNewCount={pendingNewCount}
+        refreshingPending={refreshingPending}
+        applyPendingRefresh={applyPendingRefresh}
+        dismissPending={dismissPending}
+        resetNewActivityBanner={resetNewActivityBanner}
+      />
+      {isOwn && <FeedComposer onSubmit={handleCreatePost} />}
 
       {loading && (
         <>

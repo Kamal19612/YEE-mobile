@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { ClubsSection } from './ClubsSection'
 
-/** Page Institutions — liste des clubs uniquement. */
+/** Page Institutions — liste des clubs. */
 export function InstitutionsPage() {
   const { t } = useTranslation()
 

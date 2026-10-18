@@ -5,7 +5,7 @@ import clsx from 'clsx'
 import { navItemDefs } from '../data/layoutData'
 import { IconEllipsis } from '../components/icons'
 
-const PRIMARY_COUNT = 4
+const PRIMARY_COUNT = 5
 
 export function SiteNavigation({ items = navItemDefs }) {
   const { t } = useTranslation()

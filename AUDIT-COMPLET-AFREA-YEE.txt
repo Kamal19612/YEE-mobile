@@ -1,0 +1,1151 @@
+================================================================================
+AUDIT COMPLET — PLATEFORME AFREA-YEE
+================================================================================
+
+Projet          : AfrEA-YEE (nom npm interne : buddyboss)
+Objet           : plateforme de narration et d’échange entre Jeunes Évaluateurs
+                  Émergents (YEE) de l’African Evaluation Association (AfrEA)
+Date de l’audit : 12 août 2026
+Mise à jour     : 2 octobre 2026
+Source          : lecture du code frontend React, de l’API Spring Boot, des
+                  migrations SQL, des scripts de stack et des rapports existants
+Périmètre       : fonctionnement réel du dépôt, pas le cahier des charges seul
+Lancement visé  : 12e Conférence AfrEA, Maroc, novembre 2026 (TDR juillet 2026)
+
+MISE À JOUR 2 OCTOBRE 2026
+  La revue de sécurité (AUDIT-SECURITE-2026-10-01.txt) a été révisée.
+  Elle ne remplace pas la description produit des sections 1 à 7.
+  Par rapport au 1er octobre, le code a fermé :
+    - la lecture du fil private/secret sans adhésion (GroupFeedAccess) ;
+    - les URL publiques des pièces de messages (ChatMediaService) ;
+    - le profil Spring dev par défaut, les jetons d’e-mail dans les logs,
+      le refresh sans Origin, le filet permitAll.
+  Migrations V15 à V17 : RLS forcé, rôle yee_api, table 2FA retirée.
+  SMTP est branché dans le code (actif si SPRING_MAIL_HOST est défini).
+  Reste bloquant sur l’instance : JDBC d’exemple encore en postgres
+  (contourne le RLS), et SMTP réel à renseigner pour l’onboarding.
+  Seconde passe du 2 octobre : les six constats moyens sont fermés
+  (médias de groupe, roster, débit en base, WebP, CI, mots de passe).
+  Passe des faibles (4 octobre) : héritage BuddyBoss retiré, HTML
+  refiltré à la lecture, search_path PostgREST sans public, pages
+  légales provisoires au pied de page.
+  L’audit d’actions d’août (mock) et le rapport WordPress ne décrivent
+  plus le branchement actuel. Voir leurs bandeaux.
+
+Ce document est volontairement sectionné. Chaque partie peut se lire seule, mais
+l’ordre proposé va du « comment ça marche » vers « où on en est », puis
+« quoi ajouter » et « à quoi ça peut servir aujourd’hui ».
+
+
+--------------------------------------------------------------------------------
+SOMMAIRE
+--------------------------------------------------------------------------------
+
+  1.  Objet, méthode et précautions de lecture
+  2.  Identité du produit et intention métier
+  3.  Architecture technique (vue d’ensemble)
+  4.  Logique de fonctionnement
+      4.1  Flux utilisateur global
+      4.2  Authentification et session
+      4.3  Identité, profils, annuaire, suivi
+      4.4  Fil d’actualité (cœur du produit)
+      4.5  Groupes / cohortes
+      4.6  Institutions (continent → pays → club)
+      4.7  Messagerie
+      4.8  Notifications et temps réel
+      4.9  Administration de comptes
+      4.10 Médias, stockage, e-mails
+      4.11 Sécurité transverse
+      4.12 Interface : navigation, i18n, PWA
+  5.  État actuel
+      5.1  Maturité par module
+      5.2  Ce qui est réellement opérationnel
+      5.3  Ce qui est partiel, trompeur ou mort
+      5.4  Écarts par rapport au TDR
+      5.5  Déploiement et conditions d’exécution
+  6.  Fonctions à intégrer pour améliorer
+      6.1  Priorité haute (lancement / conformité TDR)
+      6.2  Priorité moyenne (qualité produit)
+      6.3  Priorité plus tard (phase 2)
+  7.  Possibilités d’usage
+      7.1  Usages possibles dès maintenant
+      7.2  Usages conditionnels
+      7.3  Usages non encore possibles
+      7.4  Scénarios par persona
+  8.  Risques et limites
+  9.  Feuille de route recommandée
+ 10.  Annexes (stack, endpoints, fichiers clés)
+
+
+================================================================================
+1. OBJET, MÉTHODE ET PRÉCAUTIONS DE LECTURE
+================================================================================
+
+Cet audit décrit le système tel qu’il est implémenté dans le dépôt, pas tel
+qu’il a été imaginé au départ.
+
+Le projet a changé de socle en cours de route :
+  - intention initiale : reconstruire une UI BuddyBoss (WordPress / BuddyPress)
+    en React, branchée sur une API WordPress headless ;
+  - état actuel : React + Vite + Tailwind, API Spring Boot, Postgres via
+    Supabase local, stockage fichiers local ou Supabase.
+
+Conséquence : une partie du code frontend (forums, boutique, cours, jobs,
+composeur « récits TDR ») est un héritage visuel ou un prototype. Le fil
+d’actualité réellement branché n’est pas ce composeur-là.
+
+Méthode :
+  - lecture des routes React (src/App.jsx) et du contrat API (src/config/api.js) ;
+  - lecture des contrôleurs / services Spring (spring-boot/src/main/java) ;
+  - lecture des migrations Flyway (V1 à V19) ;
+  - recoupement avec le prompt TDR (prompt-reconstruction-buddyboss-react.md)
+    et les rapports AUDIT-ACTIONS-RAPPORT.md / LAYOUT-UX-RAPPORT.md.
+
+Ce que cet audit n’est pas :
+  - un audit de sécurité offensif (pas de pentest) ;
+  - une recette utilisateur complète en conditions de production ;
+  - une validation juridique RGPD / consentement éditorial.
+
+
+================================================================================
+2. IDENTITÉ DU PRODUIT ET INTENTION MÉTIER
+================================================================================
+
+AfrEA-YEE vise un réseau professionnel de jeunes évaluateurs, pas un réseau
+social généraliste. Les usages attendus par le TDR sont :
+
+  - publier des récits d’expérience d’évaluation (texte, image, audio, vidéo) ;
+  - échanger entre pairs (groupes / cohortes, messages, forums) ;
+  - servir de vitrine de plaidoyer pour l’AfrEA ;
+  - fonctionner malgré une connectivité intermittente (Afrique, terrain) ;
+  - rester bilingue (au minimum FR / EN) ;
+  - encadrer la publication (consentement, anonymisation, modération avant
+    mise en ligne).
+
+Le code actuel a recentré le périmètre « TDR juillet 2026 » sur :
+
+  INCLUS (routes actives, derrière connexion)
+    Fil d’actualité, membres, groupes, institutions, notifications, messages,
+    recherche (UI), administration des comptes.
+
+  EXCLUS (routes redirigées vers l’accueil)
+    Forums, ressources, modération pré-publication, boutique, cours, événements,
+    offres d’emploi, adhésions payantes.
+
+Ce recentrage est explicite dans src/App.jsx. Il ne signifie pas que le TDR
+a abandonné forums / ressources / modération : ces modules sont simplement
+hors du socle livré aujourd’hui.
+
+
+================================================================================
+3. ARCHITECTURE TECHNIQUE (VUE D’ENSEMBLE)
+================================================================================
+
+Trois processus en développement local :
+
+  1) Supabase local
+       Postgres     : port 15422
+       API Gateway  : port 15421
+       Studio       : http://127.0.0.1:15423
+
+  2) API Spring Boot (yee-api)
+       Port         : 8080
+       ORM          : JPA / Hibernate (ddl-auto=validate)
+       Schéma       : Flyway (classpath:db/migration)
+       Auth         : JWT access (15 min) + refresh cookie httpOnly
+
+  3) Frontend Vite / React 19
+       Port         : 5173
+       Proxy        : /auth /users /feed /groups /institutions
+                      /notifications /conversations /media /admin
+                      → http://localhost:8080
+       Particularité : le proxy réécrit les cookies refresh (retire Secure /
+                      Domain, SameSite=Lax) pour que la session marche en HTTP
+                      local. Il distingue aussi navigation HTML (SPA) et
+                      appels JSON (API), pour éviter d’afficher du JSON à la
+                      place de React.
+
+Démarrage prévu :
+  npm run supabase:start
+  npm run stack:start          (scripts/start-stack.ps1)
+  npm run stack:stop
+
+Contrat JSON unique côté client :
+  succès  : { success: true,  data, meta? }
+  erreur  : { success: false, error: { code, message, details? } }
+
+Le token d’accès vit en mémoire JS uniquement (anti-XSS). Le refresh vit dans
+un cookie httpOnly. Un 401 déclenche une seule rotation /auth/refresh, puis
+rejoue la requête ; si le refresh échoue, l’utilisateur est renvoyé au login.
+
+Stockage fichiers :
+  - local  : ./data/storage, servi sous /media
+  - prod   : APP_STORAGE_PROVIDER=supabase + clé service role
+
+GitHub Pages (https://kamal19612.github.io/YEE/) ne déploie que le frontend
+statique, avec VITE_API_URL vide. Sans API distante, ce site n’est pas un
+environnement d’usage réel.
+
+
+================================================================================
+4. LOGIQUE DE FONCTIONNEMENT
+================================================================================
+
+Cette section décrit le comportement réel, module par module.
+
+
+--------------------------------------------------------------------------------
+4.1  Flux utilisateur global
+--------------------------------------------------------------------------------
+
+Invité
+  Pages d’auth seules, sans shell (login, inscription, vérification e-mail,
+  mot de passe oublié, réinitialisation). Toute autre URL protégée redirige
+  vers /login.
+
+Au chargement (F5)
+  L’access token mémoire a disparu. AuthProvider appelle restoreSession()
+  (cookie refresh) puis enrichit le profil. Pendant ce bootstrap, un écran
+  « chargement » s’affiche, sans chrome de l’app.
+
+Connecté
+  ProtectedLayout monte LayoutProvider + AppShell :
+    - sidebar BuddyPanel (Actualités, Membres, Groupes, Institutions,
+      Comptes admin si site admin) ;
+    - header (recherche, messages, notifications, menu profil, langue, thème) ;
+    - bandeau hors-ligne ;
+    - contenu de page ;
+    - footer (sauf messagerie, mode immersif).
+
+Rôles applicatifs
+  - membre standard (compte vérifié) ;
+  - référent d’institution (droits en cascade sur le nœud et ses enfants) ;
+  - administrateur de groupe / modérateur de groupe ;
+  - site admin (is_site_admin) : accès /admin/**, création de continents,
+    contournement de plusieurs gardes.
+
+Il n’existe pas de rôle « YEE sélectionné » ni « Secrétariat AfrEA » au sens
+du TDR : le site admin est le seul rôle global.
+
+
+--------------------------------------------------------------------------------
+4.2  Authentification et session
+--------------------------------------------------------------------------------
+
+Inscription  POST /auth/register
+  Corps : email, password, displayName.
+  Politique mot de passe : ≥ 10 caractères, ≤ 256, liste noire simple
+  (password, azertyuiop, 1234567890, motdepasse).
+  Si l’e-mail existe déjà : réponse 202 générique (pas d’énumération).
+  Si créé : 201, compte inactif tant que l’e-mail n’est pas vérifié.
+  En profil dev, l’URL de vérification peut être renvoyée dans la réponse
+  (APP_DEV_EXPOSE_EMAIL_LINKS).
+
+Vérification  POST /auth/verify-email  { token }
+Connexion     POST /auth/login         { email, password }
+  Émet un JWT d’accès + pose le cookie refresh.
+  Rate limit par IP (RateLimiter).
+
+Refresh       POST /auth/refresh
+  Cookie only. Contrôle d’origine (APP_ALLOWED_ORIGINS).
+  Rotation du refresh : l’ancien est invalidé. Les tests couvrent ce point
+  (RefreshTokenRotationTest, AuthRefreshRotationIT).
+
+Logout        POST /auth/logout
+  Révoque le refresh, efface le cookie.
+
+Mot de passe oublié / reset
+  Messages génériques (anti-énumération). Lien loggé, pas d’envoi SMTP réel
+  (voir 4.10).
+
+Session courante  GET /auth/me
+
+Conséquence métier : on ne peut pas « juste créer un compte et publier ».
+Le parcours est inscription → mail (ou lien dev) → login → app.
+
+
+--------------------------------------------------------------------------------
+4.3  Identité, profils, annuaire, suivi
+--------------------------------------------------------------------------------
+
+Profil public  GET /users/{id}
+  displayName, mentionName, bio, profession, organization, location,
+  liens sociaux, avatar, cover, compteurs (followers, following, posts).
+
+Profil soi     GET/PATCH /users/me
+  Changement mot de passe, avatar, cover, suppression de compte
+  (mot de passe requis), invitations de groupes reçues.
+
+Annuaire       GET /users
+  Recherche texte + filtre institutionId + pagination.
+  L’UI (MembersFilters) propose grille/liste et un sélecteur d’institution
+  en cascade jusqu’au pays.
+
+Recherche users (messagerie / invitations)
+  GET /users/search?q=  — authentifié.
+
+Suivi (follow) — remplace l’ancien onglet « amis » BuddyPress
+  POST/DELETE /users/{id}/follow
+  GET /users/{id}/followers  et  /following
+  Un follow déclenche une notification new_follower (sauf auto-skip).
+
+Réglages exposés
+  whoCanMessage : everyone | friends | nobody  (contrôle l’ouverture d’un DM)
+  emailPrefMessages : booléen (mail de nouveau message — aujourd’hui loggé)
+  whoCanSee / prefs « activité » / « amis » : UI présente, pas un vrai modèle
+  de visibilité de profil (les GET publics restent ouverts).
+
+Champs TDR manquants dans le modèle User
+  pays, région, langue, thématique d’évaluation : pas de colonnes dédiées.
+  L’affiliation institutionnelle (pays / club) est le seul ancrage géographique
+  structuré.
+
+
+--------------------------------------------------------------------------------
+4.4  Fil d’actualité (cœur du produit)
+--------------------------------------------------------------------------------
+
+C’est le module réellement branché. L’UI utilise FeedComposer + FeedPostCard
+via le hook useFeed, pas ActivityComposer.
+
+Lecture
+  GET /feed?before=&perPage=&authorId=&groupId=
+  - fil global : posts sans groupId (jamais de fuite de posts de groupe) ;
+  - fil groupe : uniquement si groupId est fourni ;
+  - fil auteur : authorId ;
+  - pagination curseur (id) ;
+  - lecture possible sans être connecté côté API (GET permitAll), mais le
+    frontend n’expose le fil qu’après login.
+
+Création
+  POST /feed  JSON (texte seul) ou multipart (texte + images XOR audio).
+  Règles :
+    - HTML sanitizé (HtmlContentSanitizer) ;
+    - images : JPEG/PNG/WebP, 5 Mo, 4 max ;
+    - audio : validé séparément, pas mélangeable avec des images ;
+    - pas de vidéo ;
+    - publication immédiate (pas de brouillon, pas de file de modération) ;
+    - rate limit : 30 posts / heure / utilisateur.
+
+Détail / suppression
+  GET /feed/{id}
+  DELETE /feed/{id}  — soft delete (deleted_at). Un événement PostDeletedEvent
+  est diffusé en SSE pour retirer la carte chez les autres clients.
+
+Réactions
+  like / unlike, liste des likers paginée.
+  PostLikedEvent → notification post_like à l’auteur.
+
+Commentaires
+  liste paginée, création avec parentId (réponses), soft delete.
+  PostCommentedEvent / CommentRepliedEvent → notifications.
+
+Aperçu de lien
+  GET /feed/link-preview?url=  (authentifié, rate limité, protection SSRF
+  testée : LinkPreviewSsrfTest).
+
+Rafraîchissement « nouvelles publications »
+  bandeau FeedNewActivityBanner : le client détecte de l’activité récente
+  et propose de recharger en haut du fil.
+
+Ce que le composeur TDR (ActivityComposer) savait faire, mais n’est plus
+branché : titre, tags pays/thématique/langue, case consentement, option
+anonyme, statuts brouillon / en modération / publié, file hors-ligne,
+bouton vidéo. Ce fichier existe encore, orphelin.
+
+
+--------------------------------------------------------------------------------
+4.5  Groupes / cohortes
+--------------------------------------------------------------------------------
+
+Modèle
+  visibilité : public | private | secret
+  membres    : status active | pending | invited | banned
+  rôles      : member | moderator | admin
+
+Droits (GroupPermissions — source unique)
+  - secret : invisible sauf membre (non banni) ou site admin ;
+  - publier dans le groupe : membre active, ou site admin ;
+  - gérer adhésions : admin/modérateur du groupe, ou site admin ;
+  - changer les rôles : admin du groupe, ou site admin.
+
+Cycle de vie
+  créer, lister (search, mine, userId), lire, patcher, supprimer (soft) ;
+  join (public → active ; private → pending) ;
+  leave ;
+  inviter, répondre à une invitation ;
+  approuver / rejeter une demande ;
+  exclure ; changer le rôle.
+
+Création côté UI
+  réservée au site admin OU à un référent d’institution (au moins une
+  institution gérée). Un membre lambda ne crée pas de cohorte.
+
+Fil du groupe
+  les posts groupId passent par la même API /feed, avec garde canPost.
+
+Conversation de groupe
+  GET /conversations/group/{groupId} crée ou récupère le fil collectif
+  des membres actifs.
+
+Événements → notifications
+  invitation, demande d’adhésion (vers mods/admins), résolution
+  (approuvé / rejeté), suppression (broadcast SSE feed).
+
+
+--------------------------------------------------------------------------------
+4.6  Institutions (continent → pays → club)
+--------------------------------------------------------------------------------
+
+Arbre à 3 niveaux, contraint en SQL :
+  type IN ('continent', 'country', 'local')
+  parent_id optionnel.
+
+Logique métier
+  - seul un site admin crée un continent ;
+  - un référent (direct ou ancêtre, « cascade ») gère le nœud et peut
+    créer un enfant ;
+  - affiliation utilisateur : pending → active | rejected ;
+  - les référents d’un nœud et de ses ancêtres reçoivent les demandes
+    d’affiliation (findCascadeReferentUserIds).
+
+API
+  CRUD institutions, demande / retrait d’affiliation, liste des affiliés,
+  approbation / rejet, ajout / retrait de référents, exclusion d’un membre.
+
+UI
+  InstitutionsPage affiche surtout les clubs (ClubsSection).
+  InstitutionCascadePicker sert de filtre géographique (annuaire membres).
+  Page institution : fiche, affiliations, panneau référent.
+
+C’est le module le plus « métier AfrEA » du socle : il ancre les YEE dans
+une géographie associative (clubs nationaux / locaux), distincte des
+groupes thématiques.
+
+
+--------------------------------------------------------------------------------
+4.7  Messagerie
+--------------------------------------------------------------------------------
+
+Types
+  - DM 1-à-1 : POST /conversations { userId } — get-or-create ;
+  - conversation de groupe : voir 4.5.
+
+Garde whoCanMessage (ConversationPermissions)
+  everyone / friends (follow mutuel ou unilatéral selon FollowService) /
+  nobody. Un site admin n’est pas forcément exempté de cette préférence
+  (la garde est côté destinataire).
+
+Fonctions
+  inbox paginée, unread-count, recherche dans conversations + messages,
+  historique de messages, envoi texte ou multipart (images XOR audio,
+  mêmes contraintes que le feed), marquer lu, signal typing.
+
+Temps réel
+  MessageSentEvent / MessageReadEvent → hub SSE, canal "message".
+  Le frontend relaie via messageRealtime.js (bus in-memory) pour mettre
+  à jour inbox, badges et fil ouvert sans recharger la page.
+  Option e-mail « nouveau message » si emailPrefMessages (aujourd’hui
+  un log, pas un SMTP).
+
+Rate limits
+  120 messages / heure ; typing 30 / minute.
+
+Rétention
+  DataRetentionJob peut purger les messages de plus de 730 jours.
+
+Admin
+  un site admin peut lister / supprimer les conversations d’un compte
+  (AdminConversationController).
+
+
+--------------------------------------------------------------------------------
+4.8  Notifications et temps réel
+--------------------------------------------------------------------------------
+
+Stockage inbox
+  types observés dans NotificationEventListener :
+    new_follower
+    group_invitation, group_join_request,
+    group_request_approved, group_request_rejected
+    institution_affiliation_request,
+    institution_affiliation_approved, institution_affiliation_rejected
+    post_like, post_comment, comment_reply
+
+Les messages privés ne créent plus de ligne inbox (migration V14) : ils
+passent uniquement par le canal SSE "message" + badge unread conversations.
+
+API
+  GET /notifications  (unreadOnly, page, perPage)
+  GET /notifications/unread-count
+  POST /notifications/{id}/read
+  POST /notifications/read-all
+  GET /notifications/stream  (SSE, SseEmitter)
+
+Frontend
+  un flux SSE partagé + poll de secours toutes les 4 s si le flux coupe.
+  Compteur non-lu partagé entre header dropdown et page Notifications.
+  Événements feed (post_deleted, account_deleted, groups.deleted,
+  institutions.deleted) permettent de retirer du contenu en live.
+
+Heartbeat SSE : NotificationSseHeartbeat maintient les connexions.
+
+
+--------------------------------------------------------------------------------
+4.9  Administration de comptes
+--------------------------------------------------------------------------------
+
+Garde : rôle SITE_ADMIN uniquement (Spring hasRole + AdminGuard React).
+
+Fonctions
+  - liste comptes (recherche, filtre statut, pagination) ;
+  - fiche : profil, flags (dont twoFactorEnabled, aujourd’hui jamais
+    activé par un flux utilisateur) ;
+  - journal d’activité agrégé ;
+  - patch (désactivation, promotion admin, etc.) ;
+  - révocation de toutes les sessions (refresh tokens) ;
+  - suppression de compte ;
+  - inspection / suppression de conversations.
+
+C’est une console de gouvernance des identités, pas une file de
+modération éditoriale des récits.
+
+
+--------------------------------------------------------------------------------
+4.10  Médias, stockage, e-mails
+--------------------------------------------------------------------------------
+
+Médias
+  validation magique (pas seulement l’extension) pour images et audio.
+  ObjectStorage abstrait local vs Supabase.
+  Chemins stockés (avatar_storage_path, cover_storage_path, media posts
+  et messages) pour pouvoir supprimer l’objet à la purge de compte.
+
+E-mails
+  AuthEmailService envoie via SMTP dès que SPRING_MAIL_HOST est défini.
+  Sans hôte : pas d’envoi. Le jeton n’est jamais dans les logs. En prod
+  le lien n’est pas dans le JSON ; en profil dev local, expose-email-links
+  peut encore le renvoyer.
+
+Purge
+  DataRetentionJob (cron 03:30) :
+    notifications lues > 90 j, toutes > 180 j,
+    refresh tokens périmés > 30 j,
+    messages > 2 ans,
+    plus nettoyage link-preview / posts selon le job.
+  Suppression de compte : AccountDeletedEvent + broadcast pour retirer
+  les posts de l’auteur chez les clients.
+
+
+--------------------------------------------------------------------------------
+4.11  Sécurité transverse
+--------------------------------------------------------------------------------
+
+En place
+  - session stateless JWT + refresh rotatif httpOnly ;
+  - BCrypt ;
+  - CSRF désactivé (API bearer/cookie same-site, pas de session cookie
+    classique) — à revoir si un cookie d’auth non SameSite apparaît ;
+  - CORS via origines autorisées ;
+  - sanitization HTML des contenus ;
+  - rate limit auth (IP) et écritures métier (userId, mémoire locale) ;
+  - GET publics limités (annuaire, profils, feed, groupes, institutions,
+    médias) ; écritures authentifiées ; /admin/** rôle SITE_ADMIN ;
+  - tests ciblés : rotation refresh, SSRF link-preview, visibilité groupes,
+    gardes institutions, sanitizer, password policy, rate limit, DM.
+
+Limites importantes
+  - rate limit en base (V18), commun aux instances. L’en-tête
+    X-Forwarded-For n’est honoré que derrière un proxy de confiance
+    (défaut : loopback) ;
+  - GET publics : un crawler peut lister membres, posts globaux et
+    groupes non secrets sans compte (le front masque, l’API non).
+    Le fil private/secret, lui, répond 404 hors membre actif ;
+  - pas de 2FA : la table V16 a été retirée (V17), la colonne
+    two_factor_enabled n’est plus lue au login ;
+  - pas de file de modération : tout post authentifié est visible tout de
+    suite ;
+  - e-mail non envoyé : la vérification de compte est un goulot en prod.
+    Détail : AUDIT-SECURITE-2026-10-01.txt (révision du 2 octobre).
+
+
+--------------------------------------------------------------------------------
+4.12  Interface : navigation, i18n, PWA
+--------------------------------------------------------------------------------
+
+Design
+  tokens BuddyBoss (variables CSS + Tailwind, breakpoint bb: 800px).
+  Thème clair/sombre (ThemeProvider).
+  i18n react-i18next : fr (défaut) + en, persisté dans localStorage
+  (afrea-lng). C’est l’interface, pas le contenu des posts.
+
+PWA
+  manifest + service worker (cache du shell uniquement, jamais l’API).
+  Bandeau OfflineBanner.
+  File d’attente useOffline (localStorage) — utilisée par le composeur
+  orphelin ActivityComposer, pas par FeedComposer. Donc : l’app détecte
+  le hors-ligne, mais ne republie pas automatiquement un post du fil réel.
+
+Recherche globale (page /search)
+  UI complète (onglets, filtres pays/langue/thématique) mais
+  globalSearch() retourne des tableaux vides tant que ENABLE_BUDDYPRESS
+  est false. Les filtres TDR ne sont donc pas branchés sur l’API Spring.
+  La recherche header peut quand même naviguer vers /search?s=…
+
+Chiffres sidebar du fil (248 membres, 12 cohortes, 31 en ligne) :
+  données décoratives, pas des compteurs API.
+
+
+================================================================================
+5. ÉTAT ACTUEL
+================================================================================
+
+Lecture rapide : le socle social (compte, fil, groupes, institutions,
+messages, notifications, admin) est branché bout-en-bout en local.
+Le produit « récits YEE conformes TDR » (modération, tags, forums,
+ressources, hors-ligne utile, mails, recherche) n’est pas encore là.
+
+
+--------------------------------------------------------------------------------
+5.1  Maturité par module
+--------------------------------------------------------------------------------
+
+Légende :
+  OK      = API + UI branchées, parcours utilisable en local
+  PARTIEL = UI et/ou API incomplètes, ou comportement trompeur
+  MORT    = code présent mais non routé / non branché
+  ABSENT  = exigence TDR sans implémentation réelle
+
+Module                         | État     | Commentaire court
+-------------------------------|----------|------------------------------------
+Auth (register → login)        | OK       | Session solide ; pas de SMTP (prod ne renvoie plus le lien)
+Profil / avatar / cover        | OK       | Champs YEE (pays, thématique) absents
+Annuaire membres               | OK       | Filtre institution ; pas langue/thème
+Follow                         | OK       |
+Fil texte + images + audio     | OK       | Publication immédiate, pas vidéo
+Commentaires + réponses        | OK       |
+Likes + likers                 | OK       |
+Link preview                   | OK       | Authentifié
+Composeur TDR (consent, tags)  | MORT     | ActivityComposer non monté
+Modération pré-publication     | ABSENT   | Route /moderation redirigée
+Groupes / cohortes             | OK       | Fil et roster private/secret réservés aux membres actifs
+Institutions / clubs           | OK       | Cœur métier géographique
+Messagerie DM + groupe         | OK       | SSE ; pièces jointes derrière le participant
+Notifications inbox + SSE      | OK       |
+Admin comptes                  | OK       | Pas de modération éditoriale
+Recherche globale              | PARTIEL  | UI morte fonctionnellement
+Forums                         | MORT     | Redirect + composants legacy
+Ressources / guides            | MORT     | Idem
+Hors-ligne utile (sync posts)  | PARTIEL  | SW + banner ; file non branchée
+i18n interface FR/EN           | OK       | Pas i18n du contenu
+2FA                            | ABSENT   | Colonne SQL ignorée, table retirée (V17)
+SMTP / mails transactionnels   | PARTIEL  | Code prêt ; actif dès SPRING_MAIL_HOST
+Analytique                     | ABSENT   |
+App mobile native              | ABSENT   | PWA minimale seulement
+Shop / jobs / courses / events | MORT     | Hors TDR, encore dans src/features
+
+
+--------------------------------------------------------------------------------
+5.2  Ce qui est réellement opérationnel
+--------------------------------------------------------------------------------
+
+En stack locale (Supabase + Spring + Vite), un utilisateur peut :
+
+  1. créer un compte, le vérifier via le lien loggé, se connecter ;
+  2. restaurer sa session après F5 (cookie refresh) ;
+  3. éditer son profil, avatar, cover, mot de passe, préférence DM ;
+  4. suivre d’autres membres ;
+  5. publier un post texte / images / audio sur le fil global ;
+  6. liker, commenter, répondre, supprimer son post ;
+  7. voir le fil d’un membre et, s’il est membre actif, le fil d’un
+     groupe private ou secret (sinon l’API répond 404) ;
+  8. rejoindre / quitter un groupe, gérer les demandes s’il est modo ;
+  9. s’affilier à un club, être validé par un référent ;
+ 10. écrire en privé (sous réserve whoCanMessage) et dans le fil groupe ;
+ 11. recevoir likes, commentaires, follows, invitations en temps réel ;
+ 12. si site admin : gouverner les comptes (désactiver, révoquer sessions,
+     supprimer, inspecter conversations).
+
+C’est déjà un réseau social professionnel minimal, utilisable en démo
+sur données fictives. Au 2 octobre 2026, un pilote fermé avec des
+personnes réelles peut s’appuyer sur le fil de groupe, les pièces
+de messages et les médias de posts non publics, à deux conditions :
+ne pas exposer le profil dev (liens de vérification dans le JSON),
+et basculer le compte JDBC sur yee_api. Sans SMTP, les comptes se
+vérifient encore à la main, et seulement si l’opérateur dispose
+du lien hors API.
+
+
+--------------------------------------------------------------------------------
+5.3  Ce qui est partiel, trompeur ou mort
+--------------------------------------------------------------------------------
+
+Trompeur
+  - la page Recherche a l’air d’un moteur multi-critères ; elle ne
+    interroge rien de vivant ;
+  - le bandeau hors-ligne et le SW donnent l’impression d’un mode offline
+    TDR ; les posts du vrai fil ne sont pas mis en file ;
+  - la sidebar du fil affiche des effectifs inventés ;
+  - ActivityComposer documente consentement / anonymat / tags alors que
+    le fil live n’a aucune de ces garanties ;
+  - GitHub Pages montre une coquille visuelle sans backend.
+
+Mort / héritage
+  - features BuddyBoss (forums, shop, etc.) et ENABLE_BUDDYPRESS retirés
+    (4 octobre) ;
+  - footer : pages /legal/* provisoires ;
+  - twoFactorEnabled lu en admin, jamais écrit par un parcours user.
+
+Partiel
+  - i18n : UI seulement ;
+  - privacy whoCanSee : cosmétique ;
+  - e-mail prefs hors « messages » : cosmétique ;
+  - PWA : installable en théorie, cache shell seulement ;
+  - tests Spring ciblés, CI Gradle + oxlint. Pas de suite e2e npm.
+
+
+--------------------------------------------------------------------------------
+5.4  Écarts par rapport au TDR (juillet 2026)
+--------------------------------------------------------------------------------
+
+Exigence TDR                         | Dans le code aujourd’hui
+-------------------------------------|-----------------------------------------
+Récits multimédias (dont vidéo)      | Texte, image, audio. Pas de vidéo.
+Consentement explicite à la publi.   | UI morte, pas de champ API/SQL.
+Anonymisation du récit               | Absente.
+Modération avant mise en ligne       | Absente (publish immédiat).
+Tags pays / thématique / langue      | UI morte + filtres search non branchés.
+Forums de discussion                 | Hors routes.
+Ressources & guides (vs LMS)         | Hors routes.
+Mode hors-ligne / sync différée      | Détection + SW ; pas de sync posts.
+Multilingue contenu                  | UI FR/EN seulement.
+Rôles YEE sélectionnés + secrétariat | Un seul flag is_site_admin.
+Analytique                           | Absent.
+App mobile complémentaire            | PWA minimale.
+Vitrine de plaidoyer / pages publiques| App 100 % derrière login.
+
+Le TDR visait un outil de narration professionnelle encadrée. Le socle
+actuel est un intranet social. L’écart n’est pas cosmétique : il change
+le niveau de risque éditorial (un YEE peut publier n’importe quoi, tout
+de suite, sous son nom).
+
+
+--------------------------------------------------------------------------------
+5.5  Déploiement et conditions d’exécution
+--------------------------------------------------------------------------------
+
+Local (le seul mode réellement prévu par le README)
+  Node 22, Java/Gradle wrapper, Docker pour Supabase.
+  Scripts start-stack / stop-stack en PowerShell et en shell
+  (scripts/*.sh). Logs dans .tmp/logs/.
+
+Production
+  Dockerfile Spring présent. application.yml profil prod : pool Hikari
+  via PgBouncer Supabase (port 6543, prepareThreshold=0).
+  Pas de pipeline CI qui déploie l’API dans ce dépôt (seulement Pages
+  pour le front).
+  Cookies : SameSite=None + Secure par défaut — cohérent HTTPS, d’où le
+  hack du proxy Vite en local HTTP.
+
+Conséquence : on ne peut pas aujourd’hui « ouvrir YEE au réseau AfrEA »
+sans un hébergement API + Postgres + stockage + SMTP + front pointant
+vers VITE_API_URL, et sans politique d’origines CORS.
+
+
+================================================================================
+6. FONCTIONS À INTÉGRER POUR AMÉLIORER
+================================================================================
+
+Les propositions ci-dessous sont classées par impact métier, pas par
+facilité technique. Chaque item indique pourquoi, où ça se branche, et
+ce que ça débloque.
+
+
+--------------------------------------------------------------------------------
+6.1  Priorité haute — lancement / conformité TDR
+--------------------------------------------------------------------------------
+
+A. File de modération pré-publication
+   Pourquoi : exigence TDR §1.2 / §8 ; aujourd’hui publication immédiate.
+   Où : statut sur posts (draft | pending | published | rejected),
+        endpoints admin/modérateur, UI /moderation à réactiver,
+        FeedComposer n’envoie plus en « published » direct.
+   Débloque : usage public sans risque de contenu non validé à la
+   conférence.
+
+B. Consentement + anonymisation
+   Pourquoi : récits d’évaluation peuvent citer des personnes / projets
+   sensibles.
+   Où : champs consent_at, is_anonymous sur Post ; case obligatoire dans
+   FeedComposer (réutiliser la logique déjà écrite dans ActivityComposer) ;
+   affichage auteur « Anonyme / YEE » si flag.
+   Débloque : conformité éthique minimale du réseau.
+
+C. Taxonomie des récits (pays, thématique, langue)
+   Pourquoi : le TDR veut une base de connaissances, pas un mur Facebook.
+   Où : colonnes ou tables de tags ; filtres /feed ; brancher /search
+   Spring (aujourd’hui vide) ; réutiliser STORY_COUNTRIES / THEMATICS
+   déjà dans activityData.js, idéalement liés à l’arbre institutions
+   pour le pays.
+   Débloque : recherche utile, vitrine par thème, reporting AfrEA.
+
+D. Transporteur e-mail réel
+   État : code branché (JavaMailSender). Reste à renseigner
+   SPRING_MAIL_HOST (+ auth/STARTTLS) sur l’instance, et à peaufiner
+   les templates FR/EN si besoin.
+
+E. Recherche globale Spring
+   Pourquoi : la page existe, le contrat mental aussi, le backend non.
+   Où : GET /search?q=&type=&country=&language=&thematic= agrégeant
+   users, posts, groups, institutions ; remplacer globalSearch() ;
+   retirer le chemin BuddyPress.
+   Débloque : navigation dans un réseau qui va croître.
+
+F. Pages légales et pied de page
+   État : routes /legal/* et pied de page branchés (4 octobre).
+   Reste : remplacer le texte provisoire par le contenu juridique AfrEA.
+
+
+--------------------------------------------------------------------------------
+6.2  Priorité moyenne — qualité produit
+--------------------------------------------------------------------------------
+
+G. Vidéo dans le fil (et éventuellement messages)
+   Contrainte : transcodage, quota, player, modération plus lourde.
+   Alternative courte : lien YouTube/Vimeo + link-preview déjà là.
+
+H. Brancher la file hors-ligne sur FeedComposer
+   useOffline existe. Il faut sérialiser le multipart (IndexedDB, pas
+   seulement localStorage) et flush() au retour réseau, avec consentement
+   déjà saisi.
+
+I. Forums légers
+   Le TDR les demande. On peut partir d’un groupe « discussion » +
+   topics, ou réactiver features/forums contre une API Spring dédiée.
+   Ne pas ressusciter BuddyPress.
+
+J. Bibliothèque Ressources & Guides
+   Documents / vidéos de formation (TDR §4.v, §5.vii). Modèle simple :
+   resource (titre, langue, fichier ou URL, tags), CRUD admin, liste
+   publique connectée.
+
+K. Compteurs réels et présence
+   Remplacer 248 / 12 / 31 par GET /stats ou agrégats existants
+   (users count, groups count). La présence « en ligne » exige un
+   heartbeat ; ce n’est pas anodin (vie privée).
+
+L. Champs profil YEE
+   pays, langues, thématiques d’évaluation, années d’expérience —
+   filtrables dans l’annuaire, au-delà de l’affiliation club.
+
+M. Rôles métier AfrEA
+   Distinguer secrétariat, référent régional, YEE validé, invité.
+   Aujourd’hui : membre vs site admin vs référent d’institution.
+   Un YEE « sélectionné » (TDR §7.iii) n’existe pas : n’importe qui
+   qui vérifie son e-mail est dans le réseau.
+
+N. Visibilité des profils
+   whoCanSee est cosmétique. Si le réseau s’ouvre, décider : profils
+   publics (vitrine) vs intranet. Aujourd’hui l’API GET est publique
+   et le front est privé : incohérent.
+
+O. 2FA (TOTP)
+   La table a été retirée (V17). À reconstruire (enrolment + challenge)
+   si le secrétariat l’exige. La colonne two_factor_enabled est inerte.
+
+P. SMTP + rate limit distribué (Redis) dès qu’il y a 2 instances API.
+
+Q. Nettoyage de l’héritage
+   Retirer ou isoler features mortes (shop, jobs, courses, events,
+   memberships, ActivityComposer ou le fusionner). Réduit la confusion
+   pour les prochains développements.
+
+R. Tests frontend / e2e
+   Playwright sur login → publier → like → message. Des scripts
+   .tmp-connectivity existent hors repo « propre » ; les officialiser.
+
+
+--------------------------------------------------------------------------------
+6.3  Priorité plus tard — phase 2
+--------------------------------------------------------------------------------
+
+S. Analytique (Matomo de préférence, souveraineté des données).
+T. Application mobile native — seulement si la PWA installable + offline
+   réel ne suffisent pas (TDR phase 2).
+U. Mentions @user, hashtags, partage interne d’un récit.
+V. Sondages / appels à contribution pour la conférence.
+W. Export de données (le bouton « Request Export » historique était mock).
+X. Modération a posteriori (signalement, masquage) en plus de la file
+   a priori.
+Y. Fédération légère avec le site principal AfrEA (SSO, agenda conférence)
+   plutôt que recréer un module Events.
+Z. Accessibilité (contraste, focus, lecteurs d’écran) et performance
+   (pagination déjà là ; images : variants / WebP systématique).
+
+
+================================================================================
+7. POSSIBILITÉS D’USAGE
+================================================================================
+
+Cette section répond à : « que peut-on faire de YEE tel quel, et que
+pourra-t-on en faire ensuite ? »
+
+
+--------------------------------------------------------------------------------
+7.1  Usages possibles dès maintenant (stack locale ou API hébergée privée)
+--------------------------------------------------------------------------------
+
+Pilote fermé (10–40 personnes)
+  Le secrétariat crée les comptes (ou inscription + lien de vérif
+  transmis à la main), nomme des référents, crée continents / pays /
+  clubs, ouvre quelques cohortes. Les YEE publient des actualités,
+  commentent, s’écrivent. Utile pour valider UX et gouvernance avant
+  novembre.
+
+Atelier / formation interne
+  Démo du parcours social : profil, follow, post média, groupe privé,
+  affiliation club, messagerie temps réel, console admin.
+
+Intranet d’équipe projet
+  Tant que le public n’entre pas, l’absence de modération est
+  acceptable si les participants sont identifiés et peu nombreux.
+
+Bac de recette technique
+  Rotation JWT, SSE, upload, cascade institutions, droits groupes :
+  le socle est assez riche pour ça. C’est d’ailleurs l’usage le plus
+  fidèle à l’état du code.
+
+
+--------------------------------------------------------------------------------
+7.2  Usages conditionnels (possibles si on ajoute 1 à 3 briques)
+--------------------------------------------------------------------------------
+
+Ouverture à une cohorte nationale
+  Conditions : SMTP + rôles référents déjà en place + éventuellement
+  modération a priori. Les institutions et groupes sont déjà là.
+
+Vitrine de récits pour la conférence (novembre 2026)
+  Conditions : tags + recherche + pages publiques (ou un mode « kiosque »
+  lecture sans compte) + modération + consentement. Aujourd’hui tout
+  est derrière login : un visiteur de stand ne voit rien.
+
+Communauté bilingue FR/EN
+  L’UI est prête. Il manque la langue du contenu (tag + filtre) et des
+  mails traduits.
+
+Travail de terrain à connectivité faible
+  Condition : brancher la file hors-ligne sur le vrai composeur, et
+  tester le SW hors localhost. Tel quel, l’usage terrain est fragile
+  (on voit qu’on est offline, on ne rattrape pas la publication).
+
+
+--------------------------------------------------------------------------------
+7.3  Usages non encore possibles (ne pas promettre)
+--------------------------------------------------------------------------------
+
+  - plateforme publique de plaidoyer AfrEA (login obligatoire, pas de
+    vitrine, pas de SEO de récits) ;
+  - recueil éthique de récits d’évaluation (pas de consentement, pas
+    d’anonymat, pas de modération) ;
+  - formation structurée / manuel en ligne (ressources absentes) ;
+  - débats communautaires type forum ;
+  - application mobile store ;
+  - boutique, adhésion payante, offres d’emploi (hors TDR et mortes) ;
+  - analytics d’audience pour le secrétariat ;
+  - déploiement GitHub Pages comme « le » site YEE (front sans API).
+
+
+--------------------------------------------------------------------------------
+7.4  Scénarios par persona
+--------------------------------------------------------------------------------
+
+Jeune évaluateur émergent (YEE)
+  Aujourd’hui : compte, profil sommaire, fil, groupes s’il est invité
+  ou si le groupe est public, affiliation club, messages, notifications.
+  Demain souhaitable : publier un récit tagué, anonymisable, après
+  validation, même hors-ligne, puis le retrouver par thématique.
+
+Référent de club / pays
+  Aujourd’hui : créer des nœuds enfants, valider les affiliations,
+  éventuellement créer des groupes, animer le fil de cohorte.
+  C’est déjà le persona le mieux servi par le modèle institutions.
+
+Secrétariat AfrEA
+  Aujourd’hui : un site admin voit tous les comptes, peut les couper,
+  révoquer les sessions, supprimer des conversations. Il ne voit pas
+  une file de récits à approuver, ni de tableau de bord d’usage.
+  Demain : file de modération + stats + rôles secrétariat distincts
+  du « super-admin technique ».
+
+Visiteur / partenaire / journaliste à la conférence
+  Aujourd’hui : rien (redirigé vers login).
+  Demain : lecture publique d’une sélection de récits validés.
+
+Modérateur éditorial
+  Persona inexistant dans le code. À créer avec le module 6.1.A.
+
+
+================================================================================
+8. RISQUES ET LIMITES
+================================================================================
+
+Confidentialité (révision 2 octobre 2026 — détail dans
+AUDIT-SECURITE-2026-10-01.txt)
+  Fil private/secret, commentaires et likes : fermés (membre actif).
+  Pièces de messages : endpoint authentifié, plus /media.
+  Profil par défaut prod : pas de lien de vérification dans le JSON
+  ni dans les logs. Le profil dev de l’exemple local les renvoie encore.
+  RLS forcé en migration (V15), schéma public hors API Supabase locale.
+  Reste ouvert : datasource d’exemple en postgres (contourne le RLS).
+  Médias et roster des groupes non publics, débit partagé, WebP,
+  CI et mots de passe sont traités dans la seconde passe du
+  2 octobre.
+
+Éditorial
+  Tout compte vérifié publie immédiatement. Pour un réseau lié à
+  l’évaluation de politiques publiques, c’est le risque produit principal
+  une fois la confidentialité ci-dessus corrigée.
+
+Opérationnel
+  Pas d’e-mail réel → onboarding manuel, et en prod le lien n’est même
+  plus visible : il faut le SMTP, pas le profil dev. Le débit est en
+  base. Pages GitHub sans API : coquille, plus présentée comme le site.
+  Scripts shell présents pour ce serveur Linux. La CI lance le lint
+  front et les tests Gradle.
+
+Données
+  GET publics sur profils, fil global et fiche des groupes non secrets :
+  voulu pour une vitrine. Le roster d’un groupe private ne l’est plus.
+  Pas d’export RGPD réel.
+  Rétention messages 2 ans (à confirmer juridiquement). Suppression
+  de compte prévue, c’est un point positif.
+
+Produit
+  Double composeur (TDR vs feed live) : un développeur peut « améliorer »
+  le mauvais fichier. Recherche et offline donnent une fausse impression
+  d’achèvement.
+
+Calendrier
+  Lancement conférence novembre 2026. Le socle social est là ; le
+  produit « récits YEE » n’est pas encore un livrable de conférence.
+  Les items 6.1.A à 6.1.F sont le chemin critique.
+
+
+================================================================================
+9. FEUILLE DE ROUTE RECOMMANDÉE
+================================================================================
+
+Phase 0 (ce qui reste bloquant)
+  0. Renseigner SMTP réel + profil prod sur l’instance (le code envoie
+     dès que SPRING_MAIL_HOST est défini). Basculer le datasource de
+     postgres vers yee_api.
+     Déjà en place : lecture du fil, médias et roster des groupes
+     non publics, chat-media authentifié, filet authenticated(),
+     RLS (V15, et V18 pour le débit), schéma public hors API locale,
+     proxy de confiance, plafonds multipart, WebP décodé, CI.
+
+Phase immédiate (socle exploitable en pilote, après la phase 0)
+  1. SMTP + pages légales.
+  2. Fusionner ActivityComposer → FeedComposer (consentement, tags)
+     avec persistance SQL.
+  3. Recherche Spring à la place du stub BuddyPress.
+  4. Nettoyer les features mortes ou les isoler clairement.
+  5. Compteurs sidebar réels.
+
+Phase conférence (si YEE doit être montré au Maroc)
+  6. Statuts de publication + file de modération + rôle secrétariat.
+  7. Mode lecture publique des récits validés (vitrine stand).
+  8. Hors-ligne : file IndexedDB sur le composeur réel.
+  9. Jeu de données de démo (clubs, cohortes, récits tagués FR/EN).
+
+Phase 2 (après lancement)
+  10. Forums ou équivalent, ressources, 2FA, analytics, cadrage mobile.
+
+Ce découpage aligne le code sur l’intention : d’abord un réseau fiable
+et éthique, ensuite une vitrine, ensuite l’écosystème (forums, guides).
+
+
+================================================================================
+10. ANNEXES
+================================================================================
+
+--------------------------------------------------------------------------------
+10.1  Stack
+--------------------------------------------------------------------------------
+
+Frontend     React 19, React Router 7, Vite 8, Tailwind 3, i18next,
+             clsx (pas de React Query / Redux : hooks + petit bus
+             queryEvents / messageRealtime)
+Backend      Spring Boot, Security JWT, JPA, Flyway, Jackson
+Base         PostgreSQL (Supabase local / PgBouncer en prod)
+Fichiers     local disk ou Supabase Storage
+Temps réel   SSE (pas de WebSocket)
+Qualité      oxlint (front), JUnit ciblé (back)
+
+
+--------------------------------------------------------------------------------
+10.2  Surfaces API (préfixe same-origin en dev)
+--------------------------------------------------------------------------------
+
+/auth            register, verify-email, login, refresh, logout,
+                 forgot-password, reset-password, me
+/users           me, password, avatar, cover, group-invites, delete me,
+                 directory, search, profile, follow, followers, following
+/feed            list, detail, create, delete, like, likers, comments,
+                 link-preview
+/groups          CRUD, join, membership, invitations, members, roles
+/institutions    CRUD, affiliation, referents
+/conversations   inbox, unread, search, DM, group thread, messages,
+                 read, typing, media/{id} (participant seulement)
+/notifications   list, unread-count, stream, read, read-all
+/admin           accounts, activity, sessions, delete, conversations
+/media           avatars, covers, post-media du fil global et des groupes public.
+                 Un groupe private ou secret : /feed/{id}/media/{id}.
+
+
+--------------------------------------------------------------------------------
+10.3  Fichiers d’entrée pour un lecteur technique
+--------------------------------------------------------------------------------
+
+Front
+  src/App.jsx                      routes et périmètre
+  src/config/api.js                contrat d’endpoints
+  src/api/client.js                JWT mémoire + refresh
+  src/context/AuthProvider.jsx     bootstrap de session
+  src/layout/ProtectedLayout.jsx   garde login
+  src/data/layoutData.js           navigation réelle
+  src/features/activity/ActivityFeed.jsx   fil live
+  src/features/activity/ActivityComposer.jsx  composeur TDR orphelin
+  src/api/search.js                recherche vide
+  public/sw.js                     PWA (cache shell)
+
+Back
+  .../common/config/SecurityConfig.java
+  .../auth/AuthController.java
+  .../feed/PostController.java + PostService.java
+  .../groups/GroupController.java + GroupPermissions.java
+  .../institutions/InstitutionController.java + InstitutionPermissions.java
+  .../conversations/ConversationController.java
+  .../notifications/NotificationEventListener.java
+  .../admin/AdminAccountController.java
+  spring-boot/src/main/resources/db/migration/V1 … V19
+  spring-boot/src/main/resources/application.yml
+
+Intention produit
+  prompt-reconstruction-buddyboss-react.md
+  README.md
+
+
+--------------------------------------------------------------------------------
+10.4  Synthèse en une phrase
+--------------------------------------------------------------------------------
+
+AfrEA-YEE est un intranet social technique (auth, fil, groupes, clubs,
+messages, admin). Au 2 octobre 2026 le fil de groupe et les pièces de
+messages ne fuient plus ; l’ouverture réelle attend le SMTP et le
+passage du datasource à yee_api (AUDIT-SECURITE-2026-10-01.txt). Ce
+n’est pas encore la plateforme de récits d’évaluation encadrés,
+recherchables et montrables en conférence que le TDR décrit.
+
+Fin de l’audit.
+================================================================================
