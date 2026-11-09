@@ -16,6 +16,7 @@ public class AppProperties {
 	private final Mail mail = new Mail();
 	private final Dev dev = new Dev();
 	private final Vapid vapid = new Vapid();
+	private final Afrea afrea = new Afrea();
 
 	public List<String> getAllowedOrigins() {
 		if (allowedOrigins == null || allowedOrigins.isBlank()) {
@@ -65,6 +66,10 @@ public class AppProperties {
 
 	public Vapid getVapid() {
 		return vapid;
+	}
+
+	public Afrea getAfrea() {
+		return afrea;
 	}
 
 	/**
@@ -221,6 +226,127 @@ public class AppProperties {
 
 		public void setExposeEmailLinks(boolean exposeEmailLinks) {
 			this.exposeEmailLinks = exposeEmailLinks;
+		}
+	}
+
+	/**
+	 * Miroir AfrEA (feed read-only). Clé et URL via variables d'environnement.
+	 * Ne jamais committer {@code api-key}.
+	 */
+	public static class Afrea {
+		/** Ex. {@code https://afrea.org/aed-feed} (sans slash final). */
+		private String baseUrl = "";
+		private String apiKey = "";
+		/** En-tête portant la clé (défaut X-Api-Key — à ajuster si AfrEA précise autrement). */
+		private String apiKeyHeader = "X-Api-Key";
+		private int connectTimeoutMs = 10_000;
+		private int readTimeoutMs = 60_000;
+		private int maxRetries = 3;
+		private long retryBackoffMs = 500;
+		private String profileEditUrl = "";
+		private final Sync sync = new Sync();
+		private final SignedLink signedLink = new SignedLink();
+
+		public String getBaseUrl() {
+			return baseUrl;
+		}
+
+		public void setBaseUrl(String baseUrl) {
+			this.baseUrl = baseUrl != null ? baseUrl : "";
+		}
+
+		public String getApiKey() {
+			return apiKey;
+		}
+
+		public void setApiKey(String apiKey) {
+			this.apiKey = apiKey != null ? apiKey : "";
+		}
+
+		public String getApiKeyHeader() {
+			return apiKeyHeader;
+		}
+
+		public void setApiKeyHeader(String apiKeyHeader) {
+			this.apiKeyHeader = apiKeyHeader != null && !apiKeyHeader.isBlank() ? apiKeyHeader : "X-Api-Key";
+		}
+
+		public int getConnectTimeoutMs() {
+			return connectTimeoutMs;
+		}
+
+		public void setConnectTimeoutMs(int connectTimeoutMs) {
+			this.connectTimeoutMs = connectTimeoutMs;
+		}
+
+		public int getReadTimeoutMs() {
+			return readTimeoutMs;
+		}
+
+		public void setReadTimeoutMs(int readTimeoutMs) {
+			this.readTimeoutMs = readTimeoutMs;
+		}
+
+		public int getMaxRetries() {
+			return maxRetries;
+		}
+
+		public void setMaxRetries(int maxRetries) {
+			this.maxRetries = maxRetries;
+		}
+
+		public long getRetryBackoffMs() {
+			return retryBackoffMs;
+		}
+
+		public void setRetryBackoffMs(long retryBackoffMs) {
+			this.retryBackoffMs = retryBackoffMs;
+		}
+
+		public String getProfileEditUrl() {
+			return profileEditUrl;
+		}
+
+		public void setProfileEditUrl(String profileEditUrl) {
+			this.profileEditUrl = profileEditUrl != null ? profileEditUrl : "";
+		}
+
+		public Sync getSync() {
+			return sync;
+		}
+
+		public SignedLink getSignedLink() {
+			return signedLink;
+		}
+
+		public boolean isConfigured() {
+			return baseUrl != null && !baseUrl.isBlank() && apiKey != null && !apiKey.isBlank();
+		}
+
+		public static class Sync {
+			/** Cron Spring (défaut 02:00 UTC). Activé au commit job. */
+			private String cron = "0 0 2 * * *";
+
+			public String getCron() {
+				return cron;
+			}
+
+			public void setCron(String cron) {
+				this.cron = cron != null && !cron.isBlank() ? cron : "0 0 2 * * *";
+			}
+		}
+
+		/** Emplacement futur Step 3 AfrEA→AED — désactivé en v1. */
+		public static class SignedLink {
+			private boolean enabled = false;
+
+			public boolean isEnabled() {
+				return enabled;
+			}
+
+			public void setEnabled(boolean enabled) {
+				this.enabled = enabled;
+			}
 		}
 	}
 

@@ -89,6 +89,20 @@ app:
     public-key: ${APP_VAPID_PUBLIC_KEY:}
     private-key: ${APP_VAPID_PRIVATE_KEY:}
     subject: ${APP_VAPID_SUBJECT:mailto:noreply@yee.local}
+  # Miroir AfrEA — clé uniquement via env (jamais dans Git).
+  afrea:
+    base-url: ${AFREA_BASE_URL:}
+    api-key: ${AFREA_API_KEY:}
+    api-key-header: ${AFREA_API_KEY_HEADER:X-Api-Key}
+    connect-timeout-ms: ${AFREA_CONNECT_TIMEOUT_MS:10000}
+    read-timeout-ms: ${AFREA_READ_TIMEOUT_MS:60000}
+    max-retries: ${AFREA_MAX_RETRIES:3}
+    retry-backoff-ms: ${AFREA_RETRY_BACKOFF_MS:500}
+    profile-edit-url: ${AFREA_PROFILE_EDIT_URL:}
+    sync:
+      cron: ${AFREA_SYNC_CRON:0 0 2 * * *}
+    signed-link:
+      enabled: ${AFREA_SIGNED_LINK_ENABLED:false}
 
 ---
 spring:
