@@ -14,6 +14,8 @@ public interface InstitutionRepository extends JpaRepository<Institution, UUID> 
 
 	boolean existsBySlug(String slug);
 
+	Optional<Institution> findByExternalId(String externalId);
+
 	@Query("""
 			SELECT i FROM Institution i
 			WHERE i.deletedAt IS NULL AND i.parent IS NULL

@@ -181,7 +181,10 @@ public class AuthService {
 		}
 
 		User user = userRepository.findByEmailIgnoreCase(email).orElse(null);
-		if (user == null || !passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+		// Hash null = compte importé sans mot de passe : même réponse que credentials invalides.
+		if (user == null
+				|| user.getPasswordHash() == null
+				|| !passwordEncoder.matches(request.password(), user.getPasswordHash())) {
 			throw new AppException(
 					"invalid_credentials",
 					"Email ou mot de passe incorrect.",
@@ -193,7 +196,7 @@ public class AuthService {
 					"Merci de vérifier votre email avant de vous connecter.",
 					HttpStatus.FORBIDDEN);
 		}
-		if (user.isAccountDeactivated()) {
+		if (user.isAccountDeactivated() || "DESACTIVE".equals(user.getStatus())) {
 			throw new AppException(
 					"account_deactivated",
 					"Ce compte a été désactivé.",

@@ -22,6 +22,10 @@ public class Institution {
 	@UuidGenerator
 	private UUID id;
 
+	/** Identifiant AfrEA (Institutions.externalId). Null = institution purement locale. */
+	@Column(name = "external_id", length = 64)
+	private String externalId;
+
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "parent_id")
 	private Institution parent;
@@ -41,6 +45,11 @@ public class Institution {
 	@Column(name = "members_count", nullable = false)
 	private int membersCount;
 
+	/** PENDING (import) | CREEE | REJETEE — local, hors sync écrasante. */
+	@Column(name = "creation_status", nullable = false, length = 20)
+	private String creationStatus = "CREEE";
+
+	/** Nullable pour les institutions importées (pas de créateur local). */
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "created_by")
 	private User createdBy;
@@ -68,6 +77,14 @@ public class Institution {
 
 	public UUID getId() {
 		return id;
+	}
+
+	public String getExternalId() {
+		return externalId;
+	}
+
+	public void setExternalId(String externalId) {
+		this.externalId = externalId;
 	}
 
 	public Institution getParent() {
@@ -120,6 +137,14 @@ public class Institution {
 
 	public void setMembersCount(int membersCount) {
 		this.membersCount = membersCount;
+	}
+
+	public String getCreationStatus() {
+		return creationStatus;
+	}
+
+	public void setCreationStatus(String creationStatus) {
+		this.creationStatus = creationStatus;
 	}
 
 	public User getCreatedBy() {

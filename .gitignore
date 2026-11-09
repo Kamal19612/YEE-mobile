@@ -37,3 +37,7 @@ buddyboss-theme/
 buddyboss-theme.zip
 Buddyboss-workdir-backup/
 
+# AfrEA sync workbook (contains API key — never commit)
+docs/AfrEA-AED-Sync.xlsx
+**/AfrEA-AED-Sync.xlsx
+

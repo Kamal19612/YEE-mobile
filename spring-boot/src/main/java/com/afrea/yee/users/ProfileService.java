@@ -160,7 +160,7 @@ public class ProfileService {
 		String current = request.currentPassword() == null ? "" : request.currentPassword();
 		String next = request.newPassword() == null ? "" : request.newPassword();
 
-		if (!passwordEncoder.matches(current, user.getPasswordHash())) {
+		if (user.getPasswordHash() == null || !passwordEncoder.matches(current, user.getPasswordHash())) {
 			throw new AppException(
 					"invalid_current_password",
 					"Mot de passe actuel incorrect.",
@@ -195,7 +195,7 @@ public class ProfileService {
 	public Map<String, String> deleteAccount(UUID userId, DeleteAccountRequest request) {
 		User user = requireUser(userId);
 		String password = request.password() == null ? "" : request.password();
-		if (!passwordEncoder.matches(password, user.getPasswordHash())) {
+		if (user.getPasswordHash() == null || !passwordEncoder.matches(password, user.getPasswordHash())) {
 			throw new AppException("invalid_password", "Mot de passe incorrect.", HttpStatus.UNAUTHORIZED);
 		}
 		if (user.isSiteAdmin()) {

@@ -7,6 +7,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
 
@@ -18,10 +19,15 @@ public class User {
 	@UuidGenerator
 	private UUID id;
 
+	/** Identifiant AfrEA (People.externalId). Null = compte local non encore rapproché. */
+	@Column(name = "external_id", length = 64)
+	private String externalId;
+
 	@Column(nullable = false, unique = true, length = 254)
 	private String email;
 
-	@Column(name = "password_hash", nullable = false)
+	/** Null pour les comptes importés en attente de mot de passe. */
+	@Column(name = "password_hash")
 	private String passwordHash;
 
 	@Column(name = "display_name", nullable = false, length = 60)
@@ -41,6 +47,19 @@ public class User {
 
 	@Column(nullable = false, length = 120)
 	private String location = "";
+
+	/** CSV AfrEA (ex. "English, French") — colonne synchronisée. */
+	@Column(length = 255)
+	private String languages;
+
+	@Column(name = "membership_type", length = 20)
+	private String membershipType;
+
+	@Column(name = "membership_expires_on")
+	private LocalDate membershipExpiresOn;
+
+	@Column(name = "membership_yee", nullable = false)
+	private boolean membershipYee;
 
 	@Column(name = "social_links_json", nullable = false, columnDefinition = "TEXT")
 	private String socialLinksJson = "{}";
@@ -77,6 +96,19 @@ public class User {
 
 	@Column(name = "account_deleted", nullable = false)
 	private boolean accountDeleted;
+
+	/**
+	 * Statut local : A_VERIFIER | VERIFIE | ACTIF | DESACTIVE.
+	 * Jamais modifié par la synchro AfrEA.
+	 */
+	@Column(nullable = false, length = 20)
+	private String status = "ACTIF";
+
+	@Column(name = "deleted_at")
+	private Instant deletedAt;
+
+	@Column(name = "last_synced_at")
+	private Instant lastSyncedAt;
 
 	@Column(name = "two_factor_enabled", nullable = false)
 	private boolean twoFactorEnabled;
@@ -149,6 +181,14 @@ public class User {
 		return id;
 	}
 
+	public String getExternalId() {
+		return externalId;
+	}
+
+	public void setExternalId(String externalId) {
+		this.externalId = externalId;
+	}
+
 	public String getEmail() {
 		return email;
 	}
@@ -211,6 +251,38 @@ public class User {
 
 	public void setLocation(String location) {
 		this.location = location;
+	}
+
+	public String getLanguages() {
+		return languages;
+	}
+
+	public void setLanguages(String languages) {
+		this.languages = languages;
+	}
+
+	public String getMembershipType() {
+		return membershipType;
+	}
+
+	public void setMembershipType(String membershipType) {
+		this.membershipType = membershipType;
+	}
+
+	public LocalDate getMembershipExpiresOn() {
+		return membershipExpiresOn;
+	}
+
+	public void setMembershipExpiresOn(LocalDate membershipExpiresOn) {
+		this.membershipExpiresOn = membershipExpiresOn;
+	}
+
+	public boolean isMembershipYee() {
+		return membershipYee;
+	}
+
+	public void setMembershipYee(boolean membershipYee) {
+		this.membershipYee = membershipYee;
 	}
 
 	public String getSocialLinksJson() {
@@ -307,6 +379,30 @@ public class User {
 
 	public void setAccountDeleted(boolean accountDeleted) {
 		this.accountDeleted = accountDeleted;
+	}
+
+	public String getStatus() {
+		return status;
+	}
+
+	public void setStatus(String status) {
+		this.status = status;
+	}
+
+	public Instant getDeletedAt() {
+		return deletedAt;
+	}
+
+	public void setDeletedAt(Instant deletedAt) {
+		this.deletedAt = deletedAt;
+	}
+
+	public Instant getLastSyncedAt() {
+		return lastSyncedAt;
+	}
+
+	public void setLastSyncedAt(Instant lastSyncedAt) {
+		this.lastSyncedAt = lastSyncedAt;
 	}
 
 	public boolean isTwoFactorEnabled() {
