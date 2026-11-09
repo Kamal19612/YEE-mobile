@@ -237,8 +237,8 @@ public class AppProperties {
 		/** Ex. {@code https://afrea.org/aed-feed} (sans slash final). */
 		private String baseUrl = "";
 		private String apiKey = "";
-		/** En-tête portant la clé (défaut X-Api-Key — à ajuster si AfrEA précise autrement). */
-		private String apiKeyHeader = "X-Api-Key";
+		/** En-tête portant la clé (défaut X-AFREA-KEY ; Bearer aussi supporté côté AfrEA). */
+		private String apiKeyHeader = "X-AFREA-KEY";
 		private int connectTimeoutMs = 10_000;
 		private int readTimeoutMs = 60_000;
 		private int maxRetries = 3;
@@ -268,7 +268,7 @@ public class AppProperties {
 		}
 
 		public void setApiKeyHeader(String apiKeyHeader) {
-			this.apiKeyHeader = apiKeyHeader != null && !apiKeyHeader.isBlank() ? apiKeyHeader : "X-Api-Key";
+			this.apiKeyHeader = apiKeyHeader != null && !apiKeyHeader.isBlank() ? apiKeyHeader : "X-AFREA-KEY";
 		}
 
 		public int getConnectTimeoutMs() {

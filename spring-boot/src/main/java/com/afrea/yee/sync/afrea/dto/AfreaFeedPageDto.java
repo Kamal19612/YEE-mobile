@@ -20,6 +20,9 @@ public record AfreaFeedPageDto(
 		@JsonProperty("next_after")
 		@JsonAlias("nextAfter")
 		String nextAfter,
+		/** Feed live AfrEA : clé JSON {@code users} (alias {@code people} pour fixtures). */
+		@JsonProperty("users")
+		@JsonAlias("people")
 		List<AfreaPersonDto> people,
 		List<AfreaInstitutionDto> institutions,
 		List<AfreaAffiliationDto> affiliations,

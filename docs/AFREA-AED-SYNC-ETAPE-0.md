@@ -70,7 +70,8 @@ Le classeur propose : *from the AfrEA member hub, the member goes to the AED wit
 | Élément | Valeur |
 |---|---|
 | Base URL test | `https://afrea.org/aed-feed/` |
-| Auth | clé API via env (`AFREA_API_KEY` / `app.afrea.api-key`) — jamais dans Git |
+| Auth | clé API via env (`AFREA_API_KEY`) — en-tête **`X-AFREA-KEY`** (ou `Authorization: Bearer`) ; `X-Api-Key` → 401. Jamais dans Git |
+| Envelope people | JSON live : **`users`** (pas `people`) ; institutions / affiliations / referents inchangés |
 | Format | JSON read-only ; dates `YYYY-MM-DD` ; ids texte ; vide = `null` |
 | Pagination | `?after=<next_after>` tant que `has_more` ; 1ʳᵉ page ≤ 500 people + **toutes** institutions + liens de ces people |
 | Delta | `?updated_since=<ISO>` (utiliser `generatedAt` du dernier read) |

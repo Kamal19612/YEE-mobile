@@ -34,7 +34,7 @@ class AfreaFeedClientWireMockTest {
 		AppProperties props = new AppProperties();
 		props.getAfrea().setBaseUrl(wireMock.baseUrl() + "/aed-feed");
 		props.getAfrea().setApiKey("test-key-not-a-secret");
-		props.getAfrea().setApiKeyHeader("X-Api-Key");
+		props.getAfrea().setApiKeyHeader("X-AFREA-KEY");
 		props.getAfrea().setMaxRetries(2);
 		props.getAfrea().setRetryBackoffMs(10);
 		props.getAfrea().setConnectTimeoutMs(5_000);
@@ -48,7 +48,7 @@ class AfreaFeedClientWireMockTest {
 
 		RestClient restClient = RestClient.builder()
 				.baseUrl(props.getAfrea().getBaseUrl())
-				.defaultHeader("X-Api-Key", "test-key-not-a-secret")
+				.defaultHeader("X-AFREA-KEY", "test-key-not-a-secret")
 				.requestFactory(factory)
 				.build();
 
@@ -65,7 +65,7 @@ class AfreaFeedClientWireMockTest {
 	@Test
 	void fetchAllPaginatesAndMergesPeople() {
 		wireMock.stubFor(get(urlPathEqualTo("/aed-feed"))
-				.withHeader("X-Api-Key", equalTo("test-key-not-a-secret"))
+				.withHeader("X-AFREA-KEY", equalTo("test-key-not-a-secret"))
 				.willReturn(aResponse()
 						.withHeader("Content-Type", "application/json")
 						.withBody("""
@@ -73,7 +73,7 @@ class AfreaFeedClientWireMockTest {
 								  "generatedAt": "2026-11-01T06:00:00Z",
 								  "has_more": true,
 								  "next_after": "cursor-2",
-								  "people": [
+								  "users": [
 								    {
 								      "externalId": "2231",
 								      "email": "one@example.org",
@@ -113,7 +113,7 @@ class AfreaFeedClientWireMockTest {
 								  "generatedAt": "2026-11-01T06:00:00Z",
 								  "has_more": false,
 								  "next_after": null,
-								  "people": [
+								  "users": [
 								    {
 								      "externalId": "3986",
 								      "email": "two@example.org",
@@ -134,7 +134,7 @@ class AfreaFeedClientWireMockTest {
 		assertThat(snapshot.generatedAt()).isEqualTo(Instant.parse("2026-11-01T06:00:00Z"));
 
 		wireMock.verify(getRequestedFor(urlPathEqualTo("/aed-feed"))
-				.withHeader("X-Api-Key", equalTo("test-key-not-a-secret")));
+				.withHeader("X-AFREA-KEY", equalTo("test-key-not-a-secret")));
 	}
 
 	@Test
@@ -147,7 +147,7 @@ class AfreaFeedClientWireMockTest {
 								{
 								  "generatedAt": "2026-11-02T06:00:00Z",
 								  "has_more": false,
-								  "people": [],
+								  "users": [],
 								  "institutions": [],
 								  "affiliations": [],
 								  "referents": []
@@ -187,7 +187,7 @@ class AfreaFeedClientWireMockTest {
 				.willReturn(aResponse()
 						.withHeader("Content-Type", "application/json")
 						.withBody("""
-								{"generatedAt":"2026-11-01T06:00:00Z","has_more":false,"people":[],"institutions":[],"affiliations":[],"referents":[]}
+								{"generatedAt":"2026-11-01T06:00:00Z","has_more":false,"users":[],"institutions":[],"affiliations":[],"referents":[]}
 								""")));
 
 		var page = client.fetchPage(null, null);
