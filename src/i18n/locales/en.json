@@ -33,6 +33,7 @@
     "sectionMain": "Navigation",
     "sectionAdmin": "Administration",
     "adminAccounts": "Accounts",
+    "adminInstitutions": "Organisations",
     "sectionAccount": "Personal space",
     "open": "Open panel",
     "collapse": "Collapse panel",
@@ -44,6 +45,7 @@
     "account": "Account",
     "settings": "Settings",
     "adminAccounts": "Admin · Accounts",
+    "adminInstitutions": "Admin · Organisations",
     "logout": "Log out"
   },
   "auth": {
@@ -579,7 +581,8 @@
     "clubs": {
       "search": "Search clubs…",
       "create": "+ Create a club",
-      "createReferentOnly": "Only country referents and administrators can create a club.",
+      "createReferentOnly": "Only administrators can create an institution.",
+      "createAdminOnly": "Institution creation is reserved for administrators.",
       "empty": "No clubs to show.",
       "continent": "Continent",
       "selectContinent": "Select a continent…",
@@ -1111,6 +1114,34 @@
     "section": "Administration",
     "accountsTitle": "Accounts",
     "accountsSubtitle": "Search members, review activity, and manage account status.",
+    "institutions": {
+      "title": "Organisations",
+      "subtitle": "Approve AfrEA-imported institutions before they appear in the directory.",
+      "searchPlaceholder": "Search by name or externalId…",
+      "loadError": "Unable to load organisations.",
+      "empty": "No organisations match these filters.",
+      "create": "Create",
+      "creating": "Creating…",
+      "reject": "Reject",
+      "created": "Organisation “{{name}}” created.",
+      "rejected": "Organisation “{{name}}” rejected.",
+      "filters": {
+        "PENDING": "To create",
+        "CREEE": "Created",
+        "REJETEE": "Rejected",
+        "all": "All"
+      },
+      "status": {
+        "PENDING": "To create",
+        "CREEE": "Created",
+        "REJETEE": "Rejected"
+      },
+      "types": {
+        "continent": "Continent",
+        "country": "Country / VOPE",
+        "local": "Institution"
+      }
+    },
     "searchPlaceholder": "Search by name, email or @mention…",
     "empty": "No accounts match these filters.",
     "loadError": "Could not load accounts.",

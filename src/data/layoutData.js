@@ -24,6 +24,14 @@ export const panelItemDefs = [
     labelKey: 'panel.adminAccounts',
     adminOnly: true,
   },
+  {
+    id: 'admin-institutions',
+    href: '/admin/institutions',
+    icon: 'globe',
+    count: 0,
+    labelKey: 'panel.adminInstitutions',
+    adminOnly: true,
+  },
 ]
 
 export const profileMenuDefs = [
@@ -31,6 +39,12 @@ export const profileMenuDefs = [
   { id: 'account', href: '/members/me/profile', labelKey: 'profile.account' },
   { id: 'settings', href: '/members/me/settings', labelKey: 'profile.settings' },
   { id: 'admin-accounts', href: '/admin/accounts', labelKey: 'profile.adminAccounts', adminOnly: true },
+  {
+    id: 'admin-institutions',
+    href: '/admin/institutions',
+    labelKey: 'profile.adminInstitutions',
+    adminOnly: true,
+  },
   { id: 'logout', href: '/', labelKey: 'profile.logout' },
 ]
 

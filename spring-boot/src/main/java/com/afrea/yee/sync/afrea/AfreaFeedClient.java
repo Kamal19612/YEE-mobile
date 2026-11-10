@@ -99,9 +99,11 @@ public class AfreaFeedClient {
 		RuntimeException last = null;
 		for (int attempt = 1; attempt <= maxAttempts; attempt++) {
 			try {
+				// path "/" : AfrEA exige le slash final sur /aed-feed/ (sans slash → échec côté client).
+				String requestPath = (path == null || path.isBlank()) ? "/" : path;
 				return restClient.get()
 						.uri(uriBuilder -> {
-							uriBuilder.path(path == null ? "" : path);
+							uriBuilder.path(requestPath);
 							query.forEach(uriBuilder::queryParam);
 							return uriBuilder.build();
 						})

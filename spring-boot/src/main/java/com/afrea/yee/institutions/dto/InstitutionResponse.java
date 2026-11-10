@@ -17,6 +17,7 @@ public record InstitutionResponse(
 		@JsonProperty("viewerIsReferent") boolean viewerIsReferent,
 		String countryName,
 		String continentName,
-		String affiliationStatus
+		String affiliationStatus,
+		String creationStatus
 ) {
 }

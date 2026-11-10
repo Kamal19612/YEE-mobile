@@ -33,6 +33,7 @@
     "sectionMain": "Navigation",
     "sectionAdmin": "Administration",
     "adminAccounts": "Comptes",
+    "adminInstitutions": "Organisations",
     "sectionAccount": "Espace personnel",
     "open": "Ouvrir le panneau",
     "collapse": "Réduire le panneau",
@@ -44,6 +45,7 @@
     "account": "Compte",
     "settings": "Réglages",
     "adminAccounts": "Admin · Comptes",
+    "adminInstitutions": "Admin · Organisations",
     "logout": "Déconnexion"
   },
   "auth": {
@@ -579,7 +581,8 @@
     "clubs": {
       "search": "Rechercher un club…",
       "create": "+ Créer un club",
-      "createReferentOnly": "Seuls les référents d’un pays et les administrateurs peuvent créer un club.",
+      "createReferentOnly": "Seuls les administrateurs peuvent créer une institution.",
+      "createAdminOnly": "La création d’institutions est réservée aux administrateurs.",
       "empty": "Aucun club à afficher.",
       "continent": "Continent",
       "selectContinent": "Sélectionner un continent…",
@@ -1111,6 +1114,34 @@
     "section": "Administration",
     "accountsTitle": "Comptes",
     "accountsSubtitle": "Recherchez un membre, consultez son activité et gérez le statut du compte.",
+    "institutions": {
+      "title": "Organisations",
+      "subtitle": "Validez les institutions importées depuis AfrEA avant publication dans l’annuaire.",
+      "searchPlaceholder": "Rechercher par nom ou externalId…",
+      "loadError": "Impossible de charger les organisations.",
+      "empty": "Aucune organisation ne correspond à ces critères.",
+      "create": "Créer",
+      "creating": "Création…",
+      "reject": "Rejeter",
+      "created": "Organisation « {{name}} » créée.",
+      "rejected": "Organisation « {{name}} » rejetée.",
+      "filters": {
+        "PENDING": "À créer",
+        "CREEE": "Créées",
+        "REJETEE": "Rejetées",
+        "all": "Toutes"
+      },
+      "status": {
+        "PENDING": "À créer",
+        "CREEE": "Créée",
+        "REJETEE": "Rejetée"
+      },
+      "types": {
+        "continent": "Continent",
+        "country": "Pays / VOPE",
+        "local": "Institution"
+      }
+    },
     "searchPlaceholder": "Rechercher par nom, e-mail ou @mention…",
     "empty": "Aucun compte ne correspond à ces critères.",
     "loadError": "Impossible de charger les comptes.",

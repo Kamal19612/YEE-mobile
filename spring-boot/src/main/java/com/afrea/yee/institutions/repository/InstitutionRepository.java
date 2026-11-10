@@ -5,6 +5,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -18,7 +20,7 @@ public interface InstitutionRepository extends JpaRepository<Institution, UUID> 
 
 	@Query("""
 			SELECT i FROM Institution i
-			WHERE i.deletedAt IS NULL AND i.parent IS NULL
+			WHERE i.deletedAt IS NULL AND i.creationStatus = 'CREEE' AND i.parent IS NULL
 			  AND (:search IS NULL OR :search = '' OR LOWER(i.name) LIKE LOWER(CONCAT('%', :search, '%')))
 			ORDER BY i.name ASC
 			""")
@@ -27,7 +29,7 @@ public interface InstitutionRepository extends JpaRepository<Institution, UUID> 
 	@Query("""
 			SELECT i FROM Institution i
 			LEFT JOIN FETCH i.parent
-			WHERE i.deletedAt IS NULL AND i.parent.id = :parentId
+			WHERE i.deletedAt IS NULL AND i.creationStatus = 'CREEE' AND i.parent.id = :parentId
 			  AND (:search IS NULL OR :search = '' OR LOWER(i.name) LIKE LOWER(CONCAT('%', :search, '%')))
 			ORDER BY i.name ASC
 			""")
@@ -36,7 +38,7 @@ public interface InstitutionRepository extends JpaRepository<Institution, UUID> 
 	@Query("""
 			SELECT i FROM Institution i
 			LEFT JOIN FETCH i.parent
-			WHERE i.deletedAt IS NULL AND i.type = :type
+			WHERE i.deletedAt IS NULL AND i.creationStatus = 'CREEE' AND i.type = :type
 			  AND (:search IS NULL OR :search = '' OR LOWER(i.name) LIKE LOWER(CONCAT('%', :search, '%')))
 			ORDER BY i.name ASC
 			""")
@@ -45,7 +47,7 @@ public interface InstitutionRepository extends JpaRepository<Institution, UUID> 
 	@Query("""
 			SELECT i FROM Institution i
 			LEFT JOIN FETCH i.parent
-			WHERE i.deletedAt IS NULL
+			WHERE i.deletedAt IS NULL AND i.creationStatus = 'CREEE'
 			  AND (:search IS NULL OR :search = '' OR LOWER(i.name) LIKE LOWER(CONCAT('%', :search, '%')))
 			ORDER BY i.type ASC, i.name ASC
 			""")
@@ -54,9 +56,16 @@ public interface InstitutionRepository extends JpaRepository<Institution, UUID> 
 	@Query("""
 			SELECT i FROM Institution i
 			LEFT JOIN FETCH i.parent
-			WHERE i.id = :id AND i.deletedAt IS NULL
+			WHERE i.id = :id AND i.deletedAt IS NULL AND i.creationStatus = 'CREEE'
 			""")
 	Optional<Institution> findActiveById(@Param("id") UUID id);
+
+	@Query("""
+			SELECT i FROM Institution i
+			LEFT JOIN FETCH i.parent
+			WHERE i.id = :id AND i.deletedAt IS NULL
+			""")
+	Optional<Institution> findNotDeletedById(@Param("id") UUID id);
 
 	@Query("""
 			SELECT CASE WHEN COUNT(i) > 0 THEN true ELSE false END
@@ -68,10 +77,24 @@ public interface InstitutionRepository extends JpaRepository<Institution, UUID> 
 	@Query("""
 			SELECT i FROM Institution i
 			LEFT JOIN FETCH i.parent
-			WHERE i.deletedAt IS NULL AND i.id IN :ids
+			WHERE i.deletedAt IS NULL AND i.creationStatus = 'CREEE' AND i.id IN :ids
 			ORDER BY i.name ASC
 			""")
 	List<Institution> findActiveByIds(@Param("ids") Collection<UUID> ids);
+
+	@Query("""
+			SELECT i FROM Institution i
+			LEFT JOIN FETCH i.parent
+			WHERE i.deletedAt IS NULL
+			  AND (:creationStatus IS NULL OR i.creationStatus = :creationStatus)
+			  AND (:search IS NULL OR :search = '' OR LOWER(i.name) LIKE LOWER(CONCAT('%', :search, '%'))
+			       OR LOWER(COALESCE(i.externalId, '')) LIKE LOWER(CONCAT('%', :search, '%')))
+			ORDER BY i.creationStatus ASC, i.type ASC, i.name ASC
+			""")
+	Page<Institution> adminSearch(
+			@Param("search") String search,
+			@Param("creationStatus") String creationStatus,
+			Pageable pageable);
 
 	/**
 	 * Cascade : référent du nœud OU d'un ancêtre.

@@ -84,3 +84,47 @@ export async function deleteAdminAccount(userId) {
     auth: true,
   })
 }
+
+export async function fetchAdminInstitutions({
+  q = '',
+  creationStatus = 'PENDING',
+  page = 1,
+  perPage = 20,
+} = {}) {
+  const result = await appApiFetch(
+    `${ENDPOINTS.admin.institutions}${qs({ q, creationStatus, page, perPage })}`,
+    {
+      auth: true,
+      raw: true,
+    },
+  )
+  const institutions = Array.isArray(result?.data) ? result.data : []
+  const meta = result?.meta || {}
+  const total = Number(meta.total ?? institutions.length)
+  const totalPages = Number(meta.totalPages ?? Math.max(1, Math.ceil(total / perPage)))
+  return {
+    institutions,
+    meta: {
+      page: Number(meta.page ?? page),
+      perPage: Number(meta.perPage ?? perPage),
+      total,
+      totalPages,
+      hasNext: page < totalPages,
+      hasPrev: page > 1,
+    },
+  }
+}
+
+export async function createAdminInstitution(institutionId) {
+  return appApiFetch(ENDPOINTS.admin.createInstitution(institutionId), {
+    method: 'POST',
+    auth: true,
+  })
+}
+
+export async function rejectAdminInstitution(institutionId) {
+  return appApiFetch(ENDPOINTS.admin.rejectInstitution(institutionId), {
+    method: 'POST',
+    auth: true,
+  })
+}

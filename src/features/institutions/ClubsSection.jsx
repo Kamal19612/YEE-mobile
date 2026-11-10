@@ -5,12 +5,7 @@ import { IconSearch } from '../../components/icons'
 import { Button } from '../../components/ui/Button'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { useAuth } from '../../hooks/useAuth'
-import {
-  useClubs,
-  useContinents,
-  useCountries,
-  useReferentCountries,
-} from '../../hooks/useInstitutions'
+import { useClubs, useContinents, useCountries } from '../../hooks/useInstitutions'
 import {
   INSTITUTION_CARD_GRID,
   InstitutionCard,
@@ -308,9 +303,6 @@ export function ClubsSection() {
     useClubs({ search })
   const { user } = useAuth()
   const isSiteAdmin = Boolean(user?.isSiteAdmin)
-  const { countries: referentCountries, loading: referentLoading } = useReferentCountries(
-    Boolean(user) && !isSiteAdmin,
-  )
   const {
     countries: allCountries,
     loading: allCountriesLoading,
@@ -322,11 +314,10 @@ export function ClubsSection() {
     reload: reloadContinents,
   } = useContinents(isSiteAdmin)
 
-  const countriesLoading = isSiteAdmin ? allCountriesLoading || continentsLoading : referentLoading
-  const createCountries = isSiteAdmin ? allCountries : referentCountries
-  // Admins : bouton visible même sans pays (ils peuvent créer continent → pays → club)
-  const canCreate =
-    Boolean(user) && !countriesLoading && (isSiteAdmin || createCountries.length > 0)
+  const countriesLoading = isSiteAdmin && (allCountriesLoading || continentsLoading)
+  const createCountries = isSiteAdmin ? allCountries : []
+  // O6 — création d’institutions réservée aux administrateurs site
+  const canCreate = Boolean(user) && isSiteAdmin && !countriesLoading
 
   const closeForms = () => {
     setCreateOpen(false)
@@ -366,7 +357,7 @@ export function ClubsSection() {
       </div>
 
       {!countriesLoading && user && !canCreate && (
-        <p className="m-0 text-bb-sm text-bb-muted">{t('institutions.clubs.createReferentOnly')}</p>
+        <p className="m-0 text-bb-sm text-bb-muted">{t('institutions.clubs.createAdminOnly')}</p>
       )}
 
       {createOpen && canCreate && (

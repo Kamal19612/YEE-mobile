@@ -140,12 +140,13 @@ public class InstitutionService {
 			throw validation("type", "Type invalide.");
 		}
 
+		permissions.requireCreateInstitution(actorId);
+
 		Institution parent = null;
 		if ("continent".equals(type)) {
 			if (parentId != null) {
 				throw validation("parentId", "Un continent n’a pas de parent.");
 			}
-			permissions.requireCreateContinent(actorId);
 		} else {
 			if (parentId == null) {
 				throw validation("parentId", "parentId requis.");
@@ -157,7 +158,6 @@ public class InstitutionService {
 			if ("local".equals(type) && !"country".equals(parent.getType())) {
 				throw validation("parentId", "Un club doit avoir un pays pour parent.");
 			}
-			permissions.requireCreateChild(parent, actorId);
 		}
 
 		Institution institution = new Institution();
@@ -167,6 +167,7 @@ public class InstitutionService {
 		institution.setType(type);
 		institution.setParent(parent);
 		institution.setCreatedBy(actor);
+		institution.setCreationStatus(InstitutionCreationStatus.CREEE);
 		institution.setMembersCount(1);
 		institutionRepository.save(institution);
 
@@ -219,7 +220,7 @@ public class InstitutionService {
 
 	@Transactional
 	public Map<String, String> requestAffiliation(UUID institutionId, UUID userId) {
-		Institution institution = requireActive(institutionId);
+		Institution institution = requireOpenForAffiliation(institutionId);
 		User user = requireUser(userId);
 		Optional<UserInstitution> existing = userInstitutionRepository.findByInstitutionIdAndUserId(institutionId, userId);
 		if (existing.isPresent()) {
@@ -465,7 +466,8 @@ public class InstitutionService {
 					viewerIsReferent,
 					names.countryName,
 					names.continentName,
-					affiliationOverrides.get(i.getId()));
+					affiliationOverrides.get(i.getId()),
+					i.getCreationStatus());
 		}).toList();
 	}
 
@@ -558,6 +560,19 @@ public class InstitutionService {
 	private Institution requireActive(UUID id) {
 		return institutionRepository.findActiveById(id)
 				.orElseThrow(() -> new AppException("not_found", "Institution introuvable.", HttpStatus.NOT_FOUND));
+	}
+
+	/** Adhésion ouverte uniquement sur les institutions publiées (CREEE). */
+	private Institution requireOpenForAffiliation(UUID id) {
+		Institution institution = institutionRepository.findNotDeletedById(id)
+				.orElseThrow(() -> new AppException("not_found", "Institution introuvable.", HttpStatus.NOT_FOUND));
+		if (!InstitutionCreationStatus.CREEE.equals(institution.getCreationStatus())) {
+			throw new AppException(
+					"institution_not_available",
+					"Cette organisation n’est pas encore ouverte aux adhésions.",
+					HttpStatus.CONFLICT);
+		}
+		return institution;
 	}
 
 	private User requireUser(UUID id) {

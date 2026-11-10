@@ -180,8 +180,8 @@ Qualité : tests upsert/matching, IT WireMock, rejouabilité ; logs sans PII en 
 | O2 | Format du short-lived signed link (Step 3 futur) | Reporté ; stub seulement |
 | O3 | Confirmer `languages` = VARCHAR CSV | **OK** |
 | O4 | Confirmer `membership_*` en 3 colonnes | **OK** |
-| O5 | Rapprochement institutions locales existantes (nom+type vs parallèle) | À trancher avant commit 5 |
-| O6 | Création institutions : admin only (durcir vs référents) | À trancher avant commit 5 |
+| O5 | Rapprochement institutions locales existantes (nom+type vs parallèle) | **OK — parallèle (b)** : pas d’auto-lien nom+type ; match sync = `external_id` seulement |
+| O6 | Création institutions : admin only (durcir vs référents) | **OK — admin only** |
 | O7 | Colonne jaune Fields renvoyée à AfrEA | Après OK user |
 
 ---

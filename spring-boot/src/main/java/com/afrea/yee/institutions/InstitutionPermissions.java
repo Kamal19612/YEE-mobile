@@ -58,10 +58,15 @@ public class InstitutionPermissions {
 	}
 
 	public void requireCreateChild(Institution parent, UUID actorId) {
-		requireManage(parent, actorId);
+		requireCreateInstitution(actorId);
 	}
 
 	public void requireCreateContinent(UUID actorId) {
+		requireCreateInstitution(actorId);
+	}
+
+	/** O6 — création d'institutions réservée aux administrateurs site. */
+	public void requireCreateInstitution(UUID actorId) {
 		if (!isSiteAdmin(actorId)) {
 			throw new AppException("forbidden", "Access denied", HttpStatus.FORBIDDEN);
 		}

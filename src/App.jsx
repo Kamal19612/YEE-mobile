@@ -63,6 +63,10 @@ const AdminAccountDetailPage = lazyNamed(
   () => import('./features/admin/AdminAccountDetailPage'),
   'AdminAccountDetailPage',
 )
+const AdminInstitutionsPage = lazyNamed(
+  () => import('./features/admin/AdminInstitutionsPage'),
+  'AdminInstitutionsPage',
+)
 
 function RouteFallback() {
   const { t } = useTranslation()
@@ -279,6 +283,14 @@ export default function App() {
                   element={
                     <LazyRoute>
                       <AdminAccountDetailPage />
+                    </LazyRoute>
+                  }
+                />
+                <Route
+                  path="institutions"
+                  element={
+                    <LazyRoute>
+                      <AdminInstitutionsPage />
                     </LazyRoute>
                   }
                 />
