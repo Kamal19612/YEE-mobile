@@ -15,6 +15,7 @@ public record AdminAccountDetailResponse(
 		Map<String, String> socialLinks,
 		String avatarUrl,
 		String coverUrl,
+		String accountStatus,
 		boolean emailVerified,
 		boolean accountDeactivated,
 		boolean accountDeleted,

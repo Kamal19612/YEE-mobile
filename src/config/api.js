@@ -50,6 +50,7 @@ export const ENDPOINTS = {
     logout: '/auth/logout',
     forgotPassword: '/auth/forgot-password',
     resetPassword: '/auth/reset-password',
+    activateAccount: '/auth/activate-account',
     me: '/auth/me',
   },
   users: {
@@ -144,6 +145,8 @@ export const ENDPOINTS = {
     accounts: '/admin/accounts',
     account: (id) => `/admin/accounts/${id}`,
     accountActivity: (id) => `/admin/accounts/${id}/activity`,
+    verifyAccount: (id) => `/admin/accounts/${id}/verify`,
+    verifyAccounts: '/admin/accounts/verify',
     revokeSessions: (id) => `/admin/accounts/${id}/sessions/revoke`,
     deleteAccount: (id) => `/admin/accounts/${id}`,
     accountConversations: (id) => `/admin/accounts/${id}/conversations`,

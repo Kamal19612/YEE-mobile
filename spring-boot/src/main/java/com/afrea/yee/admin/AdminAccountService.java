@@ -5,7 +5,10 @@ import com.afrea.yee.admin.dto.AdminAccountListItemResponse;
 import com.afrea.yee.admin.dto.AdminAccountPatchRequest;
 import com.afrea.yee.admin.dto.AdminActivityItemResponse;
 import com.afrea.yee.admin.dto.AdminSessionResponse;
+import com.afrea.yee.auth.AuthEmailService;
 import com.afrea.yee.auth.RefreshTokenService;
+import com.afrea.yee.auth.TokenHasher;
+import com.afrea.yee.auth.UserAccountStatus;
 import com.afrea.yee.auth.entity.RefreshToken;
 import com.afrea.yee.auth.entity.User;
 import com.afrea.yee.auth.repository.RefreshTokenRepository;
@@ -27,6 +30,7 @@ import com.afrea.yee.users.UserTransformer;
 import com.afrea.yee.users.entity.Follow;
 import com.afrea.yee.users.repository.FollowRepository;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -47,8 +51,16 @@ import tools.jackson.databind.ObjectMapper;
 @Service
 public class AdminAccountService {
 
-	private static final Set<String> STATUS_FILTERS =
-			Set.of("all", "active", "unverified", "deactivated", "admins");
+	private static final Set<String> STATUS_FILTERS = Set.of(
+			"all",
+			"active",
+			"unverified",
+			"pending_verify",
+			"awaiting_password",
+			"deactivated",
+			"admins");
+	/** Invitation set-password : plus long qu'un reset oublié (1 h). */
+	private static final int ACTIVATION_TOKEN_DAYS = 7;
 	/** Bornes haute typée : évite `(:before IS NULL OR …)` qui casse PostgreSQL (param Instant null). */
 	private static final Instant ACTIVITY_CURSOR_UNBOUNDED = Instant.parse("9999-12-31T23:59:59Z");
 	private static final Set<String> ACTIVITY_TYPES = Set.of(
@@ -65,6 +77,7 @@ public class AdminAccountService {
 	private final GroupMemberRepository groupMemberRepository;
 	private final UserInstitutionRepository userInstitutionRepository;
 	private final AccountDeletionService accountDeletionService;
+	private final AuthEmailService authEmailService;
 	private final ObjectMapper objectMapper;
 
 	public AdminAccountService(
@@ -79,6 +92,7 @@ public class AdminAccountService {
 			GroupMemberRepository groupMemberRepository,
 			UserInstitutionRepository userInstitutionRepository,
 			AccountDeletionService accountDeletionService,
+			AuthEmailService authEmailService,
 			ObjectMapper objectMapper) {
 		this.userRepository = userRepository;
 		this.refreshTokenRepository = refreshTokenRepository;
@@ -91,6 +105,7 @@ public class AdminAccountService {
 		this.groupMemberRepository = groupMemberRepository;
 		this.userInstitutionRepository = userInstitutionRepository;
 		this.accountDeletionService = accountDeletionService;
+		this.authEmailService = authEmailService;
 		this.objectMapper = objectMapper;
 	}
 
@@ -144,10 +159,15 @@ public class AdminAccountService {
 			if (user.isAccountDeactivated() != next) {
 				user.setAccountDeactivated(next);
 				user.setDeactivatedAt(next ? Instant.now() : null);
-				changed = true;
 				if (next) {
+					user.setStatus(UserAccountStatus.DESACTIVE);
 					refreshTokenService.revokeAllForUser(userId);
+				} else if (UserAccountStatus.DESACTIVE.equals(user.getStatus())) {
+					user.setStatus(user.getPasswordHash() != null && user.isEmailVerified()
+							? UserAccountStatus.ACTIF
+							: UserAccountStatus.A_VERIFIER);
 				}
+				changed = true;
 			}
 		}
 
@@ -179,6 +199,70 @@ public class AdminAccountService {
 		}
 		userRepository.save(user);
 		return get(userId);
+	}
+
+	/**
+	 * Valide un compte importé ({@code A_VERIFIER} → {@code VERIFIE}) et envoie
+	 * le lien one-shot de définition du mot de passe.
+	 */
+	@Transactional
+	public Map<String, Object> verify(UUID userId) {
+		return verifyMany(List.of(userId));
+	}
+
+	@Transactional
+	public Map<String, Object> verifyMany(List<UUID> userIds) {
+		if (userIds == null || userIds.isEmpty()) {
+			throw new AppException("bad_request", "Aucun compte à vérifier.", HttpStatus.BAD_REQUEST);
+		}
+		int verified = 0;
+		int skipped = 0;
+		List<Map<String, String>> activationLinks = new ArrayList<>();
+
+		for (UUID userId : userIds) {
+			if (userId == null) {
+				skipped++;
+				continue;
+			}
+			User user = userRepository.findById(userId).orElse(null);
+			if (user == null
+					|| user.isAccountDeleted()
+					|| user.isAccountDeactivated()
+					|| UserAccountStatus.DESACTIVE.equals(user.getStatus())) {
+				skipped++;
+				continue;
+			}
+			if (!UserAccountStatus.A_VERIFIER.equals(user.getStatus())
+					&& !UserAccountStatus.VERIFIE.equals(user.getStatus())) {
+				skipped++;
+				continue;
+			}
+
+			user.setStatus(UserAccountStatus.VERIFIE);
+			String rawToken = TokenHasher.generateRawToken(32);
+			user.setPasswordResetTokenHash(TokenHasher.sha256(rawToken));
+			user.setPasswordResetExpiresAt(Instant.now().plus(ACTIVATION_TOKEN_DAYS, ChronoUnit.DAYS));
+			String activationUrl = authEmailService.sendAccountActivationEmail(user.getEmail(), rawToken);
+			userRepository.save(user);
+			verified++;
+
+			if (authEmailService.shouldExposeLinks()) {
+				Map<String, String> link = new LinkedHashMap<>();
+				link.put("userId", user.getId().toString());
+				link.put("email", user.getEmail());
+				link.put("activationUrl", activationUrl);
+				activationLinks.add(link);
+			}
+		}
+
+		Map<String, Object> data = new LinkedHashMap<>();
+		data.put("message", "Vérification effectuée.");
+		data.put("verified", verified);
+		data.put("skipped", skipped);
+		if (!activationLinks.isEmpty()) {
+			data.put("activationLinks", activationLinks);
+		}
+		return data;
 	}
 
 	@Transactional
@@ -321,6 +405,7 @@ public class AdminAccountService {
 				user.getEmail(),
 				userTransformer.resolveAvatarUrl(user),
 				nullToEmpty(user.getProfession()),
+				nullToEmpty(user.getStatus()),
 				user.isEmailVerified(),
 				user.isAccountDeactivated(),
 				user.isAccountDeleted(),
@@ -345,6 +430,7 @@ public class AdminAccountService {
 				parseSocialLinks(user.getSocialLinksJson()),
 				userTransformer.resolveAvatarUrl(user),
 				user.getCoverUrl(),
+				nullToEmpty(user.getStatus()),
 				user.isEmailVerified(),
 				user.isAccountDeactivated(),
 				user.isAccountDeleted(),
@@ -383,7 +469,7 @@ public class AdminAccountService {
 		if (!STATUS_FILTERS.contains(value)) {
 			throw new AppException(
 					"invalid_status",
-					"Statut invalide. Valeurs : all, active, unverified, deactivated, admins.",
+					"Statut invalide. Valeurs : all, active, unverified, pending_verify, awaiting_password, deactivated, admins.",
 					HttpStatus.BAD_REQUEST);
 		}
 		return value;

@@ -56,6 +56,21 @@ export async function patchAdminAccount(userId, payload) {
   })
 }
 
+export async function verifyAdminAccount(userId) {
+  return appApiFetch(ENDPOINTS.admin.verifyAccount(userId), {
+    method: 'POST',
+    auth: true,
+  })
+}
+
+export async function verifyAdminAccounts(userIds) {
+  return appApiFetch(ENDPOINTS.admin.verifyAccounts, {
+    method: 'POST',
+    auth: true,
+    body: JSON.stringify({ userIds }),
+  })
+}
+
 export async function revokeAdminAccountSessions(userId) {
   return appApiFetch(ENDPOINTS.admin.revokeSessions(userId), {
     method: 'POST',

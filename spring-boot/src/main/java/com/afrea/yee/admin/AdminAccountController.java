@@ -4,8 +4,10 @@ import com.afrea.yee.admin.dto.AdminAccountDetailResponse;
 import com.afrea.yee.admin.dto.AdminAccountListItemResponse;
 import com.afrea.yee.admin.dto.AdminAccountPatchRequest;
 import com.afrea.yee.admin.dto.AdminActivityItemResponse;
+import com.afrea.yee.admin.dto.AdminVerifyAccountsRequest;
 import com.afrea.yee.auth.security.UserPrincipal;
 import com.afrea.yee.common.api.ApiResponse;
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -61,6 +63,17 @@ public class AdminAccountController {
 			@PathVariable UUID id,
 			@RequestBody AdminAccountPatchRequest body) {
 		return ResponseEntity.ok(ApiResponse.ok(adminAccountService.patch(principal.getId(), id, body)));
+	}
+
+	@PostMapping("/verify")
+	public ResponseEntity<ApiResponse<Map<String, Object>>> verifyMany(
+			@Valid @RequestBody AdminVerifyAccountsRequest body) {
+		return ResponseEntity.ok(ApiResponse.ok(adminAccountService.verifyMany(body.userIds())));
+	}
+
+	@PostMapping("/{id}/verify")
+	public ResponseEntity<ApiResponse<Map<String, Object>>> verify(@PathVariable UUID id) {
+		return ResponseEntity.ok(ApiResponse.ok(adminAccountService.verify(id)));
 	}
 
 	@PostMapping("/{id}/sessions/revoke")

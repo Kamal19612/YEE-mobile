@@ -12,7 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 
 /**
- * Mails transactionnels uniquement : vérification d'e-mail et mot de passe oublié.
+ * Mails transactionnels uniquement : vérification d'e-mail, activation post-vérif admin
+ * et mot de passe oublié.
  * <p>
  * Aucune notification métier (messages, likes, groupes, etc.) n'est envoyée par mail.
  * Sans {@code SPRING_MAIL_HOST}, aucun envoi (le lien est seulement renvoyé
@@ -85,6 +86,30 @@ public class AuthEmailService {
 				— AfrEA-YEE
 				""".formatted(url, url);
 		dispatch(email, "Réinitialisation du mot de passe / Password reset — AfrEA-YEE", body);
+		return url;
+	}
+
+	/**
+	 * Invitation post-vérif admin (comptes miroir AfrEA) : choisir un mot de passe local.
+	 *
+	 * @return URL d'activation (exposée au client uniquement si expose-email-links).
+	 */
+	public String sendAccountActivationEmail(String email, String token) {
+		String url = frontendUrl("/activate-account", token);
+		String body = """
+				Bonjour,
+
+				Votre compte AfrEA-YEE a été validé. Choisissez votre mot de passe :
+				%s
+
+				Hello,
+
+				Your AfrEA-YEE account has been approved. Set your password:
+				%s
+
+				— AfrEA-YEE
+				""".formatted(url, url);
+		dispatch(email, "Activez votre compte AfrEA-YEE / Activate your AfrEA-YEE account", body);
 		return url;
 	}
 

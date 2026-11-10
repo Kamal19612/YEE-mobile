@@ -69,8 +69,11 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 			WHERE (
 			    :status = 'all'
 			    OR (:status = 'active' AND u.accountDeactivated = false AND u.emailVerified = true)
-			    OR (:status = 'unverified' AND u.accountDeactivated = false AND u.emailVerified = false)
-			    OR (:status = 'deactivated' AND u.accountDeactivated = true)
+			    OR (:status = 'unverified' AND u.accountDeactivated = false AND u.emailVerified = false
+			        AND u.status <> 'A_VERIFIER' AND u.status <> 'VERIFIE')
+			    OR (:status = 'pending_verify' AND u.status = 'A_VERIFIER' AND u.accountDeleted = false)
+			    OR (:status = 'awaiting_password' AND u.status = 'VERIFIE' AND u.accountDeleted = false)
+			    OR (:status = 'deactivated' AND (u.accountDeactivated = true OR u.status = 'DESACTIVE'))
 			    OR (:status = 'admins' AND u.siteAdmin = true)
 			  )
 			  AND u.accountDeleted = false

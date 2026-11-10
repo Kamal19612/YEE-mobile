@@ -190,16 +190,23 @@ public class AuthService {
 					"Email ou mot de passe incorrect.",
 					HttpStatus.UNAUTHORIZED);
 		}
+		if (user.isAccountDeactivated() || UserAccountStatus.DESACTIVE.equals(user.getStatus())) {
+			throw new AppException(
+					"account_deactivated",
+					"Ce compte a été désactivé.",
+					HttpStatus.FORBIDDEN);
+		}
+		if (UserAccountStatus.A_VERIFIER.equals(user.getStatus())
+				|| UserAccountStatus.VERIFIE.equals(user.getStatus())) {
+			throw new AppException(
+					"account_pending_activation",
+					"Ce compte attend une validation ou l’activation du mot de passe.",
+					HttpStatus.FORBIDDEN);
+		}
 		if (!user.isEmailVerified()) {
 			throw new AppException(
 					"email_not_verified",
 					"Merci de vérifier votre email avant de vous connecter.",
-					HttpStatus.FORBIDDEN);
-		}
-		if (user.isAccountDeactivated() || "DESACTIVE".equals(user.getStatus())) {
-			throw new AppException(
-					"account_deactivated",
-					"Ce compte a été désactivé.",
 					HttpStatus.FORBIDDEN);
 		}
 		// Pas de second facteur. La colonne two_factor_enabled reste en base
@@ -284,6 +291,69 @@ public class AuthService {
 		user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
 		user.setPasswordResetTokenHash(null);
 		user.setPasswordResetExpiresAt(null);
+		// Lien d'activation admin réutilisé via /reset-password : finalise le statut.
+		if (UserAccountStatus.VERIFIE.equals(user.getStatus())
+				|| UserAccountStatus.A_VERIFIER.equals(user.getStatus())) {
+			user.setStatus(UserAccountStatus.ACTIF);
+			user.setEmailVerified(true);
+			user.setEmailVerificationTokenHash(null);
+			user.setEmailVerificationExpiresAt(null);
+		}
+		refreshTokenService.revokeAllForUser(user.getId());
+	}
+
+	/**
+	 * Activation post-vérif admin (comptes miroir AfrEA) : set password → {@code ACTIF}.
+	 * Réutilise le jeton password-reset émis par l'admin.
+	 */
+	@Transactional
+	public void activateAccount(ResetPasswordRequest request) {
+		List<String> passwordErrors = PasswordPolicy.errors(request.newPassword());
+		if (!passwordErrors.isEmpty()) {
+			throw validationFailed(Map.of("newPassword", passwordErrors));
+		}
+
+		String hash = TokenHasher.sha256(request.token());
+		User user = userRepository.findByPasswordResetTokenHash(hash)
+				.orElseThrow(() -> new AppException(
+						"invalid_token",
+						"Lien d’activation invalide ou déjà utilisé.",
+						HttpStatus.BAD_REQUEST));
+
+		if (user.getPasswordResetExpiresAt() == null
+				|| user.getPasswordResetExpiresAt().isBefore(Instant.now())) {
+			throw new AppException(
+					"expired_token",
+					"Lien d’activation expiré.",
+					HttpStatus.BAD_REQUEST);
+		}
+
+		if (user.isAccountDeleted()
+				|| user.isAccountDeactivated()
+				|| UserAccountStatus.DESACTIVE.equals(user.getStatus())) {
+			throw new AppException(
+					"account_deactivated",
+					"Ce compte a été désactivé.",
+					HttpStatus.FORBIDDEN);
+		}
+
+		if (!UserAccountStatus.VERIFIE.equals(user.getStatus())
+				&& !UserAccountStatus.A_VERIFIER.equals(user.getStatus())) {
+			throw new AppException(
+					"invalid_token",
+					"Lien d’activation invalide ou déjà utilisé.",
+					HttpStatus.BAD_REQUEST);
+		}
+
+		user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+		user.setPasswordResetTokenHash(null);
+		user.setPasswordResetExpiresAt(null);
+		user.setStatus(UserAccountStatus.ACTIF);
+		user.setEmailVerified(true);
+		user.setEmailVerificationTokenHash(null);
+		user.setEmailVerificationExpiresAt(null);
+		user.setAccountDeactivated(false);
+		user.setDeactivatedAt(null);
 		refreshTokenService.revokeAllForUser(user.getId());
 	}
 

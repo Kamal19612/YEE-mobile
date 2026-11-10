@@ -7,6 +7,7 @@ public record AdminAccountListItemResponse(
 		String email,
 		String avatarUrl,
 		String profession,
+		String accountStatus,
 		boolean emailVerified,
 		boolean accountDeactivated,
 		boolean accountDeleted,

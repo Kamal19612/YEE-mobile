@@ -152,6 +152,27 @@ public class AuthController {
 		return ResponseEntity.ok(ApiResponse.ok(Map.of("message", "Mot de passe réinitialisé avec succès.")));
 	}
 
+	@PostMapping("/activate-account")
+	public ResponseEntity<ApiResponse<Map<String, String>>> activateAccount(
+			@Valid @RequestBody ResetPasswordRequest body) {
+		authService.activateAccount(body);
+		return ResponseEntity.ok(ApiResponse.ok(Map.of(
+				"message",
+				"Compte activé. Vous pouvez vous connecter.")));
+	}
+
+	/**
+	 * Emplacement réservé Step 3 AfrEA→AED (lien signé). Désactivé en v1
+	 * ({@code app.afrea.signed-link.enabled=false}).
+	 */
+	@PostMapping("/afrea-session")
+	public ResponseEntity<ApiResponse<Map<String, String>>> afreaSession() {
+		throw new AppException(
+				"feature_disabled",
+				"Le démarrage de session via lien AfrEA n’est pas activé.",
+				HttpStatus.NOT_IMPLEMENTED);
+	}
+
 	@GetMapping("/me")
 	public ResponseEntity<ApiResponse<?>> me(@AuthenticationPrincipal UserPrincipal principal) {
 		return ResponseEntity.ok(ApiResponse.ok(authService.me(principal.getId())));

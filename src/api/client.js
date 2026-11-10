@@ -113,7 +113,8 @@ function isAuthEndpointPath(path) {
     p.includes(ENDPOINTS.auth.refresh) ||
     p.includes(ENDPOINTS.auth.register) ||
     p.includes(ENDPOINTS.auth.forgotPassword) ||
-    p.includes(ENDPOINTS.auth.resetPassword)
+    p.includes(ENDPOINTS.auth.resetPassword) ||
+    p.includes(ENDPOINTS.auth.activateAccount)
   )
 }
 

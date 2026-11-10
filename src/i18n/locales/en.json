@@ -95,6 +95,13 @@
     "resetSuccess": "Password reset successfully.",
     "resetFailed": "Could not reset the password.",
     "resetMissingToken": "Incomplete link — missing token. Request a new link.",
+    "activateTitle": "Activate your account",
+    "activateHint": "Your account was approved. Choose a password to sign in.",
+    "activateSubmit": "Activate account",
+    "activating": "Activating…",
+    "activateSuccess": "Account activated. You can sign in.",
+    "activateFailed": "Could not activate the account.",
+    "activateMissingToken": "Incomplete link — missing token. Request a new invite.",
     "newPassword": "New password",
     "confirmPassword": "Confirm password",
     "passwordMismatch": "Passwords do not match.",
@@ -223,7 +230,8 @@
       "online": "Online",
       "upcomingEvents": "Upcoming events",
       "upcomingEventsEmpty": "No upcoming events right now.",
-      "upcomingEventsAll": "See all events"
+      "upcomingEventsAll": "See all events",
+      "seeMembers": "See members"
     },
     "filters": {
       "all": "Published",
@@ -309,7 +317,11 @@
       "likersError": "Could not load likes.",
       "postAuthorBadge": "Author",
       "seeMore": "… see more",
-      "seeLess": "see less"
+      "seeLess": "see less",
+      "linkPreviewLoading": "Loading link preview…",
+      "linkPreviewDismiss": "Hide preview",
+      "linkPreviewVideo": "Video",
+      "openLink": "Open link"
     }
   },
   "members": {
@@ -898,12 +910,17 @@
     "disablePush": "Disable",
     "pushEnabling": "Enabling…",
     "pushEnabled": "Push notifications are enabled on this device.",
+    "pushSilentHint": "If alerts arrive without sound or preview: Phone Settings → Apps → YEE (or Chrome) → Notifications → YEE category → Alerting / Sound, and enable “Pop on screen”.",
     "pushDenied": "Permission denied. Change it in your browser settings.",
     "pushServerDisabled": "The server has no VAPID keys configured yet.",
     "pushError": "Could not enable push notifications.",
     "pushOsBlocked": "Chrome could not reach the push service (FCM). Check: 1) padlock → Notifications = Allow 2) Windows/macOS Settings → Notifications → Google Chrome on 3) chrome://settings/content/notifications 4) restart Chrome. Corporate networks may block FCM.",
     "pushUnsupported": "This browser does not support push notifications.",
-    "pushOptInHint": "Enable push notifications to get alerts even when the app is closed."
+    "pushOptInHint": "Enable push notifications to get alerts even when the app is closed.",
+    "offlineHint": "You are offline — you can draft text; it will send when you are back online.",
+    "offlineQueued": "You are offline — {{count}} item(s) queued to sync when the network returns.",
+    "offlineSyncing": "Syncing: {{count}} item(s) pending…",
+    "offlineMediaBlocked": "Photos, audio and PDFs need a connection. Send text only, or reconnect to attach a file."
   },
   "events": {
     "title": "Events",
@@ -1016,6 +1033,18 @@
       "allStatuses": "All statuses",
       "otherCategory": "Other",
       "reset": "Reset"
+    },
+    "detail": {
+      "inDays_one": "In {{count}} day",
+      "inDays_other": "In {{count}} days",
+      "today": "Today",
+      "ongoing": "Happening now",
+      "ended": "Ended",
+      "addToCalendar": "Add to calendar",
+      "schedule": "Time",
+      "venue": "Venue",
+      "localTime": "Your local time ({{tz}})",
+      "documents": "Documents and gallery"
     }
   },
   "resources": {
@@ -1099,6 +1128,8 @@
     "activityEmpty": "No activity for this filter.",
     "filters": {
       "all": "All",
+      "pending_verify": "To verify",
+      "awaiting_password": "Password",
       "active": "Active",
       "unverified": "Unverified",
       "deactivated": "Deactivated",
@@ -1108,6 +1139,8 @@
     "status": {
       "admin": "Admin",
       "active": "Active",
+      "pendingVerify": "To verify",
+      "awaitingPassword": "Password pending",
       "unverified": "Unverified",
       "deactivated": "Deactivated",
       "deleted": "Deleted"
@@ -1177,6 +1210,13 @@
       "reactivateTitle": "Reactivate account",
       "reactivateHelp": "The user will be able to sign in again with the same email.",
       "reactivate": "Reactivate",
+      "verifyInviteTitle": "Approve imported account",
+      "verifyInviteHelp": "Sets status to verified and sends a link to set a local password (AfrEA accounts).",
+      "verifyInvite": "Approve & invite",
+      "resendInvite": "Resend invite",
+      "verifyInviteSending": "Sending…",
+      "verifyInviteSent": "Invite sent to {{name}}.",
+      "verifyInviteDevLink": "Invite ready (dev): {{url}}",
       "verifyTitle": "Verify email",
       "verifyHelp": "Mark the email as verified without using the confirmation link.",
       "verify": "Verify",

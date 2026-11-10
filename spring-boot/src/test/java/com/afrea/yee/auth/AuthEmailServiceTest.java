@@ -66,4 +66,15 @@ class AuthEmailServiceTest {
 		assertThat(url).contains("/reset-password").contains("token=raw-reset-token");
 		verify(sender).send(mimeMessage);
 	}
+
+	@Test
+	void sendsAccountActivationWhenSmtpConfigured() {
+		when(provider.getIfAvailable()).thenReturn(sender);
+		AuthEmailService service = new AuthEmailService(properties, provider, "smtp.example", "mailer");
+
+		String url = service.sendAccountActivationEmail("user@example.org", "raw-activate-token");
+
+		assertThat(url).contains("/activate-account").contains("token=raw-activate-token");
+		verify(sender).send(mimeMessage);
+	}
 }

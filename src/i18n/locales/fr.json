@@ -95,6 +95,13 @@
     "resetSuccess": "Mot de passe réinitialisé avec succès.",
     "resetFailed": "Impossible de réinitialiser le mot de passe.",
     "resetMissingToken": "Lien incomplet — jeton manquant. Demandez un nouveau lien.",
+    "activateTitle": "Activer mon compte",
+    "activateHint": "Votre compte a été validé. Choisissez un mot de passe pour vous connecter.",
+    "activateSubmit": "Activer mon compte",
+    "activating": "Activation…",
+    "activateSuccess": "Compte activé. Vous pouvez vous connecter.",
+    "activateFailed": "Impossible d’activer le compte.",
+    "activateMissingToken": "Lien incomplet — jeton manquant. Demandez une nouvelle invitation.",
     "newPassword": "Nouveau mot de passe",
     "confirmPassword": "Confirmer le mot de passe",
     "passwordMismatch": "Les mots de passe ne correspondent pas.",
@@ -223,7 +230,8 @@
       "online": "En ligne",
       "upcomingEvents": "Événements à venir",
       "upcomingEventsEmpty": "Aucun événement à venir pour le moment.",
-      "upcomingEventsAll": "Voir tous les événements"
+      "upcomingEventsAll": "Voir tous les événements",
+      "seeMembers": "Voir les membres"
     },
     "filters": {
       "all": "Publiées",
@@ -309,7 +317,11 @@
       "likersError": "Impossible de charger les j’aime.",
       "postAuthorBadge": "Auteur",
       "seeMore": "… voir plus",
-      "seeLess": "voir moins"
+      "seeLess": "voir moins",
+      "linkPreviewLoading": "Chargement de l’aperçu du lien…",
+      "linkPreviewDismiss": "Masquer l’aperçu",
+      "linkPreviewVideo": "Vidéo",
+      "openLink": "Ouvrir le lien"
     }
   },
   "members": {
@@ -902,8 +914,13 @@
     "pushServerDisabled": "Le serveur n’a pas encore de clés VAPID configurées.",
     "pushError": "Impossible d’activer les notifications push.",
     "pushOsBlocked": "Chrome n’a pas pu joindre le service push (FCM). Vérifiez : 1) cadenas → Notifications = Autoriser 2) Paramètres Windows/macOS → Notifications → Google Chrome activé 3) chrome://settings/content/notifications 4) redémarrez Chrome. Sur réseau d’entreprise, FCM peut être bloqué.",
+    "pushSilentHint": "Si la notification arrive sans son ni aperçu : Paramètres du téléphone → Applications → YEE (ou Chrome) → Notifications → catégorie YEE → Alerte / Sonnerie, et activez « Afficher à l’écran ».",
     "pushUnsupported": "Ce navigateur ne prend pas en charge les notifications push.",
-    "pushOptInHint": "Activez les notifications push pour être alerté·e même quand l’app est fermée."
+    "pushOptInHint": "Activez les notifications push pour être alerté·e même quand l’app est fermée.",
+    "offlineHint": "Mode hors-ligne — vous pouvez rédiger un texte ; il sera envoyé au retour du réseau.",
+    "offlineQueued": "Mode hors-ligne — {{count}} élément(s) en file, synchronisation au retour du réseau.",
+    "offlineSyncing": "Synchronisation : {{count}} élément(s) en attente…",
+    "offlineMediaBlocked": "Les photos, audio et PDF nécessitent une connexion. Envoyez le texte seul, ou reconnectez-vous pour joindre un fichier."
   },
   "events": {
     "title": "Événements",
@@ -1016,6 +1033,18 @@
       "allStatuses": "Tous les statuts",
       "otherCategory": "Autres",
       "reset": "Réinitialiser"
+    },
+    "detail": {
+      "inDays_one": "Dans {{count}} jour",
+      "inDays_other": "Dans {{count}} jours",
+      "today": "Aujourd’hui",
+      "ongoing": "En cours",
+      "ended": "Terminé",
+      "addToCalendar": "Ajouter au calendrier",
+      "schedule": "Horaires",
+      "venue": "Lieu",
+      "localTime": "Votre heure locale ({{tz}})",
+      "documents": "Documents et galerie"
     }
   },
   "resources": {
@@ -1099,6 +1128,8 @@
     "activityEmpty": "Aucune activité pour ce filtre.",
     "filters": {
       "all": "Tous",
+      "pending_verify": "À vérifier",
+      "awaiting_password": "Mot de passe",
       "active": "Actifs",
       "unverified": "Non vérifiés",
       "deactivated": "Désactivés",
@@ -1108,6 +1139,8 @@
     "status": {
       "admin": "Admin",
       "active": "Actif",
+      "pendingVerify": "À vérifier",
+      "awaitingPassword": "Mot de passe à définir",
       "unverified": "Non vérifié",
       "deactivated": "Désactivé",
       "deleted": "Supprimé"
@@ -1177,6 +1210,13 @@
       "reactivateTitle": "Réactiver le compte",
       "reactivateHelp": "L’utilisateur pourra à nouveau se connecter avec le même e-mail.",
       "reactivate": "Réactiver",
+      "verifyInviteTitle": "Valider le compte importé",
+      "verifyInviteHelp": "Passe le statut à « vérifié » et envoie un lien pour définir le mot de passe local (comptes AfrEA).",
+      "verifyInvite": "Valider et inviter",
+      "resendInvite": "Renvoyer l’invitation",
+      "verifyInviteSending": "Envoi…",
+      "verifyInviteSent": "Invitation envoyée à {{name}}.",
+      "verifyInviteDevLink": "Invitation prête (dev) : {{url}}",
       "verifyTitle": "Vérifier l’e-mail",
       "verifyHelp": "Marquer l’adresse e-mail comme vérifiée sans passer par le lien envoyé.",
       "verify": "Vérifier",

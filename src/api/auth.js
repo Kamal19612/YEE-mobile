@@ -211,4 +211,13 @@ export async function resetPassword(token, newPassword) {
   })
 }
 
+export async function activateAccount(token, newPassword) {
+  return appApiFetch(ENDPOINTS.auth.activateAccount, {
+    method: 'POST',
+    skipAuth: true,
+    suppressUnauthorized: true,
+    body: JSON.stringify({ token, newPassword }),
+  })
+}
+
 export { getToken, clearToken, setToken }

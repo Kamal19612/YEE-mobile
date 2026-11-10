@@ -50,6 +50,8 @@ public class SecurityConfig {
 								"/api/auth/refresh",
 								"/api/auth/forgot-password",
 								"/api/auth/reset-password",
+								"/api/auth/activate-account",
+								"/api/auth/afrea-session",
 								"/api/auth/resend-verification")
 						.permitAll()
 						.requestMatchers("/api/auth/logout", "/api/auth/me").authenticated()
