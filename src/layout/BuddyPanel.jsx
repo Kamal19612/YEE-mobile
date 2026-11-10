@@ -29,7 +29,7 @@ const iconMap = {
 }
 
 const PRIMARY_IDS = ['stories', 'members', 'groups', 'institutions', 'events', 'resources']
-const ADMIN_IDS = ['admin-accounts']
+const ADMIN_IDS = ['admin-accounts', 'admin-institutions']
 
 function isItemActive(pathname, href) {
   if (href === '/') return pathname === '/'

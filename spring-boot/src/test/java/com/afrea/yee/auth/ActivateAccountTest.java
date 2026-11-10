@@ -106,6 +106,22 @@ class ActivateAccountTest {
 		assertThat(user.isEmailVerified()).isTrue();
 	}
 
+	@Test
+	void resetPasswordDoesNotActivateUnverifiedImport() {
+		String rawToken = "reset-must-not-activate-xxxx";
+		User user = verifiedPendingUser(rawToken);
+		user.setStatus(UserAccountStatus.A_VERIFIER);
+		when(userRepository.findByPasswordResetTokenHash(TokenHasher.sha256(rawToken)))
+				.thenReturn(Optional.of(user));
+		when(passwordEncoder.encode(any())).thenReturn("bcrypt-hash");
+
+		authService.resetPassword(new ResetPasswordRequest(rawToken, "correct-horse"));
+
+		assertThat(user.getStatus()).isEqualTo(UserAccountStatus.A_VERIFIER);
+		assertThat(user.isEmailVerified()).isFalse();
+		assertThat(user.getPasswordHash()).isEqualTo("bcrypt-hash");
+	}
+
 	private static User verifiedPendingUser(String rawToken) {
 		User user = new User();
 		ReflectionTestUtils.setField(user, "id", UUID.randomUUID());

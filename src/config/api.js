@@ -146,7 +146,7 @@ export const ENDPOINTS = {
     account: (id) => `/admin/accounts/${id}`,
     accountActivity: (id) => `/admin/accounts/${id}/activity`,
     verifyAccount: (id) => `/admin/accounts/${id}/verify`,
-    verifyAccounts: '/admin/accounts/verify`,
+    verifyAccounts: '/admin/accounts/verify',
     revokeSessions: (id) => `/admin/accounts/${id}/sessions/revoke`,
     deleteAccount: (id) => `/admin/accounts/${id}`,
     accountConversations: (id) => `/admin/accounts/${id}/conversations`,

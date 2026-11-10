@@ -259,6 +259,13 @@ public class AuthService {
 
 		String email = normalizeEmail(request.email());
 		userRepository.findByEmailIgnoreCase(email).ifPresent(user -> {
+			// Option A : comptes miroir non vérifiés ne contournent pas la vérif admin via « mot de passe oublié ».
+			if (user.isAccountDeleted()
+					|| user.isAccountDeactivated()
+					|| UserAccountStatus.DESACTIVE.equals(user.getStatus())
+					|| UserAccountStatus.A_VERIFIER.equals(user.getStatus())) {
+				return;
+			}
 			String rawToken = TokenHasher.generateRawToken(32);
 			user.setPasswordResetTokenHash(TokenHasher.sha256(rawToken));
 			user.setPasswordResetExpiresAt(Instant.now().plus(1, ChronoUnit.HOURS));
@@ -291,9 +298,8 @@ public class AuthService {
 		user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
 		user.setPasswordResetTokenHash(null);
 		user.setPasswordResetExpiresAt(null);
-		// Lien d'activation admin réutilisé via /reset-password : finalise le statut.
-		if (UserAccountStatus.VERIFIE.equals(user.getStatus())
-				|| UserAccountStatus.A_VERIFIER.equals(user.getStatus())) {
+		// Activation post-vérif admin uniquement (VERIFIE). A_VERIFIER reste bloqué.
+		if (UserAccountStatus.VERIFIE.equals(user.getStatus())) {
 			user.setStatus(UserAccountStatus.ACTIF);
 			user.setEmailVerified(true);
 			user.setEmailVerificationTokenHash(null);

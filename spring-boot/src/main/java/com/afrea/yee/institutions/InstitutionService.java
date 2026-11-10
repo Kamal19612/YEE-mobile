@@ -17,6 +17,7 @@ import com.afrea.yee.institutions.repository.InstitutionRepository;
 import com.afrea.yee.institutions.repository.UserInstitutionRepository;
 import com.afrea.yee.users.UserTransformer;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -96,12 +97,17 @@ public class InstitutionService {
 			String statusFilter = "all".equalsIgnoreCase(st) ? null : st;
 			List<UserInstitution> affiliations = userInstitutionRepository.findByUserAndOptionalStatus(userId, statusFilter);
 			Map<UUID, String> affiliationByInst = new HashMap<>();
-			List<Institution> institutions = affiliations.stream()
-					.map(ui -> {
-						affiliationByInst.put(ui.getInstitution().getId(), ui.getStatus());
-						return ui.getInstitution();
-					})
-					.toList();
+			List<Institution> institutions = new ArrayList<>();
+			for (UserInstitution ui : affiliations) {
+				Institution institution = ui.getInstitution();
+				if (institution == null
+						|| institution.isDeleted()
+						|| !InstitutionCreationStatus.CREEE.equals(institution.getCreationStatus())) {
+					continue;
+				}
+				affiliationByInst.put(institution.getId(), ui.getStatus());
+				institutions.add(institution);
+			}
 			return ApiResponse.ok(toResponses(institutions, viewerId, affiliationByInst));
 		}
 
@@ -534,16 +540,21 @@ public class InstitutionService {
 			String countryName = null;
 			String continentName = null;
 			if ("local".equals(i.getType())) {
-				Institution country = i.getParent() != null ? i.getParent() : byId.get(i.getParentId());
-				if (country != null) {
-					countryName = country.getName();
-					UUID continentId = country.getParentId();
-					Institution continent = continentId == null ? null : byId.get(continentId);
-					if (continent == null && country.getParent() != null) {
-						continent = country.getParent();
-					}
-					if (continent != null) {
-						continentName = continent.getName();
+				Institution parent = i.getParent() != null ? i.getParent() : byId.get(i.getParentId());
+				if (parent != null) {
+					// Hiérarchie classique pays→club, ou miroir AfrEA plat (local sous continent).
+					if ("continent".equals(parent.getType())) {
+						continentName = parent.getName();
+					} else {
+						countryName = parent.getName();
+						UUID continentId = parent.getParentId();
+						Institution continent = continentId == null ? null : byId.get(continentId);
+						if (continent == null && parent.getParent() != null) {
+							continent = parent.getParent();
+						}
+						if (continent != null) {
+							continentName = continent.getName();
+						}
 					}
 				}
 			} else if ("country".equals(i.getType())) {
