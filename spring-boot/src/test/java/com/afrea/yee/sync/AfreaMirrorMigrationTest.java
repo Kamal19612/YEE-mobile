@@ -29,4 +29,12 @@ class AfreaMirrorMigrationTest {
 		assertThat(sql).contains("ENABLE ROW LEVEL SECURITY");
 		assertThat(sql).contains("TO yee_api");
 	}
+
+	@Test
+	void v32AllowsInactiveAffiliationStatus() throws IOException {
+		String sql = new ClassPathResource("db/migration/V32__user_institutions_inactive.sql")
+				.getContentAsString(StandardCharsets.UTF_8);
+		assertThat(sql).contains("inactive");
+		assertThat(sql).contains("chk_user_institutions_status");
+	}
 }
