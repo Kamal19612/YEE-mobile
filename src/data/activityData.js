@@ -1,4 +1,4 @@
-/** Activity / news filter constants — AfrEA-YEE actualités */
+/** Activity / news filter constants — AFRICAN EVALUATORS DATABASE actualités */
 
 export const STORY_COUNTRIES = [
   'Bénin',
@@ -24,12 +24,4 @@ export const STORY_THEMATICS = [
   'Gouvernance',
   'Jeunesse & Emploi',
   'Méthodes mixtes',
-]
-
-export const STORY_LANGUAGES = [
-  { code: 'fr', label: 'Français' },
-  { code: 'en', label: 'English' },
-  { code: 'ar', label: 'العربية' },
-  { code: 'pt', label: 'Português' },
-  { code: 'sw', label: 'Kiswahili' },
 ]

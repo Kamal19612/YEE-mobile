@@ -1,13 +1,4 @@
-/** Layout navigation definitions — AfrEA-YEE app shell */
-
-export const navItemDefs = [
-  { id: 'stories', href: '/', labelKey: 'nav.stories' },
-  { id: 'members', href: '/members', labelKey: 'nav.members' },
-  { id: 'groups', href: '/groups', labelKey: 'nav.groups' },
-  { id: 'institutions', href: '/institutions', labelKey: 'nav.institutions' },
-  { id: 'events', href: '/events', labelKey: 'nav.events' },
-  { id: 'resources', href: '/resources', labelKey: 'nav.resources' },
-]
+/** Layout navigation definitions — AFRICAN EVALUATORS DATABASE app shell */
 
 export const panelItemDefs = [
   { id: 'stories', href: '/', icon: 'activity', count: 0, labelKey: 'panel.stories' },
@@ -32,6 +23,14 @@ export const panelItemDefs = [
     labelKey: 'panel.adminInstitutions',
     adminOnly: true,
   },
+  {
+    id: 'admin-feed',
+    href: '/admin/feed',
+    icon: 'activity',
+    count: 0,
+    labelKey: 'panel.adminFeed',
+    adminOnly: true,
+  },
 ]
 
 export const profileMenuDefs = [
@@ -45,6 +44,12 @@ export const profileMenuDefs = [
     labelKey: 'profile.adminInstitutions',
     adminOnly: true,
   },
+  {
+    id: 'admin-feed',
+    href: '/admin/feed',
+    labelKey: 'profile.adminFeed',
+    adminOnly: true,
+  },
   { id: 'logout', href: '/', labelKey: 'profile.logout' },
 ]
 
@@ -54,25 +59,3 @@ export const footerLinkDefs = [
   { id: 'terms', href: '/legal/terms', labelKey: 'footer.terms' },
   { id: 'contact', href: '/legal/contact', labelKey: 'footer.contact' },
 ]
-
-/** @deprecated Use navItemDefs + i18n */
-export const navItems = navItemDefs.map((item) => ({
-  ...item,
-  label: item.id === 'stories' ? 'Actualités' : item.id.charAt(0).toUpperCase() + item.id.slice(1),
-}))
-
-/** @deprecated Use panelItemDefs + i18n */
-export const panelItems = panelItemDefs.map((item) => ({
-  ...item,
-  label: item.id,
-}))
-
-export const profileMenuItems = profileMenuDefs.map((item) => ({
-  ...item,
-  label: item.id,
-}))
-
-export const footerLinks = footerLinkDefs.map((item) => ({
-  ...item,
-  label: item.id,
-}))
