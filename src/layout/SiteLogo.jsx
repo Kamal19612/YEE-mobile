@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import clsx from 'clsx'
-import logoYee from '../assets/brand/logo-yee-network.png'
+import logoAfrea from '../assets/brand/afrea-logo.svg'
 
 /**
- * Marque YEE network — logo officiel (ovale bleu).
+ * Logo AfrEA (design system AfrEA : logo AfrEA uniquement).
  *
  * Cadre (`site-logo-frame`) qui borne la taille ; image en `object-contain`
  * pour rester entière sur desktop, rail replié et mobile.
@@ -13,7 +13,7 @@ import logoYee from '../assets/brand/logo-yee-network.png'
  * `as="span"` : rendu non-lien (ex. bouton parent)
  * `size` : sm | md | lg (hors mode fill)
  * `fill` : remplit le conteneur parent (hauteur + largeur imposées par le parent)
- * `variant="onDark"` : ombre / pastille pour fond sombre
+ * `variant="onDark"` : sur fond bleu, logo posé sur un cartouche blanc arrondi
  */
 export function SiteLogo({
   className = '',
@@ -35,21 +35,18 @@ export function SiteLogo({
     !fill && !compact && size === 'sm' && 'h-9 w-[8.75rem] max-w-full',
     !fill && !compact && size === 'md' && 'h-10 w-[10rem] max-w-full sm:h-11 sm:w-[11.25rem]',
     !fill && !compact && size === 'lg' && 'h-12 w-[12.5rem] max-w-full sm:h-14 sm:w-[14.375rem]',
-    onDark && 'rounded-full bg-white/10 p-1 ring-1 ring-white/25 backdrop-blur-sm',
+    onDark && 'rounded-bb-inner bg-white px-2 py-1',
   )
 
   const mark = (
     <span className={frameClass}>
       <img
-        src={logoYee}
+        src={logoAfrea}
         alt=""
-        width={635}
-        height={323}
+        width={369}
+        height={208}
         decoding="async"
-        className={clsx(
-          'site-logo-img pointer-events-none block h-auto max-h-full w-auto max-w-full object-contain object-center',
-          onDark && 'drop-shadow-[0_8px_20px_rgba(0,0,0,0.4)]',
-        )}
+        className="site-logo-img pointer-events-none block h-auto max-h-full w-auto max-w-full object-contain object-center"
       />
     </span>
   )
